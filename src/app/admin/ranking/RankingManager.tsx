@@ -286,24 +286,24 @@ export default function RankingManager({
     switch (proposal) {
       case 'pass':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Đề xuất: Đạt
+          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+            Pass
           </span>
         )
       case 'waitlist':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            Đề xuất: Phân vân
+          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+            Phân vân
           </span>
         )
       case 'fail':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-            Đề xuất: Trượt
+          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">
+            Trượt
           </span>
         )
       default:
-        return <span className="text-xs text-gray-400 italic">Chưa đề xuất</span>
+        return <span className="text-xs text-gray-400 italic whitespace-nowrap">—</span>
     }
   }
 
@@ -380,29 +380,6 @@ export default function RankingManager({
               <span>Tài khoản {ADMIN_ROLE_CONFIGS[activeRole]?.label} — Thẩm quyền phê duyệt thuộc Ban Chủ nhiệm</span>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Role & Separation of Powers Banner */}
-      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-amber-50 border border-blue-200 rounded-2xl p-4 text-xs text-gray-800 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="font-bold text-sm text-blue-900 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
-              Quy chế phân quyền thẩm định & ra quyết định
-            </div>
-            <div className="text-gray-600 space-y-0.5">
-              <div>
-                • <strong>Ban chuyên môn (Truyền thông, Tư vấn, Nhân sự):</strong> Chỉ được chấm điểm và giải trình lý do điểm số (kèm đề xuất sơ bộ nếu được cấp quyền). Ban chuyên môn chưa có quyền quyết định kết quả.
-              </div>
-              <div>
-                • <strong>Ban Chủ nhiệm (BCN):</strong> Xem xét toàn bộ bảng điểm, người chấm và lý giải điểm để là người chấp thuận quyết định cuối cùng và công bố TOP 15.
-              </div>
-            </div>
-          </div>
-          <Badge variant="outline" className="self-start md:self-center bg-white text-blue-900 border-blue-300 font-bold px-3 py-1">
-            Chỉ tiêu: TOP {quota} Toàn CLB
-          </Badge>
         </div>
       </div>
 
@@ -540,7 +517,7 @@ export default function RankingManager({
                   </th>
                   <th className="py-3.5 px-4">Ứng viên</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell">MSSV</th>
-                  {activeTab === 'general' && <th className="py-3.5 px-4">Ban ứng tuyển</th>}
+                  {activeTab === 'general' && <th className="py-3.5 px-4 whitespace-nowrap">Ban ứng tuyển</th>}
                   <th className="py-3.5 px-4 text-center">Điểm PV (/10)</th>
                   <th className="py-3.5 px-4">Tài khoản Người chấm</th>
                   <th className="py-3.5 px-4">Lý giải điểm số</th>
@@ -600,8 +577,8 @@ export default function RankingManager({
 
                       {/* Department (in general view) */}
                       {activeTab === 'general' && (
-                        <td className="py-3.5 px-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#1559c5] border border-blue-200 whitespace-nowrap">
                             {dept.name}
                           </span>
                         </td>

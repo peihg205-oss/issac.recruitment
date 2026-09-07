@@ -261,20 +261,6 @@ export default function EvaluationDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Permission & Workflow Notice */}
-      <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 text-xs text-amber-950 space-y-1 shadow-sm">
-        <div className="font-bold text-sm text-amber-900 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-          Quy chế chấm điểm & Thẩm quyền quyết định
-        </div>
-        <p className="text-amber-800 leading-relaxed">
-          • <strong>Ban chuyên môn:</strong> Chỉ thực hiện chấm điểm số các tiêu chí và <strong>bắt buộc phải giải trình lý do (lý giải tại sao đạt điểm số đó)</strong>. Ban chuyên môn chưa có quyền quyết định kết quả trúng tuyển.
-        </p>
-        <p className="text-amber-800 leading-relaxed">
-          • <strong>Đề xuất & Phê duyệt:</strong> Sau khi chấm điểm, Ban chuyên môn gửi đề xuất sơ bộ (Đạt / Phân vân / Không đạt). <strong>Ban Chủ nhiệm là người có thẩm quyền thẩm định và chấp thuận quyết định cuối cùng</strong>.
-        </p>
-      </div>
-
       {/* Access Denied Notice if not allowed */}
       {!canGrade && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-800 text-sm flex items-start gap-3 shadow-sm">
@@ -450,19 +436,19 @@ export default function EvaluationDetailPage() {
             {[
               {
                 value: 'pass',
-                title: 'Đề xuất ĐẠT (Pass)',
+                title: 'Pass',
                 desc: 'Đủ điều kiện vào TOP 15 chính thức',
                 bg: recommendation === 'pass' ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
               },
               {
                 value: 'waitlist',
-                title: 'Đề xuất PHÂN VÂN (Dự bị)',
+                title: 'Phân vân',
                 desc: 'Cân nhắc thêm hoặc đưa vào dự bị',
                 bg: recommendation === 'waitlist' ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400' : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
               },
               {
                 value: 'fail',
-                title: 'Đề xuất TRƯỢT (Fail)',
+                title: 'Trượt',
                 desc: 'Chưa đáp ứng tiêu chuẩn tuyển chọn',
                 bg: recommendation === 'fail' ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400' : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
               },

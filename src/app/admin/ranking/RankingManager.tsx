@@ -272,13 +272,13 @@ export default function RankingManager({
   const getDecisionBadge = (decision: string) => {
     switch (decision) {
       case 'pass':
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold">ĐẠT (PASS)</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold whitespace-nowrap">PASS</Badge>
       case 'waitlist':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold">DỰ BỊ (WAITLIST)</Badge>
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold whitespace-nowrap">DỰ BỊ</Badge>
       case 'fail':
-        return <Badge className="bg-gray-100 text-gray-700 border-gray-300 font-bold">KHÔNG ĐẠT</Badge>
+        return <Badge className="bg-gray-100 text-gray-700 border-gray-300 font-bold whitespace-nowrap">TRƯỢT</Badge>
       default:
-        return <Badge variant="outline" className="text-gray-500 font-medium">Chờ duyệt</Badge>
+        return <Badge variant="outline" className="text-gray-500 font-medium whitespace-nowrap">Chờ duyệt</Badge>
     }
   }
 
@@ -316,9 +316,6 @@ export default function RankingManager({
             <Trophy className="w-6 h-6 text-amber-500" />
             Hệ Thống Xếp Hạng & Phê Duyệt Tuyển Thành Viên iSSAC
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Xếp hạng theo điểm phỏng vấn — Các ban chấm điểm & giải trình, Ban Chủ nhiệm là cấp thẩm định và chấp thuận cuối cùng.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -387,9 +384,9 @@ export default function RankingManager({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {[
           { label: 'Tổng số ứng viên xếp hạng', value: sortedGeneral.length, color: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
-          { label: `TOP ${quota} ĐẠT (PASS)`, value: passCount, color: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
-          { label: 'Danh sách Dự bị (Waitlist)', value: waitlistCount, color: 'bg-amber-50 border-amber-200', text: 'text-amber-700' },
-          { label: 'Không đạt (Fail)', value: failCount, color: 'bg-gray-50 border-gray-200', text: 'text-gray-600' },
+          { label: `TOP ${quota} Pass`, value: passCount, color: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
+          { label: 'Dự bị', value: waitlistCount, color: 'bg-amber-50 border-amber-200', text: 'text-amber-700' },
+          { label: 'Trượt', value: failCount, color: 'bg-gray-50 border-gray-200', text: 'text-gray-600' },
           { label: 'Chỉ tiêu tuyển chọn', value: quota, color: 'bg-purple-50 border-purple-200', text: 'text-purple-700' },
         ].map((s, i) => (
           <Card key={i} className={`${s.color} border shadow-sm`}>
@@ -445,9 +442,9 @@ export default function RankingManager({
             className="h-9 text-xs rounded-xl border border-gray-300 bg-white px-2.5 font-semibold text-gray-700"
           >
             <option value="all">Tất cả kết quả</option>
-            <option value="pass">Đạt (PASS)</option>
-            <option value="waitlist">Dự bị (Waitlist)</option>
-            <option value="fail">Không đạt</option>
+            <option value="pass">Pass</option>
+            <option value="waitlist">Dự bị</option>
+            <option value="fail">Trượt</option>
           </select>
         </div>
       </div>
@@ -491,12 +488,9 @@ export default function RankingManager({
             </div>
             <div>
               <div className="font-black text-base flex items-center gap-2">
-                DANH SÁCH TOP {quota} THÀNH VIÊN CHÍNH THỨC ({passCount} ỨNG VIÊN ĐẠT)
+                DANH SÁCH TOP {quota} THÀNH VIÊN CHÍNH THỨC ({passCount} PASS)
                 <Sparkles className="w-4 h-4 text-amber-300" />
               </div>
-              <p className="text-emerald-100 text-xs mt-0.5">
-                Xếp hạng điểm số trung bình toàn CLB từ cao xuống thấp. Ban Chủ nhiệm giữ quyền quyết định chấp thuận cuối cùng.
-              </p>
             </div>
           </div>
           <Badge className="bg-white text-emerald-900 font-bold px-3 py-1 shadow-sm">
@@ -660,7 +654,7 @@ export default function RankingManager({
                                 onChange={e => handleChangeDecision(candidate.id, e.target.value as any)}
                                 className="text-[10px] h-6 rounded border border-gray-300 bg-white font-medium text-gray-700 px-1"
                               >
-                                <option value="pass">Đạt</option>
+                                <option value="pass">Pass</option>
                                 <option value="waitlist">Dự bị</option>
                                 <option value="fail">Trượt</option>
                               </select>
@@ -839,8 +833,8 @@ export default function RankingManager({
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs space-y-1.5 text-amber-950 font-medium">
                 <div>• Chỉ tiêu tuyển chọn: <strong className="font-bold">{quota} thành viên chính thức</strong></div>
-                <div>• Số ứng viên ĐẠT (PASS): <strong className="text-emerald-700 font-bold">{passCount} ứng viên</strong></div>
-                <div>• Số ứng viên Dự bị (Waitlist): <strong className="text-amber-700 font-bold">{waitlistCount} ứng viên</strong></div>
+                <div>• Số ứng viên Pass: <strong className="text-emerald-700 font-bold">{passCount} ứng viên</strong></div>
+                <div>• Số ứng viên Dự bị: <strong className="text-amber-700 font-bold">{waitlistCount} ứng viên</strong></div>
                 <div>• Thẩm quyền phê duyệt: <strong className="text-blue-900 font-bold">Ban Chủ nhiệm iSSAC</strong></div>
               </div>
               <p className="text-[11px] text-gray-500">

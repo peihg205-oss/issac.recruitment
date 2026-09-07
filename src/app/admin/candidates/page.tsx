@@ -145,7 +145,6 @@ export default function CandidatesPage() {
             <Users className="w-6 h-6 text-blue-600" />
             Hồ sơ Ứng viên ({filtered.length})
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Quản lý, tìm kiếm và duyệt trạng thái hồ sơ ứng viên iSSAC 2026</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">

@@ -633,17 +633,9 @@ export default function RankingManager({
                         <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
                           {getDecisionBadge(decision)}
 
-                          {/* BCN Quick Actions (Only for BCN) */}
+                          {/* BCN Decision Select (Only for BCN) */}
                           {isSuperAdmin && (
                             <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                              <button
-                                type="button"
-                                title="Chấp thuận đề xuất của Ban"
-                                onClick={() => handleApproveProposal(candidate.id)}
-                                className="px-2 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 whitespace-nowrap shadow-sm transition-colors"
-                              >
-                                Chấp thuận
-                              </button>
                               <select
                                 value={decision}
                                 onChange={e => handleChangeDecision(candidate.id, e.target.value as any)}
@@ -806,7 +798,7 @@ export default function RankingManager({
                   }}
                 >
                   <Check className="w-4 h-4 mr-1" />
-                  Chấp thuận đề xuất này
+                  Phê duyệt đề xuất này
                 </Button>
               )}
             </DialogFooter>

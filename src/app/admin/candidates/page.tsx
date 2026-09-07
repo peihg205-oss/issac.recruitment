@@ -7,11 +7,11 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-  Search, Download, Eye, CheckCircle, XCircle,
+  Search, Download, Eye, CheckCircle, XCircle, Clock,
   ArrowUpDown, Users, Loader2, ChevronRight, Filter
 } from 'lucide-react'
 import Link from 'next/link'
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, exportToCSV } from '@/lib/utils'
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, MOCK_DEPARTMENTS } from '@/lib/mock-data'
@@ -253,7 +253,7 @@ export default function CandidatesPage() {
                 <tr>
                   <th className="px-4 py-3.5">Ứng viên</th>
                   <th className="px-4 py-3.5">Ban đăng ký</th>
-                  <th className="px-4 py-3.5">Ngày nộp</th>
+                  <th className="px-4 py-3.5">Ngày & Giờ gửi</th>
                   <th className="px-4 py-3.5">Trạng thái</th>
                   <th className="px-4 py-3.5 text-center">Điểm PV</th>
                   <th className="px-4 py-3.5 text-center">Xếp hạng</th>
@@ -277,8 +277,12 @@ export default function CandidatesPage() {
                       <td className="px-4 py-3.5">
                         <span className="font-medium text-gray-800">{c.departments?.name}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-gray-500 whitespace-nowrap">
-                        {formatDate(c.submitted_at || c.created_at)}
+                      <td className="px-4 py-3.5 text-xs whitespace-nowrap">
+                        <div className="font-semibold text-gray-900">{formatDate(c.submitted_at || c.created_at)}</div>
+                        <div className="text-[11px] text-gray-500 font-mono flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3 text-blue-600" />
+                          <span>{formatFullTimestamp(c.submitted_at || c.created_at).timeStr}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${APPLICATION_STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-800'}`}>

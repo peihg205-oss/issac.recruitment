@@ -53,7 +53,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-01',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-01T08:30:00Z',
+    submitted_at: '2026-09-01T08:30:00+07:00',
     created_at: '2026-09-01T08:00:00Z',
     profiles: {
       full_name: 'Nguyễn Hà Phương',
@@ -95,7 +95,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-02',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-01T09:15:00Z',
+    submitted_at: '2026-09-01T09:50:30+07:00',
     created_at: '2026-09-01T08:30:00Z',
     profiles: {
       full_name: 'Trần Minh Hoàng',
@@ -137,7 +137,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-03',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-01T10:00:00Z',
+    submitted_at: '2026-09-01T11:15:45+07:00',
     created_at: '2026-09-01T09:00:00Z',
     profiles: {
       full_name: 'Lê Thảo Linh',
@@ -179,7 +179,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-04',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-01T11:20:00Z',
+    submitted_at: '2026-09-01T15:30:20+07:00',
     created_at: '2026-09-01T10:00:00Z',
     profiles: {
       full_name: 'Phạm Đăng Khoa',
@@ -221,7 +221,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-05',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-02T08:10:00Z',
+    submitted_at: '2026-09-02T08:45:12+07:00',
     created_at: '2026-09-02T07:45:00Z',
     profiles: {
       full_name: 'Vũ Hải Yến',
@@ -263,7 +263,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-06',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-02T09:30:00Z',
+    submitted_at: '2026-09-02T10:10:05+07:00',
     created_at: '2026-09-02T09:00:00Z',
     profiles: {
       full_name: 'Đoàn Quốc Tuấn',
@@ -305,7 +305,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-07',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-02T14:15:00Z',
+    submitted_at: '2026-09-02T14:25:40+07:00',
     created_at: '2026-09-02T13:30:00Z',
     profiles: {
       full_name: 'Hoàng Bích Ngọc',
@@ -347,7 +347,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-08',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-02T16:00:00Z',
+    submitted_at: '2026-09-02T16:30:10+07:00',
     created_at: '2026-09-02T15:20:00Z',
     profiles: {
       full_name: 'Bùi Đức Anh',
@@ -389,7 +389,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-09',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-03T09:00:00Z',
+    submitted_at: '2026-09-03T09:15:35+07:00',
     created_at: '2026-09-03T08:15:00Z',
     profiles: {
       full_name: 'Đặng Mai Chi',
@@ -431,7 +431,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-10',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-03T11:00:00Z',
+    submitted_at: '2026-09-03T11:20:10+07:00',
     created_at: '2026-09-03T10:30:00Z',
     profiles: {
       full_name: 'Lý Gia Bảo',
@@ -473,7 +473,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-11',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-03T14:30:00Z',
+    submitted_at: '2026-09-03T14:45:22+07:00',
     created_at: '2026-09-03T14:00:00Z',
     profiles: {
       full_name: 'Dương Khánh Huyền',
@@ -515,7 +515,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-12',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-03T16:45:00Z',
+    submitted_at: '2026-09-03T17:10:00+07:00',
     created_at: '2026-09-03T16:00:00Z',
     profiles: {
       full_name: 'Phan Gia Huy',
@@ -557,7 +557,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-13',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T08:30:00Z',
+    submitted_at: '2026-09-04T09:40:15+07:00',
     created_at: '2026-09-04T08:00:00Z',
     profiles: {
       full_name: 'Ngô Trúc Quỳnh',
@@ -599,7 +599,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-14',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T10:15:00Z',
+    submitted_at: '2026-09-04T11:15:20+07:00',
     created_at: '2026-09-04T09:45:00Z',
     profiles: {
       full_name: 'Tạ Minh Trí',
@@ -641,7 +641,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-15',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T13:40:00Z',
+    submitted_at: '2026-09-04T14:30:45+07:00',
     created_at: '2026-09-04T13:00:00Z',
     profiles: {
       full_name: 'Chu Ngọc Lan',
@@ -683,7 +683,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-16',
     department_id: 'dept-1',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T15:20:00Z',
+    submitted_at: '2026-09-04T16:55:12+07:00',
     created_at: '2026-09-04T14:45:00Z',
     profiles: {
       full_name: 'Lâm Văn Thắng',
@@ -725,7 +725,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-17',
     department_id: 'dept-2',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T16:00:00Z',
+    submitted_at: '2026-09-04T18:20:30+07:00',
     created_at: '2026-09-04T15:30:00Z',
     profiles: {
       full_name: 'Vương Bảo Châu',
@@ -767,7 +767,7 @@ export const MOCK_CANDIDATES = [
     user_id: 'user-18',
     department_id: 'dept-3',
     status: 'finalized' as const,
-    submitted_at: '2026-09-04T17:30:00Z',
+    submitted_at: '2026-09-05T17:30:15+07:00',
     created_at: '2026-09-04T17:00:00Z',
     profiles: {
       full_name: 'Đặng Tuấn Khang',
@@ -856,3 +856,183 @@ export const MOCK_INTERVIEW_SLOTS = [
     is_active: true,
   },
 ]
+
+
+export interface CandidateApplicationAnswer {
+  question_id: string
+  question_order: number
+  category: 'general' | 'department' | 'commitment' | 'attachment'
+  category_label: string
+  question_text: string
+  question_type: 'short_text' | 'long_text' | 'multiple_choice' | 'link'
+  answer_text: string
+  selected_option?: string
+  options?: string[]
+  file_url?: string
+}
+
+export function getCandidateApplicationAnswers(candidateId: string): CandidateApplicationAnswer[] {
+  const candidate = MOCK_CANDIDATES.find(c => c.id === candidateId)
+  if (!candidate) return []
+
+  const p = candidate.profiles
+  const deptName = candidate.departments.name
+  const deptSlug = candidate.departments.slug
+
+  // Common questions
+  const q1: CandidateApplicationAnswer = {
+    question_id: 'q-gen-1',
+    question_order: 1,
+    category: 'general',
+    category_label: 'Thông tin chung',
+    question_text: 'Bạn biết đến iSSAC qua kênh thông tin nào?',
+    question_type: 'multiple_choice',
+    selected_option: candidateId === 'app-01' || candidateId === 'app-04' || candidateId === 'app-10' || candidateId === 'app-16' 
+      ? 'Fanpage & Mạng xã hội CLB'
+      : candidateId === 'app-02' || candidateId === 'app-05' || candidateId === 'app-11' || candidateId === 'app-17'
+      ? 'Ngày hội Chào Tân sinh viên VNU-IS'
+      : 'Bạn bè & Các cựu Đại sứ iSSAC giới thiệu',
+    options: ['Fanpage & Mạng xã hội CLB', 'Ngày hội Chào Tân sinh viên VNU-IS', 'Bạn bè & Các cựu Đại sứ iSSAC giới thiệu', 'Giảng viên Trường Quốc tế'],
+    answer_text: candidateId === 'app-01' || candidateId === 'app-04' || candidateId === 'app-10' || candidateId === 'app-16'
+      ? 'Em theo dõi Fanpage CLB Đại sứ Sinh viên VNU-IS (iSSAC) và kênh TikTok của trường từ trước khi nhập học.'
+      : candidateId === 'app-02' || candidateId === 'app-05' || candidateId === 'app-11' || candidateId === 'app-17'
+      ? 'Em được ấn tượng sâu sắc từ gian hàng tư vấn tại Ngày hội Chào Tân sinh viên VNU-IS tại cơ sở Hòa Lạc.'
+      : 'Em được các anh chị cựu Đại sứ sinh viên khóa trước cùng ngành truyền cảm hứng và động viên nộp đơn ứng tuyển.'
+  }
+
+  const q2: CandidateApplicationAnswer = {
+    question_id: 'q-gen-2',
+    question_order: 2,
+    category: 'general',
+    category_label: 'Động lực ứng tuyển',
+    question_text: 'Mục tiêu lớn nhất và lý do bạn ứng tuyển trở thành Đại sứ sinh viên iSSAC?',
+    question_type: 'long_text',
+    answer_text: `Em mong muốn trở thành một phần của iSSAC để đại diện cho tinh thần sinh viên Trường Quốc tế - ĐHQGHN: tự tin, năng động và hội nhập quốc tế. ${p.bio || ''} Mục tiêu của em là phát triển toàn diện kỹ năng mềm, mở rộng kết nối và đóng góp giá trị thiết thực cho cộng đồng sinh viên VNU-IS thông qua các dự án của CLB.`
+  }
+
+  // Department specialized questions
+  let q3: CandidateApplicationAnswer
+  let q4: CandidateApplicationAnswer
+
+  if (deptSlug === 'truyen-thong') {
+    q3 = {
+      question_id: 'q-tt-1',
+      question_order: 3,
+      category: 'department',
+      category_label: 'Chuyên môn Ban Truyền thông',
+      question_text: 'Vì sao bạn lựa chọn Ban Truyền thông và phong cách sáng tạo nội dung của bạn là gì?',
+      question_type: 'long_text',
+      answer_text: candidateId === 'app-01'
+        ? 'Em có thế mạnh đặc biệt về thiết kế visual và xây dựng kịch bản video ngắn cho TikTok/Reels. Phong cách sáng tạo của em hiện đại, bắt kịp xu hướng giới trẻ (Gen Z aesthetic) nhưng luôn giữ chuẩn mực trang trọng của Đại học Quốc gia Hà Nội.'
+        : candidateId === 'app-04'
+        ? 'Em đam mê thiết kế đồ họa nhận diện thương hiệu với Figma & Adobe Illustrator. Em muốn xây dựng bộ ấn phẩm đồng bộ, chỉn chu và nâng tầm nhận diện của CLB iSSAC trên tất cả các kênh truyền thông số.'
+        : candidateId === 'app-07'
+        ? 'Sở trường của em là copywriting, viết bài PR truyền cảm hứng và sáng tạo nội dung bài đăng Facebook. Em muốn tạo ra các tuyến nội dung sâu sắc về hành trình trưởng thành của sinh viên VNU-IS.'
+        : candidateId === 'app-10'
+        ? 'Em chuyên về quay phim và dựng video sự kiện bằng Premiere Pro và CapCut. Em muốn ghi lại những thước phim xúc động, hoành tráng trong các sự kiện đại sứ sinh viên.'
+        : candidateId === 'app-13'
+        ? 'Em sở hữu máy ảnh chuyên dụng và có kỹ năng chụp ảnh sự kiện, phóng sự ảnh và blend màu Lightroom. Em tự tin sẽ phụ trách tốt mảng hình ảnh thực tế cho CLB.'
+        : 'Em có niềm yêu thích lớn với việc hỗ trợ kỹ thuật âm thanh, ánh sáng và livestream sự kiện trên nền tảng số, mong muốn được đóng góp cho ban.'
+    }
+
+    q4 = {
+      question_id: 'q-tt-2',
+      question_order: 4,
+      category: 'department',
+      category_label: 'Kinh nghiệm & Kỹ năng',
+      question_text: 'Hãy chia sẻ kinh nghiệm sử dụng các công cụ truyền thông (Canva, Photoshop, Premiere, CapCut) và kèm link sản phẩm nổi bật của bạn.',
+      question_type: 'long_text',
+      answer_text: `Em đã có kinh nghiệm thực tế quản lý kênh và sản xuất ấn phẩm từ thời THPT và năm nhất đại học. Các công cụ sử dụng thường xuyên: Adobe Photoshop, Illustrator, Premiere Pro, CapCut và Canva Pro. Link sản phẩm và portfolio được đính kèm trong hồ sơ Drive: ${p.cv_url || 'https://drive.google.com/sample_portfolio'}`
+    }
+  } else if (deptSlug === 'tu-van') {
+    q3 = {
+      question_id: 'q-tv-1',
+      question_order: 3,
+      category: 'department',
+      category_label: 'Chuyên môn Ban Tư vấn',
+      question_text: 'Vì sao bạn lựa chọn Ban Tư vấn và cách bạn tiếp cận để hỗ trợ tân sinh viên?',
+      question_type: 'long_text',
+      answer_text: candidateId === 'app-02'
+        ? 'Với nền tảng tiếng Anh IELTS 8.0 và kinh nghiệm sinh hoạt học thuật, em muốn tư vấn các chương trình học bổng, cơ hội trao đổi quốc tế và định hướng chọn môn chuyên ngành cho các bạn sinh viên.'
+        : candidateId === 'app-05'
+        ? 'Em là người có tính cách thân thiện, cởi mở và kiên nhẫn. Em muốn làm người bạn đồng hành giải tỏa những bỡ ngỡ, lo âu ban đầu của các bạn tân sinh viên khi mới bước vào giảng đường đại học.'
+        : candidateId === 'app-08'
+        ? 'Em muốn xây dựng cẩm nang hỏi đáp nhanh về tín chỉ, học phần và các mẹo học tập hiệu quả tại Trường Quốc tế để hỗ trợ sinh viên nhanh chóng và chuẩn xác nhất.'
+        : candidateId === 'app-11'
+        ? 'Em từng có kinh nghiệm làm MC và diễn thuyết trước đám đông, em tự tin có thể dẫn dắt các buổi workshop chia sẻ phương pháp học tập và hướng nghiệp do CLB tổ chức.'
+        : candidateId === 'app-14'
+        ? 'Em luôn tỉ mỉ, thích nghiên cứu quy chế đào tạo và thông tin học vụ để giúp các bạn tháo gỡ vướng mắc trong quá trình đăng ký môn học và thực tập.'
+        : 'Em muốn rèn luyện kỹ năng giao tiếp, lắng nghe tích cực và học hỏi kiến thức tư vấn chuyên sâu từ các anh chị khóa trên.'
+    }
+
+    q4 = {
+      question_id: 'q-tv-2',
+      question_order: 4,
+      category: 'department',
+      category_label: 'Xử lý tình huống',
+      question_text: 'Theo bạn, kỹ năng quan trọng nhất của người tư vấn là gì? Hãy chia sẻ một tình huống thực tế bạn từng hỗ trợ người khác.',
+      question_type: 'long_text',
+      answer_text: 'Theo em, kỹ năng quan trọng nhất của người làm công tác tư vấn là "Lắng nghe chủ động và thấu cảm". Em từng hỗ trợ một bạn sinh viên khóa dưới gặp khủng hoảng tâm lý vì không theo kịp các môn học bằng tiếng Anh. Em đã dành thời gian ngồi lại, cùng bạn phân tích thời khóa biểu, chia sẻ tài liệu tự học song ngữ và kết nối bạn với nhóm bạn học cùng tiến, giúp bạn vượt qua kỳ thi với kết quả tốt.'
+    }
+  } else {
+    // Ban Nhân sự
+    q3 = {
+      question_id: 'q-ns-1',
+      question_order: 3,
+      category: 'department',
+      category_label: 'Chuyên môn Ban Nhân sự',
+      question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC và bạn muốn đóng góp gì cho sự gắn kết nội bộ?',
+      question_type: 'long_text',
+      answer_text: candidateId === 'app-03'
+        ? 'Em có định hướng phát triển nghề nghiệp trong lĩnh vực Quản trị Nhân sự (HR). Em muốn trực tiếp tham gia xây dựng quy chế thành viên, bộ tiêu chí đánh giá KPI công bằng và các chương trình bồi dưỡng kỹ năng cho toàn thể CLB.'
+        : candidateId === 'app-06'
+        ? 'Em là người tràn đầy năng lượng, có khả năng khuấy động phong trào và tổ chức các trò chơi teambuilding. Em muốn Ban Nhân sự luôn là linh hồn gắn kết tình cảm giữa các ban chuyên môn.'
+        : candidateId === 'app-09'
+        ? 'Em luôn cẩn thận, chu đáo và tôn trọng kỷ luật. Em mong muốn phụ trách công tác lưu trữ hồ sơ, theo dõi chuyên cần và chăm sóc quyền lợi cho từng thành viên trong suốt nhiệm kỳ.'
+        : candidateId === 'app-12'
+        ? 'Em muốn kết hợp các hoạt động thể thao, dã ngoại và ngày hội văn hóa nội bộ để tạo nên một đại gia đình iSSAC đoàn kết, thân thiết và giàu kỷ niệm.'
+        : candidateId === 'app-15'
+        ? 'Em thích lắng nghe, quan sát tâm lý của mọi người để kịp thời phát hiện những thành viên đang gặp khó khăn hoặc chùn bước, từ đó hỗ trợ gắn kết các bạn lại với tập thể.'
+        : 'Em mong muốn được học hỏi quy trình tổ chức nhân sự, cách vận hành một tổ chức sinh viên chuyên nghiệp và cải thiện sự tự tin của bản thân trong môi trường tập thể.'
+    }
+
+    q4 = {
+      question_id: 'q-ns-2',
+      question_order: 4,
+      category: 'department',
+      category_label: 'Xử lý tình huống',
+      question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm gay gắt trong quá trình chạy sự kiện, bạn sẽ giải quyết như thế nào?',
+      question_type: 'long_text',
+      answer_text: candidateId === 'app-18'
+        ? 'Em sẽ bình tĩnh lắng nghe góc nhìn của từng bạn một cách khách quan, tìm ra nguyên nhân gốc rễ và cùng ngồi lại đối thoại vì mục tiêu chung của sự kiện. Nếu vượt quá thẩm quyền, em sẽ chủ động báo cáo với Trưởng ban để có hướng xử lý kịp thời.'
+        : 'Trước tiên em sẽ tách hai bạn khỏi bầu không khí căng thẳng tại hiện trường để sự kiện không bị gián đoạn. Sau đó, em lắng nghe riêng từng bạn trên tinh thần tôn trọng, không phán xét, làm rõ đâu là sự thật và đâu là cảm xúc cá nhân. Tiếp theo, tổ chức buổi trao đổi thẳng thắn tập trung vào mục tiêu chung và giải pháp tối ưu cho CLB, đồng thời báo cáo với Trưởng ban để theo dõi tiến độ gắn kết.'
+    }
+  }
+
+  const q5: CandidateApplicationAnswer = {
+    question_id: 'q-com-1',
+    question_order: 5,
+    category: 'commitment',
+    category_label: 'Cam kết tham gia',
+    question_text: 'Bạn có cam kết dành tối thiểu 10 - 15 giờ/tuần cho các hoạt động của CLB và tham gia đầy đủ các buổi họp/training không?',
+    question_type: 'multiple_choice',
+    selected_option: 'Cam kết 100% thời gian và trách nhiệm',
+    options: ['Cam kết 100% thời gian và trách nhiệm', 'Có thể tham gia 5 - 10 giờ/tuần', 'Chưa chắc chắn do lịch học'],
+    answer_text: candidateId === 'app-18'
+      ? 'Em xin cam kết dành đủ thời gian tham gia các buổi họp ban hàng tuần, các đợt tập huấn và hỗ trợ chạy sự kiện trực tiếp khi có phân công.'
+      : 'Em hoàn toàn cam kết dành tối thiểu 12 - 15 giờ/tuần. Em đã sắp xếp thời khóa biểu hợp lý, ưu tiên lịch sinh hoạt định kỳ của CLB vào tối Thứ Bảy và sẵn sàng hỗ trợ tăng cường trong các tuần lễ diễn ra sự kiện lớn.'
+  }
+
+  const q6: CandidateApplicationAnswer = {
+    question_id: 'q-att-1',
+    question_order: 6,
+    category: 'attachment',
+    category_label: 'Hồ sơ đính kèm',
+    question_text: 'Liên kết CV / Portfolio cá nhân và kênh liên lạc chính thức:',
+    question_type: 'link',
+    answer_text: `Link CV ứng viên: ${p.cv_url || 'https://drive.google.com/sample_cv'} · Facebook cá nhân: ${p.facebook_url || 'https://facebook.com/'}`,
+    file_url: p.cv_url || 'https://drive.google.com/sample_cv'
+  }
+
+  return [q1, q2, q3, q4, q5, q6]
+}

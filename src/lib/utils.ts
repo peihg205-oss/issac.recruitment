@@ -23,7 +23,24 @@ export function formatDateTime(date: string | null | undefined): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   }).format(new Date(date))
+}
+
+export function formatFullTimestamp(date: string | null | undefined): { dateStr: string; timeStr: string } {
+  if (!date) return { dateStr: '—', timeStr: '—' }
+  const d = new Date(date)
+  const dateStr = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d)
+  const timeStr = new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(d)
+  return { dateStr, timeStr }
 }
 
 export function formatTime(time: string | null | undefined): string {
@@ -67,9 +84,9 @@ export const DEPARTMENT_COLORS: Record<string, string> = {
 }
 
 export const RESULT_LABELS: Record<string, string> = {
-  pass: 'Đạt',
+  pass: 'Pass',
   waitlist: 'Dự bị',
-  fail: 'Không đạt',
+  fail: 'Trượt',
   pending: 'Chờ kết quả',
 }
 

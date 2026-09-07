@@ -371,12 +371,7 @@ export default function RankingManager({
                 </Button>
               )}
             </>
-          ) : (
-            <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-600 font-semibold shadow-inner">
-              <ShieldCheck className="w-4 h-4 text-gray-500" />
-              <span>Tài khoản {ADMIN_ROLE_CONFIGS[activeRole]?.label} — Thẩm quyền phê duyệt thuộc Ban Chủ nhiệm</span>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -487,9 +482,8 @@ export default function RankingManager({
               <Crown className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <div className="font-black text-base flex items-center gap-2">
+              <div className="font-black text-base">
                 DANH SÁCH TOP {quota} THÀNH VIÊN CHÍNH THỨC ({passCount} PASS)
-                <Sparkles className="w-4 h-4 text-amber-300" />
               </div>
             </div>
           </div>
@@ -504,20 +498,20 @@ export default function RankingManager({
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-700 uppercase text-xs border-b">
+              <thead className="bg-gray-50 text-gray-700 uppercase text-xs border-b font-bold tracking-wider">
                 <tr>
-                  <th className="py-3.5 px-4 text-center w-16">
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap w-16">
                     {activeTab === 'general' ? 'Hạng' : 'Hạng Ban'}
                   </th>
-                  <th className="py-3.5 px-4">Ứng viên</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">MSSV</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Ứng viên</th>
+                  <th className="py-3.5 px-4 hidden sm:table-cell whitespace-nowrap">MSSV</th>
                   {activeTab === 'general' && <th className="py-3.5 px-4 whitespace-nowrap">Ban ứng tuyển</th>}
-                  <th className="py-3.5 px-4 text-center">Điểm PV (/10)</th>
-                  <th className="py-3.5 px-4">Tài khoản Người chấm</th>
-                  <th className="py-3.5 px-4">Lý giải điểm số</th>
-                  <th className="py-3.5 px-4 text-center">Đề xuất của Ban</th>
-                  <th className="py-3.5 px-4 text-center">Quyết định Ban Chủ nhiệm</th>
-                  <th className="py-3.5 px-4 text-right">Chi tiết</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Điểm PV (/10)</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Tài khoản Người chấm</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Lý giải điểm số</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Đề xuất của Ban</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Quyết định BCN</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Chi tiết</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -607,22 +601,23 @@ export default function RankingManager({
                       </td>
 
                       {/* Score Justification Preview */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {evalData?.score_justification ? (
-                          <div className="max-w-[220px]">
-                            <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed">
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <span className="text-xs text-gray-700 truncate max-w-[150px]" title={evalData.score_justification}>
                               {evalData.score_justification}
-                            </p>
+                            </span>
                             <button
                               type="button"
                               onClick={() => setSelectedCandidate(candidate)}
-                              className="text-[11px] text-blue-600 font-bold hover:underline mt-0.5 flex items-center gap-0.5"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap flex-shrink-0"
                             >
-                              <Eye className="w-3 h-3" /> Xem lý giải đầy đủ
+                              <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>Xem chi tiết</span>
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">Chưa có lý giải</span>
+                          <span className="text-xs text-gray-400 italic whitespace-nowrap">—</span>
                         )}
                       </td>
 

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { Eye, EyeOff, LogIn, ArrowLeft, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, LogIn, ArrowLeft, Loader2, Sparkles } from 'lucide-react'
 
 const schema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -40,7 +40,13 @@ function LoginForm() {
     setLoading(false)
 
     if (error) {
-      toast({ title: 'Đăng nhập thất bại', description: error.message === 'Invalid login credentials' ? 'Email hoặc mật khẩu không đúng.' : error.message, variant: 'destructive' })
+      toast({
+        title: 'Đăng nhập thất bại',
+        description: error.message === 'Invalid login credentials'
+          ? 'Email hoặc mật khẩu không đúng. Nếu bạn chưa liên kết Supabase thật trong .env.local, hãy dùng nút Xem Admin Demo bên dưới!'
+          : error.message,
+        variant: 'destructive'
+      })
       return
     }
 
@@ -105,18 +111,18 @@ function LoginForm() {
               <Image src="/issac-logo.png" alt="iSSAC" width={64} height={64} className="rounded-full" />
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6">
               <h2 className="text-2xl font-black text-gray-900 mb-1">Đăng nhập</h2>
               <p className="text-gray-500 text-sm">Chào mừng trở lại iSSAC Portal</p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="example@email.com"
+                  placeholder="example@vnu.edu.vn"
                   {...register('email')}
                   className={errors.email ? 'border-red-300 focus-visible:ring-red-400' : ''}
                 />
@@ -145,7 +151,7 @@ function LoginForm() {
               </div>
 
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                <Link href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
                   Quên mật khẩu?
                 </Link>
               </div>
@@ -159,11 +165,29 @@ function LoginForm() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-gray-500">
+            <div className="mt-5 text-center text-sm text-gray-500">
               Chưa có tài khoản?{' '}
-              <Link href="/register" className="text-blue-600 font-semibold hover:underline">
+              <Link href="/register" className="text-blue-600 font-bold hover:underline">
                 Đăng ký ngay
               </Link>
+            </div>
+
+            {/* Direct Admin Demo Button */}
+            <div className="mt-6 pt-5 border-t border-gray-100">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-center">
+                <div className="text-xs font-bold text-amber-900 mb-1 flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  Xem ngay Giao diện Quản trị viên
+                </div>
+                <p className="text-[11px] text-amber-800 mb-3 leading-relaxed">
+                  Khám phá toàn bộ bảng điều khiển Ban Tuyển dụng với dữ liệu mẫu (Danh sách ứng viên, Chấm điểm, Top 15) mà không cần đăng nhập.
+                </p>
+                <Link href="/admin/dashboard" className="block w-full">
+                  <Button variant="gold" size="sm" className="w-full font-black text-xs shadow-md">
+                    ⚡ Vào Xem Admin Dashboard (Demo) →
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             <div className="mt-4 text-center">

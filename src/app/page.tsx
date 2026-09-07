@@ -24,7 +24,7 @@ export default function HomePage() {
               <Link href="/contact" className="hover:text-blue-700 transition-colors">Liên hệ</Link>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/login">
+              <Link href="/admin/dashboard"><Button variant="ghost" size="sm" className="text-blue-900 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs gap-1.5 border border-blue-200"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Admin Portal</Button></Link><Link href="/login">
                 <Button variant="outline" size="sm">Đăng nhập</Button>
               </Link>
               <Link href="/register">
@@ -305,7 +305,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/admin/dashboard"><Button variant="ghost" size="sm" className="text-blue-900 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs gap-1.5 border border-blue-200"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Admin Portal</Button></Link><Link href="/login">
               <Button size="xl" variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:text-white">
                 Đã có tài khoản
               </Button>

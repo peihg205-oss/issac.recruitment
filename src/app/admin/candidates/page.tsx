@@ -15,6 +15,7 @@ import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, expor
 import { useToast } from '@/components/ui/use-toast'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, MOCK_DEPARTMENTS } from '@/lib/mock-data'
+import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
 interface Candidate {
   id: string
@@ -38,6 +39,17 @@ export default function CandidatesPage() {
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'score'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
+
+  useEffect(() => {
+    const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+    if (match && match[1] in ADMIN_ROLE_CONFIGS) {
+      setActiveRole(match[1] as AdminRoleType)
+    }
+  }, [])
+
+  const isSuperAdmin = activeRole === 'chu-nhiem'
+  const userDeptObj = departments.find(d => d.slug === activeRole)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -92,7 +104,11 @@ export default function CandidatesPage() {
     } as Parameters<typeof toast>[0])
   }
 
-  const filtered = candidates
+  const scopedCandidates = isSuperAdmin
+    ? candidates
+    : candidates.filter(c => c.departments?.slug === activeRole)
+
+  const filtered = scopedCandidates
     .filter(c => {
       const p = c.profiles
       const matchesSearch = !search ||
@@ -100,7 +116,10 @@ export default function CandidatesPage() {
         p?.email?.toLowerCase().includes(search.toLowerCase()) ||
         p?.student_id?.toLowerCase().includes(search.toLowerCase())
 
-      const matchesDept = deptFilter === 'all' || c.departments?.slug === deptFilter
+      const matchesDept = isSuperAdmin
+        ? (deptFilter === 'all' || c.departments?.slug === deptFilter)
+        : true
+
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter
       return matchesSearch && matchesDept && matchesStatus
     })
@@ -170,17 +189,23 @@ export default function CandidatesPage() {
             </div>
 
             {/* Department Filter */}
-            <Select value={deptFilter} onValueChange={setDeptFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tất cả Ban" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả các Ban</SelectItem>
-                {departments.map(d => (
-                  <SelectItem key={d.id} value={d.slug}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isSuperAdmin ? (
+              <Select value={deptFilter} onValueChange={setDeptFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tất cả Ban" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả các Ban</SelectItem>
+                  {departments.map(d => (
+                    <SelectItem key={d.id} value={d.slug}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-xs font-bold text-[#1559c5]">
+                Phạm vi: {userDeptObj?.name || 'Ban của bạn'}
+              </div>
+            )}
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>

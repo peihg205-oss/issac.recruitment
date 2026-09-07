@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/components/ui/use-toast'
 import { Calendar, Plus, Edit2, Trash2, Users, Clock, Video, MapPin, Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
 export default function InterviewsAdminPage() {
   const supabase = createClient()
@@ -18,6 +19,17 @@ export default function InterviewsAdminPage() {
   const [slots, setSlots] = useState<any[]>([])
   const [departments, setDepartments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
+
+  useEffect(() => {
+    const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+    if (match && match[1] in ADMIN_ROLE_CONFIGS) {
+      setActiveRole(match[1] as AdminRoleType)
+    }
+  }, [])
+
+  const isSuperAdmin = activeRole === 'chu-nhiem'
+  const userDeptObj = departments.find(d => d.slug === activeRole)
   const [showForm, setShowForm] = useState(false)
   const [editSlot, setEditSlot] = useState<any>(null)
   const [saving, setSaving] = useState(false)
@@ -47,7 +59,7 @@ export default function InterviewsAdminPage() {
 
   const openCreate = () => {
     setEditSlot(null)
-    setForm({ department_id: '', interview_date: '', start_time: '', end_time: '', format: 'online', location: '', meeting_url: '', max_candidates: 3 })
+    setForm({ department_id: isSuperAdmin ? '' : (userDeptObj?.id || ''), interview_date: '', start_time: '', end_time: '', format: 'online', location: '', meeting_url: '', max_candidates: 3 })
     setShowForm(true)
   }
 
@@ -102,6 +114,10 @@ export default function InterviewsAdminPage() {
     fetchData()
   }
 
+  const scopedSlots = isSuperAdmin
+    ? slots
+    : slots.filter(s => !s.department_id || s.departments?.slug === activeRole || s.department_id === userDeptObj?.id)
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -110,7 +126,7 @@ export default function InterviewsAdminPage() {
             <Calendar className="w-6 h-6 text-blue-600" />
             Quản lý Lịch phỏng vấn
           </h1>
-          <p className="text-gray-500 text-sm mt-1">{slots.length} slot đã được tạo</p>
+          <p className="text-gray-500 text-sm mt-1">{scopedSlots.length} slot dành cho ban</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="w-4 h-4" /> Thêm slot
@@ -119,7 +135,7 @@ export default function InterviewsAdminPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
-      ) : slots.length === 0 ? (
+      ) : scopedSlots.length === 0 ? (
         <Card className="text-center py-16">
           <CardContent>
             <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -129,7 +145,8 @@ export default function InterviewsAdminPage() {
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {slots.map(slot => {
+          {scopedSlots.map(slot => {
+            const canManage = isSuperAdmin || (slot.departments?.slug === activeRole || slot.department_id === userDeptObj?.id)
             const isFull = slot.current_candidates >= slot.max_candidates
             const dept = slot.departments
             const booked = slot.current_candidates || 0
@@ -142,14 +159,18 @@ export default function InterviewsAdminPage() {
                       <div className="font-bold text-gray-900">{formatDate(slot.interview_date)}</div>
                       <div className="text-blue-600 font-semibold text-sm">{slot.start_time?.slice(0,5)} — {slot.end_time?.slice(0,5)}</div>
                     </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => openEdit(slot)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(slot.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {canManage ? (
+                      <div className="flex gap-1">
+                        <button onClick={() => openEdit(slot)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(slot.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] text-gray-400">Chung CLB</Badge>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 text-xs">
@@ -184,14 +205,20 @@ export default function InterviewsAdminPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="mb-1.5">Ban (để trống = tất cả)</Label>
-              <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Chọn ban..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả ban</SelectItem>
-                  {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="mb-1.5">Ban áp dụng</Label>
+              {isSuperAdmin ? (
+                <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Chọn ban..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tất cả ban</SelectItem>
+                    {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-bold text-[#1559c5]">
+                  {userDeptObj?.name || 'Ban phụ trách'}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="mb-1.5">Ngày phỏng vấn</Label><Input type="date" value={form.interview_date} onChange={e => setForm(f => ({ ...f, interview_date: e.target.value }))} /></div>

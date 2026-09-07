@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { HelpCircle, Plus, Edit2, Trash2, Loader2 } from 'lucide-react'
+import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
@@ -62,7 +62,11 @@ export default function QuestionsPage() {
   useEffect(() => {
     const match = document.cookie.match(/issac_admin_role=([^;]+)/)
     if (match && match[1] in ADMIN_ROLE_CONFIGS) {
-      setActiveRole(match[1] as AdminRoleType)
+      const role = match[1] as AdminRoleType
+      setActiveRole(role)
+      if (role !== 'chu-nhiem') {
+        setDeptFilter(role) // Mặc định mở ngay tab của Ban đang đăng nhập
+      }
     }
   }, [])
 
@@ -99,6 +103,12 @@ export default function QuestionsPage() {
   }
 
   const openEdit = (q: any) => {
+    // Phân quyền: Ban chuyên môn chỉ được sửa câu hỏi của ban mình
+    if (!isSuperAdmin && q.departments?.slug !== activeRole && q.department_id !== userDeptObj?.id) {
+      toast({ title: 'Không có quyền chỉnh sửa câu hỏi này', variant: 'destructive' })
+      return
+    }
+
     setEditQ(q)
     setForm({
       department_id: q.department_id || '',
@@ -149,72 +159,127 @@ export default function QuestionsPage() {
     setShowForm(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (q: any) => {
+    if (!isSuperAdmin && q.departments?.slug !== activeRole && q.department_id !== userDeptObj?.id) {
+      toast({ title: 'Không có quyền xóa câu hỏi này', variant: 'destructive' })
+      return
+    }
+
     if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
-      setQuestions(prev => prev.filter(q => q.id !== id))
+      setQuestions(prev => prev.filter(item => item.id !== q.id))
       toast({ title: 'Đã xóa câu hỏi' } as Parameters<typeof toast>[0])
     }
   }
 
-  // Filter questions
-  const filtered = deptFilter === 'all'
+  // PHÂN QUYỀN HIỂN THỊ CÂU HỎI:
+  // - Ban Chủ nhiệm: Xem toàn bộ câu hỏi (Tất cả, Chung, và 3 Ban)
+  // - Ban chuyên môn: CHỈ xem câu hỏi của Ban mình + câu hỏi Chung (Tuyệt đối không thấy câu hỏi của các Ban khác)
+  const scopedQuestions = isSuperAdmin
     ? questions
+    : questions.filter(q => !q.department_id || q.departments?.slug === activeRole || q.department_id === userDeptObj?.id)
+
+  const filtered = deptFilter === 'all'
+    ? scopedQuestions
     : deptFilter === 'general'
-    ? questions.filter(q => !q.department_id)
-    : questions.filter(q => q.departments?.slug === deptFilter)
+    ? scopedQuestions.filter(q => !q.department_id)
+    : scopedQuestions.filter(q => q.departments?.slug === deptFilter || q.department_id === departments.find(d => d.slug === deptFilter)?.id)
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl">
-      {/* Header — clean as in Screenshot 2 */}
+      {/* Header — sạch sẽ, không note rườm rà */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <HelpCircle className="w-6 h-6 text-blue-600" />
+            <HelpCircle className="w-6 h-6 text-[#1559c5]" />
             Quản lý Câu hỏi
+            {!isSuperAdmin && userDeptObj && (
+              <span className="text-base font-medium text-gray-500">
+                — {userDeptObj.name}
+              </span>
+            )}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Câu hỏi trong đơn ứng tuyển</p>
         </div>
 
-        <Button onClick={openCreate} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl">
+        <Button onClick={openCreate} className="gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-medium rounded-xl shadow-sm">
           <Plus className="w-4 h-4" /> Thêm câu hỏi
         </Button>
       </div>
 
-      {/* Filter Tabs — clean pill style as in Screenshot 2 */}
+      {/* Filter Tabs — Phân quyền theo vai trò */}
       <div className="flex gap-2 flex-wrap items-center">
-        <button
-          onClick={() => setDeptFilter('all')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-            deptFilter === 'all'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Tất cả
-        </button>
-        <button
-          onClick={() => setDeptFilter('general')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-            deptFilter === 'general'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Chung
-        </button>
-        {departments.map(d => (
-          <button
-            key={d.id}
-            onClick={() => setDeptFilter(d.slug)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-              deptFilter === d.slug
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {d.name}
-          </button>
-        ))}
+        {/* Ban Chủ nhiệm xem toàn bộ, Ban chuyên môn chỉ có các tab thuộc thẩm quyền */}
+        {isSuperAdmin ? (
+          <>
+            <button
+              onClick={() => setDeptFilter('all')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                deptFilter === 'all'
+                  ? 'bg-[#1559c5] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              onClick={() => setDeptFilter('general')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                deptFilter === 'general'
+                  ? 'bg-[#1559c5] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Chung
+            </button>
+            {departments.map(d => (
+              <button
+                key={d.id}
+                onClick={() => setDeptFilter(d.slug)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  deptFilter === d.slug
+                    ? 'bg-[#1559c5] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {d.name}
+              </button>
+            ))}
+          </>
+        ) : (
+          <>
+            {userDeptObj && (
+              <button
+                onClick={() => setDeptFilter(userDeptObj.slug)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
+                  deptFilter === userDeptObj.slug
+                    ? 'bg-[#1559c5] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {userDeptObj.name} (Ban mình)
+              </button>
+            )}
+            <button
+              onClick={() => setDeptFilter('general')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                deptFilter === 'general'
+                  ? 'bg-[#1559c5] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Câu hỏi chung (Toàn CLB)
+            </button>
+            <button
+              onClick={() => setDeptFilter('all')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                deptFilter === 'all'
+                  ? 'bg-[#1559c5] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả
+            </button>
+          </>
+        )}
       </div>
 
       {/* Questions List */}
@@ -222,89 +287,113 @@ export default function QuestionsPage() {
         <Card className="text-center py-20 rounded-2xl border border-gray-100 shadow-sm">
           <CardContent>
             <HelpCircle className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-            <p className="font-semibold text-gray-700 text-base">Chưa có câu hỏi nào.</p>
-            <Button onClick={openCreate} className="mt-4 gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <p className="font-semibold text-gray-700 text-base">Chưa có câu hỏi nào trong danh mục này.</p>
+            <Button onClick={openCreate} className="mt-4 gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white">
               <Plus className="w-4 h-4" /> Thêm câu hỏi
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((q, i) => (
-            <Card key={q.id} className="hover:shadow-sm transition-all rounded-2xl border border-gray-100">
-              <CardContent className="py-4 px-5 flex items-start gap-4">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0 mt-0.5">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 text-sm mb-1.5">
-                    {q.question_text}
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <Badge variant="secondary" className="text-[11px] font-medium bg-gray-100 text-gray-700">
-                      {QUESTION_TYPES[q.question_type] || q.question_type}
-                    </Badge>
-                    {q.department_id ? (
-                      <Badge variant="outline" className="text-[11px] font-medium border-blue-200 text-blue-700 bg-blue-50/50">
-                        {q.departments?.name}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[11px] font-medium text-gray-600">
-                        Chung
-                      </Badge>
-                    )}
-                    {q.is_required && (
-                      <Badge variant="destructive" className="text-[10px] uppercase font-bold">
-                        Bắt buộc
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+          {filtered.map((q, i) => {
+            const isGeneral = !q.department_id
+            const canManage = isSuperAdmin || (!isGeneral && (q.departments?.slug === activeRole || q.department_id === userDeptObj?.id))
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => openEdit(q)}
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium py-1 px-2 rounded hover:bg-blue-50 transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDelete(q.id)}
-                    className="inline-flex items-center text-xs text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+            return (
+              <Card key={q.id} className="hover:shadow-sm transition-all rounded-2xl border border-gray-100 bg-white">
+                <CardContent className="py-4 px-5 flex items-start gap-4">
+                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-[#1559c5] font-bold text-sm flex-shrink-0 mt-0.5 border border-blue-100">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-sm mb-1.5">
+                      {q.question_text}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <Badge variant="secondary" className="text-[11px] font-medium bg-gray-100 text-gray-700">
+                        {QUESTION_TYPES[q.question_type] || q.question_type}
+                      </Badge>
+                      {q.department_id ? (
+                        <Badge variant="outline" className="text-[11px] font-bold border-blue-200 text-[#1559c5] bg-blue-50/50">
+                          {q.departments?.name}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] font-medium text-gray-600 bg-gray-50">
+                          Câu hỏi chung CLB
+                        </Badge>
+                      )}
+                      {q.is_required && (
+                        <Badge variant="destructive" className="text-[10px] uppercase font-bold">
+                          Bắt buộc
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {canManage ? (
+                      <>
+                        <button
+                          onClick={() => openEdit(q)}
+                          className="inline-flex items-center gap-1 text-xs text-[#1559c5] hover:text-blue-800 font-bold py-1 px-2.5 rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" /> Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDelete(q)}
+                          className="inline-flex items-center text-xs text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium py-1 px-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <Lock className="w-3 h-3 text-gray-400" /> Chỉ xem
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
-      {/* Dialog */}
+      {/* Dialog Thêm/Sửa */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}</DialogTitle>
+            <DialogTitle className="font-bold text-gray-900">
+              {editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-left">
             <div>
               <Label className="text-xs font-semibold text-gray-700 mb-1.5 block">Ban áp dụng</Label>
-              <Select
-                value={form.department_id}
-                onValueChange={v => setForm(f => ({ ...f, department_id: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn ban (để trống = câu hỏi chung)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Câu hỏi chung</SelectItem>
-                  {departments.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isSuperAdmin ? (
+                <Select
+                  value={form.department_id}
+                  onValueChange={v => setForm(f => ({ ...f, department_id: v }))}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Chọn ban (để trống = câu hỏi chung)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Câu hỏi chung (Toàn CLB)</SelectItem>
+                    {departments.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs">
+                  <div className="font-bold text-[#1559c5]">
+                    {userDeptObj?.name || 'Ban phụ trách'}
+                  </div>
+                  <span className="text-[11px] text-gray-500 font-medium">Cố định theo tài khoản của bạn</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -316,7 +405,7 @@ export default function QuestionsPage() {
                 onChange={e => setForm(f => ({ ...f, question_text: e.target.value }))}
                 rows={3}
                 placeholder="Nhập nội dung câu hỏi..."
-                className="text-sm"
+                className="text-sm rounded-xl"
               />
             </div>
 
@@ -326,7 +415,7 @@ export default function QuestionsPage() {
                 value={form.question_type}
                 onValueChange={v => setForm(f => ({ ...f, question_type: v }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,17 +433,19 @@ export default function QuestionsPage() {
                 id="req-check"
                 checked={form.is_required}
                 onChange={e => setForm(f => ({ ...f, is_required: e.target.checked }))}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded text-[#1559c5] focus:ring-blue-500 cursor-pointer"
               />
-              <label htmlFor="req-check" className="text-xs text-gray-700 cursor-pointer">
-                Bắt buộc trả lời
+              <label htmlFor="req-check" className="text-xs text-gray-700 cursor-pointer font-medium">
+                Bắt buộc ứng viên trả lời
               </label>
             </div>
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
+            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-xl">
+              Hủy
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               {editQ ? 'Lưu thay đổi' : 'Thêm câu hỏi'}
             </Button>

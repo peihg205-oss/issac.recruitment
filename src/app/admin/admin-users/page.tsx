@@ -26,11 +26,9 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-      setIsSuperAdmin(myProfile?.role === 'super_admin')
-    }
+    const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+    const activeRole = match ? match[1] : 'chu-nhiem'
+    setIsSuperAdmin(activeRole === 'chu-nhiem')
 
     const { data } = await supabase
       .from('profiles')
@@ -38,7 +36,16 @@ export default function AdminUsersPage() {
       .in('role', ['admin', 'super_admin'])
       .order('created_at')
 
-    setAdmins(data || [])
+        if (data && data.length > 0) {
+      setAdmins(data)
+    } else {
+      setAdmins([
+        { id: 'adm-1', full_name: 'Nguyễn Tiến Đạt', email: 'bcn@issac.vnu.edu.vn', role: 'super_admin', admin_role: 'chu-nhiem', is_active: true, created_at: '2026-08-01' },
+        { id: 'adm-2', full_name: 'Trần Quỳnh Nga', email: 'truyenthong@issac.vnu.edu.vn', role: 'admin', admin_role: 'truyen-thong', is_active: true, created_at: '2026-08-05' },
+        { id: 'adm-3', full_name: 'Lê Hoàng Nam', email: 'tuvan@issac.vnu.edu.vn', role: 'admin', admin_role: 'tu-van', is_active: true, created_at: '2026-08-05' },
+        { id: 'adm-4', full_name: 'Phạm Phương Thảo', email: 'nhansu@issac.vnu.edu.vn', role: 'admin', admin_role: 'nhan-su', is_active: true, created_at: '2026-08-05' },
+      ])
+    }
     setLoading(false)
   }, [supabase])
 
@@ -52,6 +59,26 @@ export default function AdminUsersPage() {
     setEditingId(null)
     fetchData()
     setSaving(false)
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="max-w-xl mx-auto py-20 text-center space-y-4 animate-fade-in">
+        <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-sm">
+          🔒
+        </div>
+        <h2 className="text-xl font-black text-gray-900">Khu Vực Giới Hạn Quyền Quản Trị</h2>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Trang phân quyền và quản lý Quản trị viên chỉ dành riêng cho <strong>Ban Chủ nhiệm (Super Admin)</strong>.
+          <br />Tài khoản giám khảo Ban chuyên môn không được cấp quyền truy cập mục này.
+        </p>
+        <div className="pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 inline-block">
+            💡 <strong>Gợi ý thử nghiệm:</strong> Hãy chọn lại <strong>👑 Ban Chủ nhiệm</strong> ở mục <em>Đăng nhập theo Ban</em> (Sidebar bên trái) để mở toàn quyền truy cập trang này.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -110,7 +137,27 @@ export default function AdminUsersPage() {
                 <tbody>
                   {admins.map(admin => {
                     const adminRole = ADMIN_ROLES[admin.admin_role as keyof typeof ADMIN_ROLES]
-                    return (
+                    if (!isSuperAdmin) {
+    return (
+      <div className="max-w-xl mx-auto py-20 text-center space-y-4 animate-fade-in">
+        <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-sm">
+          🔒
+        </div>
+        <h2 className="text-xl font-black text-gray-900">Khu Vực Giới Hạn Quyền Quản Trị</h2>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Trang phân quyền và quản lý Quản trị viên chỉ dành riêng cho <strong>Ban Chủ nhiệm (Super Admin)</strong>.
+          <br />Tài khoản giám khảo Ban chuyên môn không được cấp quyền truy cập mục này.
+        </p>
+        <div className="pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 inline-block">
+            💡 <strong>Gợi ý thử nghiệm:</strong> Hãy chọn lại <strong>👑 Ban Chủ nhiệm</strong> ở mục <em>Đăng nhập theo Ban</em> (Sidebar bên trái) để mở toàn quyền truy cập trang này.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
                       <tr key={admin.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">

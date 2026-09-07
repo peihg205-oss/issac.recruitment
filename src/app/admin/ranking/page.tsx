@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +12,9 @@ import { MOCK_CANDIDATES } from '@/lib/mock-data'
 export default async function RankingPage() {
   const supabase = await createClient()
 
-  let isSuperAdmin = true
+  const cookieStore = await cookies()
+  const activeRole = cookieStore.get('issac_admin_role')?.value || 'chu-nhiem'
+  let isSuperAdmin = activeRole === 'chu-nhiem'
   let rankings: any[] | null = null
   let settings: any[] | null = null
 
@@ -80,9 +83,14 @@ export default async function RankingPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Xếp hạng tự động theo điểm phỏng vấn trung bình — Chọn TOP 15 chính thức</p>
         </div>
-        <div className="flex gap-2">
-          {isSuperAdmin && (
+        <div className="flex items-center gap-2">
+          {isSuperAdmin ? (
             <FinalizeButton quota={quota} published={published} totalRanked={ranked.length} />
+          ) : (
+            <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-600 font-semibold shadow-inner">
+              <span>🔒</span>
+              <span>Chỉ Ban Chủ nhiệm có quyền công bố kết quả TOP {quota}</span>
+            </div>
           )}
         </div>
       </div>

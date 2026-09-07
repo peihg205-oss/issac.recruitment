@@ -180,36 +180,13 @@ export default function EvaluationDetailPage() {
         </Badge>
       </div>
 
-      {/* RBAC Warning Banner if not permitted */}
       {!canGrade && (
-        <Card className="border-2 border-red-300 bg-gradient-to-br from-red-50 to-orange-50 shadow-md">
-          <CardContent className="p-5 flex flex-col sm:flex-row items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-sm">
-              <Lock className="w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-black text-base text-red-950 flex items-center gap-2">
-                GIỚI HẠN QUYỀN: KHÔNG CÓ QUYỀN CHẤM ĐIỂM ỨNG VIÊN NÀY
-              </h3>
-              <p className="text-xs text-red-900 mt-1 leading-relaxed">
-                Ứng viên <strong>{profile?.full_name}</strong> đăng ký vào <strong>{application?.departments?.name}</strong>.
-                Hiện tại bạn đang đăng nhập với tư cách <strong>{roleConfig.label}</strong>.
-                <br />
-                Theo quy chế tuyển dụng iSSAC: <em>Chỉ giám khảo thuộc {application?.departments?.name} hoặc Ban Chủ nhiệm mới có quyền chấm điểm ứng viên này.</em>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link href="/admin/evaluation">
-                  <Button size="sm" variant="outline" className="text-xs bg-white text-red-800 border-red-300 hover:bg-red-100">
-                    ← Trở lại danh sách ứng viên của ban bạn
-                  </Button>
-                </Link>
-                <span className="text-[11px] text-red-700 self-center">
-                  Chỉ giám khảo được phân công cho Ban {application?.departments?.name} mới có thể thực hiện chấm điểm.
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center justify-between">
+          <span>Ứng viên này thuộc <strong>{application?.departments?.name}</strong>. Tài khoản của bạn không phụ trách chấm điểm ban này.</span>
+          <Link href="/admin/evaluation">
+            <Button size="sm" variant="outline" className="text-xs bg-white">Quay lại danh sách</Button>
+          </Link>
+        </div>
       )}
 
       {/* Candidate Card */}

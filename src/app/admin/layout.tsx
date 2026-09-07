@@ -2,7 +2,6 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/shared/admin-sidebar'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
-import { ShieldCheck, Crown, Users, Megaphone, MessageSquare } from 'lucide-react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -44,39 +43,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
   }
 
-  const renderRoleIcon = () => {
-    switch (activeRole) {
-      case 'chu-nhiem':
-        return <Crown className="w-3.5 h-3.5 text-amber-500" />
-      case 'truyen-thong':
-        return <Megaphone className="w-3.5 h-3.5 text-blue-600" />
-      case 'tu-van':
-        return <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-      case 'nhan-su':
-        return <Users className="w-3.5 h-3.5 text-purple-600" />
-    }
-  }
-
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <AdminSidebar user={profile as any} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Sleek Minimalist Top Navigation Header */}
+        {/* Clean, Simple Top Header */}
         <header className="h-14 bg-white border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-200">
-              {renderRoleIcon()}
-              <span>Tài khoản: {currentConfig.label}</span>
-            </span>
-            <span className="text-xs text-gray-400 hidden sm:inline">
-              | CLB Đại sứ Sinh viên VNU-IS (iSSAC)
-            </span>
+          <div className="text-xs text-gray-500 font-medium">
+            CLB Đại sứ Sinh viên VNU-IS (iSSAC)
           </div>
 
           <div className="flex items-center gap-4">
             <a
               href="/"
-              className="text-xs font-semibold text-gray-500 hover:text-blue-700 transition-colors"
+              className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
             >
               Về Trang chủ →
             </a>

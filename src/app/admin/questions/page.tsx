@@ -161,7 +161,7 @@ export default function QuestionsPage() {
         departments: assignedDept,
         is_required: form.is_required,
       } : q))
-      toast({ title: '✅ Đã cập nhật câu hỏi!', variant: 'success' } as Parameters<typeof toast>[0])
+      toast({ title: 'Đã cập nhật câu hỏi!', variant: 'success' } as Parameters<typeof toast>[0])
     } else {
       const newQuestion = {
         id: `q-custom-${Date.now()}`,
@@ -176,7 +176,7 @@ export default function QuestionsPage() {
           : [],
       }
       setQuestions(prev => [...prev, newQuestion])
-      toast({ title: '✅ Đã tạo câu hỏi mới!', variant: 'success' } as Parameters<typeof toast>[0])
+      toast({ title: 'Đã tạo câu hỏi mới!', variant: 'success' } as Parameters<typeof toast>[0])
     }
 
     setSaving(false)
@@ -222,7 +222,7 @@ export default function QuestionsPage() {
 
         <div className="flex items-center gap-2">
           <Badge className={`px-3 py-1 text-xs font-bold border ${roleConfig.badgeColor}`}>
-            {roleConfig.icon} Quyền: {roleConfig.shortLabel}
+            Quyền: {roleConfig.shortLabel}
           </Badge>
           <Button onClick={openCreate} className="gap-1.5 shadow-sm bg-blue-600 hover:bg-blue-700 font-bold text-xs">
             <Plus className="w-4 h-4" />
@@ -235,7 +235,7 @@ export default function QuestionsPage() {
       {isSuperAdmin ? (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
           <div className="w-9 h-9 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-bold text-base flex-shrink-0 shadow-sm">
-            👑
+            
           </div>
           <div>
             <div className="font-bold text-amber-950 text-sm flex items-center gap-1.5">
@@ -250,7 +250,7 @@ export default function QuestionsPage() {
       ) : (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
           <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base flex-shrink-0 shadow-sm">
-            {roleConfig.icon}
+            
           </div>
           <div>
             <div className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
@@ -284,7 +284,7 @@ export default function QuestionsPage() {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          🌐 Câu hỏi chung ({questions.filter(q => !q.department_id).length})
+          Câu hỏi chung ({questions.filter(q => !q.department_id).length})
         </button>
         {departments.map(d => {
           const count = questions.filter(q => q.departments?.slug === d.slug).length
@@ -344,7 +344,7 @@ export default function QuestionsPage() {
                         </Badge>
                       ) : (
                         <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[11px] font-bold">
-                          🌐 Câu hỏi chung
+                          Câu hỏi chung
                         </Badge>
                       )}
                       {q.is_required ? (
@@ -427,9 +427,9 @@ export default function QuestionsPage() {
                     <SelectValue placeholder="Chọn Ban hoặc Câu hỏi chung" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">🌐 Câu hỏi chung (Tất cả ứng viên)</SelectItem>
+                    <SelectItem value="">Câu hỏi chung (Tất cả ứng viên)</SelectItem>
                     {departments.map(d => (
-                      <SelectItem key={d.id} value={d.id}>🏛️ {d.name}</SelectItem>
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -473,10 +473,10 @@ export default function QuestionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="long_text">📝 Văn bản dài (Tự luận mở)</SelectItem>
-                  <SelectItem value="short_text">✏️ Văn bản ngắn</SelectItem>
-                  <SelectItem value="multiple_choice">🔘 Trắc nghiệm chọn một</SelectItem>
-                  <SelectItem value="checkbox">☑️ Hộp kiểm chọn nhiều</SelectItem>
+                  <SelectItem value="long_text">Văn bản dài (Tự luận mở)</SelectItem>
+                  <SelectItem value="short_text">Văn bản ngắn</SelectItem>
+                  <SelectItem value="multiple_choice">Trắc nghiệm chọn một</SelectItem>
+                  <SelectItem value="checkbox">Hộp kiểm chọn nhiều</SelectItem>
                 </SelectContent>
               </Select>
             </div>

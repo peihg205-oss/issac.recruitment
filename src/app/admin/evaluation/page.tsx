@@ -3,7 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ClipboardList, CheckCircle, Clock, BarChart3, Eye, ShieldAlert, Lock, Sparkles } from 'lucide-react'
+import {
+  ClipboardList, CheckCircle, Clock, BarChart3,
+  Eye, Lock, Crown, Megaphone, MessageSquare, Users, ShieldAlert
+} from 'lucide-react'
 import Link from 'next/link'
 import { APPLICATION_STATUS_COLORS, APPLICATION_STATUS_LABELS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
@@ -41,13 +44,11 @@ export default async function EvaluationListPage() {
   // Fallback to mock data if database is empty
   const allApps = (applications && applications.length > 0) ? applications : MOCK_CANDIDATES
 
-  // RBAC Filter: If not Ban Chủ nhiệm, ONLY show applications for this specific department!
+  // RBAC: If not Ban Chủ nhiệm, strictly ONLY show applications of this department
   const apps = isSuperAdmin
     ? allApps
     : allApps.filter(a => (a.departments as any)?.slug === activeRole)
 
-  const totalEvals = apps.reduce((sum, a) => sum + ((a.evaluations as any[])?.length || 0), 0)
-  const submittedEvals = apps.reduce((sum, a) => sum + ((a.evaluations as any[])?.filter((e: any) => e.status === 'submitted').length || 0), 0)
   const scored = apps.filter(a => (a.candidate_rankings as any)?.final_score != null).length
 
   return (
@@ -55,49 +56,48 @@ export default async function EvaluationListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2.5">
             <ClipboardList className="w-6 h-6 text-blue-600" />
             Chấm Điểm Phỏng Vấn ({apps.length} ứng viên)
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Đánh giá ứng viên theo các tiêu chí chuẩn hóa của iSSAC
+            Đánh giá ứng viên theo tiêu chí chuẩn hóa của iSSAC
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge className={`px-3 py-1 text-xs font-bold border ${roleConfig.badgeColor}`}>
-            {roleConfig.icon} Quyền: {roleConfig.shortLabel}
+          <Badge variant="outline" className={`px-3 py-1 text-xs font-bold ${roleConfig.badgeColor}`}>
+            Quyền: {roleConfig.shortLabel}
           </Badge>
         </div>
       </div>
 
-      {/* Permission Notice Box */}
+      {/* Permission Notice Box (Clean, without emojis) */}
       {isSuperAdmin ? (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-          <div className="w-9 h-9 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-bold flex-shrink-0 text-base shadow-sm">
-            👑
+        <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Crown className="w-5 h-5 text-amber-300" />
           </div>
           <div>
-            <div className="font-bold text-amber-950 text-sm flex items-center gap-1.5">
-              Quyền Ban Chủ nhiệm (Toàn quyền hệ thống)
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <div className="font-bold text-blue-950 text-sm">
+              Quyền Ban Chủ nhiệm (Toàn quyền giám khảo)
             </div>
-            <p className="text-xs text-amber-800 mt-0.5">
-              Bạn có thể xem và chấm điểm phỏng vấn cho ứng viên của <strong>toàn bộ cả 3 ban</strong> (Truyền thông, Tư vấn, Nhân sự).
+            <p className="text-xs text-blue-800 mt-0.5">
+              Bạn có quyền xem và chấm điểm phỏng vấn cho ứng viên của cả 3 ban (Ban Truyền thông, Ban Tư vấn, Ban Nhân sự).
             </p>
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 text-base shadow-sm">
-            {roleConfig.icon}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+            <ShieldAlert className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <div className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-              Phân quyền theo Ban: {roleConfig.departmentName}
+            <div className="font-bold text-slate-900 text-sm">
+              Phân quyền theo ban: {roleConfig.departmentName}
             </div>
-            <p className="text-xs text-blue-800 mt-0.5">
-              Hệ thống tự động lọc danh sách: Bạn <strong>chỉ có quyền chấm điểm cho các ứng viên đăng ký vào {roleConfig.departmentName}</strong>. Ứng viên thuộc các ban khác sẽ được ẩn để bảo mật và công bằng.
+            <p className="text-xs text-slate-600 mt-0.5">
+              Bạn có quyền chấm điểm cho các ứng viên thuộc <strong>{roleConfig.departmentName}</strong>. Ứng viên thuộc các ban khác được giới hạn quyền truy cập.
             </p>
           </div>
         </div>
@@ -106,33 +106,33 @@ export default async function EvaluationListPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Ứng viên cần chấm', value: apps.length, icon: ClipboardList, color: 'bg-blue-50 text-blue-700' },
-          { label: 'Đã hoàn tất chấm', value: apps.filter(a => a.status === 'finalized' || a.status === 'evaluated').length, icon: CheckCircle, color: 'bg-green-50 text-green-700' },
-          { label: 'Đang chấm / Dự kiến', value: apps.filter(a => a.status === 'interview_scheduled' || a.status === 'interviewed').length, icon: Clock, color: 'bg-amber-50 text-amber-700' },
-          { label: 'Đã có điểm tổng hợp', value: scored, icon: BarChart3, color: 'bg-purple-50 text-purple-700' },
+          { label: 'Ứng viên cần chấm', value: apps.length, icon: ClipboardList, color: 'bg-blue-50 text-blue-700 border-blue-100' },
+          { label: 'Đã hoàn tất chấm', value: apps.filter(a => a.status === 'finalized' || a.status === 'evaluated').length, icon: CheckCircle, color: 'bg-green-50 text-green-700 border-green-100' },
+          { label: 'Chờ phỏng vấn', value: apps.filter(a => a.status === 'interview_scheduled' || a.status === 'interviewed').length, icon: Clock, color: 'bg-amber-50 text-amber-700 border-amber-100' },
+          { label: 'Đã có điểm tổng hợp', value: scored, icon: BarChart3, color: 'bg-purple-50 text-purple-700 border-purple-100' },
         ].map((s, i) => (
-          <Card key={i} className="border-0 shadow-sm" style={{background: 'transparent'}}>
-            <CardContent className={`p-4 rounded-xl flex items-center gap-3 ${s.color.split(' ')[0]} border border-gray-100`}>
+          <Card key={i} className={`shadow-sm border ${s.color}`}>
+            <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-                <s.icon className={`w-5 h-5 ${s.color.split(' ')[1]}`} />
+                <s.icon className="w-5 h-5" />
               </div>
               <div>
                 <div className="text-xs text-gray-600 font-medium">{s.label}</div>
-                <div className={`text-2xl font-black ${s.color.split(' ')[1]}`}>{s.value}</div>
+                <div className="text-2xl font-black">{s.value}</div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Candidates Table */}
+      {/* Table */}
       <Card className="shadow-sm overflow-hidden">
         <CardHeader className="border-b bg-gray-50/50 py-3.5">
           <CardTitle className="text-base flex items-center justify-between">
             <span>Danh sách hồ sơ phỏng vấn ({apps.length} ứng viên)</span>
             {!isSuperAdmin && (
               <span className="text-xs text-gray-500 font-normal">
-                Chỉ hiển thị ứng viên thuộc <strong>{roleConfig.departmentName}</strong>
+                Phạm vi: {roleConfig.departmentName}
               </span>
             )}
           </CardTitle>
@@ -142,7 +142,6 @@ export default async function EvaluationListPage() {
             <div className="text-center py-16 text-gray-400">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="font-semibold text-gray-700">Chưa có ứng viên nào thuộc ban này</p>
-              <p className="text-xs text-gray-400 mt-1">Đổi vai trò ở thanh sidebar hoặc chờ ứng viên nộp đơn</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/shared/admin-sidebar'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { ShieldCheck, Crown, Users, Megaphone, MessageSquare } from 'lucide-react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -20,10 +21,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   } catch {}
 
   let profile = null
-  let isDemo = false
 
   if (!user) {
-    isDemo = true
     profile = {
       full_name: `${currentConfig.label}`,
       email: `${activeRole}@issac.vnu.edu.vn`,
@@ -45,38 +44,48 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
   }
 
+  const renderRoleIcon = () => {
+    switch (activeRole) {
+      case 'chu-nhiem':
+        return <Crown className="w-3.5 h-3.5 text-amber-500" />
+      case 'truyen-thong':
+        return <Megaphone className="w-3.5 h-3.5 text-blue-600" />
+      case 'tu-van':
+        return <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+      case 'nhan-su':
+        return <Users className="w-3.5 h-3.5 text-purple-600" />
+    }
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Top Banner indicating current Department & Permissions */}
-      <div className="bg-slate-900 border-b border-white/10 text-white px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-50">
-        <div className="flex items-center gap-2">
-          <span className="font-bold flex items-center gap-1.5 bg-blue-950 border border-blue-400/40 px-2.5 py-1 rounded-lg text-amber-300">
-            <span>{currentConfig.icon}</span>
-            <span>{currentConfig.label}</span>
-          </span>
-          <span className="text-gray-300 hidden md:inline">
-            {currentConfig.isSuperAdmin
-              ? '👑 Toàn quyền xem & chấm điểm cả 3 ban, đặt câu hỏi & công bố Top 15.'
-              : `🔒 Quyền hạn: Chỉ được chấm điểm & quản lý câu hỏi thuộc ${currentConfig.departmentName}.`}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-gray-400 text-[11px] hidden sm:inline">
-            Đổi ban đăng nhập ở thanh Sidebar bên trái 👈
-          </span>
-          <a href="/" className="text-xs text-blue-300 hover:text-white underline">
-            Về Trang chủ
-          </a>
-        </div>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        <AdminSidebar user={profile as any} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6">
-            {children}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <AdminSidebar user={profile as any} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Sleek Minimalist Top Navigation Header */}
+        <header className="h-14 bg-white border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-200">
+              {renderRoleIcon()}
+              <span>Tài khoản: {currentConfig.label}</span>
+            </span>
+            <span className="text-xs text-gray-400 hidden sm:inline">
+              | CLB Đại sứ Sinh viên VNU-IS (iSSAC)
+            </span>
           </div>
+
+          <div className="flex items-center gap-4">
+            <a
+              href="/"
+              className="text-xs font-semibold text-gray-500 hover:text-blue-700 transition-colors"
+            >
+              Về Trang chủ →
+            </a>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
         </main>
       </div>
     </div>

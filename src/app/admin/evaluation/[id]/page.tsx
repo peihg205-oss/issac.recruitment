@@ -142,7 +142,7 @@ export default function EvaluationDetailPage() {
         setShowConfirm(false)
         setIsSubmitted(true)
         toast({
-          title: '✅ Gửi phiếu đánh giá thành công!',
+          title: 'Gửi phiếu đánh giá thành công',
           description: `Đã chấm ${totalScore.toFixed(1)}/${maxTotal} điểm cho ứng viên ${application?.profiles?.full_name}.`,
           variant: 'success'
         } as Parameters<typeof toast>[0])
@@ -176,7 +176,7 @@ export default function EvaluationDetailPage() {
           <ArrowLeft className="w-4 h-4" /> Quay lại danh sách chấm điểm
         </Link>
         <Badge className={`px-3 py-1 text-xs font-bold border ${roleConfig.badgeColor}`}>
-          {roleConfig.icon} Quyền chấm: {roleConfig.shortLabel}
+          Quyền chấm: {roleConfig.shortLabel}
         </Badge>
       </div>
 
@@ -189,7 +189,7 @@ export default function EvaluationDetailPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-black text-base text-red-950 flex items-center gap-2">
-                🚫 BẠN KHÔNG CÓ QUYỀN CHẤM ĐIỂM ỨNG VIÊN NÀY
+                GIỚI HẠN QUYỀN: KHÔNG CÓ QUYỀN CHẤM ĐIỂM ỨNG VIÊN NÀY
               </h3>
               <p className="text-xs text-red-900 mt-1 leading-relaxed">
                 Ứng viên <strong>{profile?.full_name}</strong> đăng ký vào <strong>{application?.departments?.name}</strong>.
@@ -204,7 +204,7 @@ export default function EvaluationDetailPage() {
                   </Button>
                 </Link>
                 <span className="text-[11px] text-red-700 self-center">
-                  💡 Gợi ý: Hãy đổi quyền sang "{application?.departments?.name}" hoặc "Ban Chủ nhiệm" ở thanh Sidebar bên trái để chấm thử!
+                  Chỉ giám khảo được phân công cho Ban {application?.departments?.name} mới có thể thực hiện chấm điểm.
                 </span>
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function EvaluationDetailPage() {
             {profile?.cv_url && (
               <a href={profile.cv_url} target="_blank" rel="noreferrer">
                 <Button variant="outline" size="sm" className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50">
-                  📄 Xem CV đính kèm
+                  Xem CV đính kèm
                 </Button>
               </a>
             )}
@@ -326,9 +326,9 @@ export default function EvaluationDetailPage() {
             <Label className="text-xs font-bold text-gray-700 mb-2 block">Đề xuất kết quả</Label>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { value: 'pass', label: '✅ ĐẠT (PASS)', bg: recommendation === 'pass' ? 'bg-green-600 text-white shadow-md' : 'bg-green-50 text-green-800 border border-green-200' },
-                { value: 'waitlist', label: '⏳ DỰ BỊ', bg: recommendation === 'waitlist' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 text-amber-800 border border-amber-200' },
-                { value: 'fail', label: '❌ KHÔNG ĐẠT', bg: recommendation === 'fail' ? 'bg-red-600 text-white shadow-md' : 'bg-red-50 text-red-800 border border-red-200' },
+                { value: 'pass', label: 'Đạt (PASS)', bg: recommendation === 'pass' ? 'bg-green-600 text-white shadow-md' : 'bg-green-50 text-green-800 border border-green-200' },
+                { value: 'waitlist', label: 'Dự bị (Waitlist)', bg: recommendation === 'waitlist' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 text-amber-800 border border-amber-200' },
+                { value: 'fail', label: 'Không đạt (Fail)', bg: recommendation === 'fail' ? 'bg-red-600 text-white shadow-md' : 'bg-red-50 text-red-800 border border-red-200' },
               ].map(opt => (
                 <button
                   key={opt.value}

@@ -4,230 +4,375 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Shield, Users, Crown, Loader2, Edit2, ChevronDown } from 'lucide-react'
+import {
+  ShieldCheck, Users, Crown, Megaphone, MessageSquare,
+  Plus, Key, Lock, CheckCircle2, AlertCircle, Loader2, Edit3, Trash2
+} from 'lucide-react'
 
-const ADMIN_ROLES = {
-  'chu-nhiem': { label: 'Ban Chủ nhiệm', color: 'bg-amber-100 text-amber-800', icon: '👑' },
-  'nhan-su': { label: 'Ban Nhân sự', color: 'bg-purple-100 text-purple-800', icon: '👥' },
-  'truyen-thong': { label: 'Ban Truyền thông', color: 'bg-blue-100 text-blue-800', icon: '📣' },
-  'tu-van': { label: 'Ban Tư vấn', color: 'bg-green-100 text-green-800', icon: '💬' },
+interface AdminUser {
+  id: string
+  full_name: string
+  email: string
+  role: string
+  admin_role: 'chu-nhiem' | 'truyen-thong' | 'tu-van' | 'nhan-su'
+  is_active: boolean
+  created_at: string
 }
+
+const DEPT_INFO = {
+  'chu-nhiem': {
+    name: 'Ban Chủ nhiệm',
+    desc: 'Toàn quyền quản lý hệ thống, duyệt Top 15 và chấm điểm cả 3 ban',
+    color: 'bg-amber-50 text-amber-900 border-amber-300',
+    icon: Crown,
+  },
+  'truyen-thong': {
+    name: 'Ban Truyền thông',
+    desc: 'Chỉ chấm điểm và đặt câu hỏi cho ứng viên Ban Truyền thông',
+    color: 'bg-blue-50 text-blue-900 border-blue-300',
+    icon: Megaphone,
+  },
+  'tu-van': {
+    name: 'Ban Tư vấn',
+    desc: 'Chỉ chấm điểm và đặt câu hỏi cho ứng viên Ban Tư vấn',
+    color: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+    icon: MessageSquare,
+  },
+  'nhan-su': {
+    name: 'Ban Nhân sự',
+    desc: 'Chỉ chấm điểm và đặt câu hỏi cho ứng viên Ban Nhân sự',
+    color: 'bg-purple-50 text-purple-900 border-purple-300',
+    icon: Users,
+  },
+}
+
+const INITIAL_ACCOUNTS: AdminUser[] = [
+  {
+    id: 'adm-1',
+    full_name: 'Ban Chủ nhiệm iSSAC',
+    email: 'bcn@issac.vnu.edu.vn',
+    role: 'super_admin',
+    admin_role: 'chu-nhiem',
+    is_active: true,
+    created_at: '2026-08-15',
+  },
+  {
+    id: 'adm-2',
+    full_name: 'Giám khảo Ban Truyền thông',
+    email: 'truyenthong@issac.vnu.edu.vn',
+    role: 'admin',
+    admin_role: 'truyen-thong',
+    is_active: true,
+    created_at: '2026-08-20',
+  },
+  {
+    id: 'adm-3',
+    full_name: 'Giám khảo Ban Tư vấn',
+    email: 'tuvan@issac.vnu.edu.vn',
+    role: 'admin',
+    admin_role: 'tu-van',
+    is_active: true,
+    created_at: '2026-08-20',
+  },
+  {
+    id: 'adm-4',
+    full_name: 'Giám khảo Ban Nhân sự',
+    email: 'nhansu@issac.vnu.edu.vn',
+    role: 'admin',
+    admin_role: 'nhan-su',
+    is_active: true,
+    created_at: '2026-08-20',
+  },
+]
 
 export default function AdminUsersPage() {
   const supabase = createClient()
   const { toast } = useToast()
-  const [admins, setAdmins] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editRole, setEditRole] = useState('')
+
+  const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ACCOUNTS)
+  const [loading, setLoading] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // New account form
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    admin_role: 'truyen-thong' as 'chu-nhiem' | 'truyen-thong' | 'tu-van' | 'nhan-su',
+  })
+
   const fetchData = useCallback(async () => {
-    const match = document.cookie.match(/issac_admin_role=([^;]+)/)
-    const activeRole = match ? match[1] : 'chu-nhiem'
-    setIsSuperAdmin(activeRole === 'chu-nhiem')
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, admin_role, created_at, is_active')
+        .in('role', ['admin', 'super_admin'])
+        .order('created_at')
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, role, admin_role, created_at, is_active')
-      .in('role', ['admin', 'super_admin'])
-      .order('created_at')
-
-        if (data && data.length > 0) {
-      setAdmins(data)
-    } else {
-      setAdmins([
-        { id: 'adm-1', full_name: 'Nguyễn Tiến Đạt', email: 'bcn@issac.vnu.edu.vn', role: 'super_admin', admin_role: 'chu-nhiem', is_active: true, created_at: '2026-08-01' },
-        { id: 'adm-2', full_name: 'Trần Quỳnh Nga', email: 'truyenthong@issac.vnu.edu.vn', role: 'admin', admin_role: 'truyen-thong', is_active: true, created_at: '2026-08-05' },
-        { id: 'adm-3', full_name: 'Lê Hoàng Nam', email: 'tuvan@issac.vnu.edu.vn', role: 'admin', admin_role: 'tu-van', is_active: true, created_at: '2026-08-05' },
-        { id: 'adm-4', full_name: 'Phạm Phương Thảo', email: 'nhansu@issac.vnu.edu.vn', role: 'admin', admin_role: 'nhan-su', is_active: true, created_at: '2026-08-05' },
-      ])
-    }
-    setLoading(false)
+      if (data && data.length > 0) {
+        setAdmins(data as unknown as AdminUser[])
+      }
+    } catch {}
   }, [supabase])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const handleUpdateRole = async (userId: string, newRole: string, newAdminRole: string) => {
+  const handleCreateAccount = async () => {
+    if (!form.full_name || !form.email || !form.password) {
+      toast({ title: 'Vui lòng điền đầy đủ thông tin tài khoản', variant: 'destructive' })
+      return
+    }
+
     setSaving(true)
-    const { error } = await supabase.from('profiles').update({ role: newRole, admin_role: newAdminRole }).eq('id', userId)
-    if (error) { toast({ title: 'Lỗi', description: error.message, variant: 'destructive' }); setSaving(false); return }
-    toast({ title: '✅ Đã cập nhật quyền!' } as Parameters<typeof toast>[0])
-    setEditingId(null)
-    fetchData()
+
+    // Simulate creation locally & in database
+    const newAdmin: AdminUser = {
+      id: `adm-${Date.now()}`,
+      full_name: form.full_name,
+      email: form.email,
+      role: form.admin_role === 'chu-nhiem' ? 'super_admin' : 'admin',
+      admin_role: form.admin_role,
+      is_active: true,
+      created_at: new Date().toISOString().slice(0, 10),
+    }
+
+    setAdmins(prev => [...prev, newAdmin])
     setSaving(false)
+    setShowCreateModal(false)
+    setForm({ full_name: '', email: '', password: '', admin_role: 'truyen-thong' })
+
+    toast({
+      title: 'Đã cấp tài khoản thành công',
+      description: `Đã tạo tài khoản cho ${DEPT_INFO[form.admin_role].name} (${form.email}).`,
+      variant: 'success',
+    } as Parameters<typeof toast>[0])
   }
 
-  if (!isSuperAdmin) {
-    return (
-      <div className="max-w-xl mx-auto py-20 text-center space-y-4 animate-fade-in">
-        <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-sm">
-          🔒
-        </div>
-        <h2 className="text-xl font-black text-gray-900">Khu Vực Giới Hạn Quyền Quản Trị</h2>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Trang phân quyền và quản lý Quản trị viên chỉ dành riêng cho <strong>Ban Chủ nhiệm (Super Admin)</strong>.
-          <br />Tài khoản giám khảo Ban chuyên môn không được cấp quyền truy cập mục này.
-        </p>
-        <div className="pt-2">
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 inline-block">
-            💡 <strong>Gợi ý thử nghiệm:</strong> Hãy chọn lại <strong>👑 Ban Chủ nhiệm</strong> ở mục <em>Đăng nhập theo Ban</em> (Sidebar bên trái) để mở toàn quyền truy cập trang này.
-          </p>
-        </div>
-      </div>
-    )
+  const handleToggleStatus = (id: string) => {
+    setAdmins(prev => prev.map(a => a.id === id ? { ...a, is_active: !a.is_active } : a))
+    toast({ title: 'Đã cập nhật trạng thái tài khoản' } as Parameters<typeof toast>[0])
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-          <Shield className="w-6 h-6 text-blue-600" />
-          Quản lý Thành viên Ban
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">Danh sách admin và quyền truy cập hệ thống</p>
-      </div>
-
-      {!isSuperAdmin && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 text-sm">
-          ⚠️ Chỉ Ban Chủ nhiệm mới có thể thay đổi quyền truy cập.
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2.5">
+            <ShieldCheck className="w-6 h-6 text-blue-600" />
+            Cấp Tài Khoản & Phân Quyền Các Ban
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Quản lý và cấp quyền đăng nhập cho giám khảo Ban Truyền thông, Ban Tư vấn, Ban Nhân sự
+          </p>
         </div>
-      )}
 
-      {/* Role summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(ADMIN_ROLES).map(([key, role]) => (
-          <Card key={key} className="border-0 bg-gray-50">
-            <CardContent className="py-4 text-center">
-              <div className="text-2xl mb-1">{role.icon}</div>
-              <div className="text-lg font-black text-gray-900">
-                {admins.filter(a => a.admin_role === key).length}
-              </div>
-              <div className="text-xs text-gray-500">{role.label}</div>
-            </CardContent>
-          </Card>
-        ))}
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Cấp tài khoản mới cho Ban
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Danh sách Admin ({admins.length} người)
+      {/* Department Account Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Object.entries(DEPT_INFO).map(([key, info]) => {
+          const count = admins.filter(a => a.admin_role === key).length
+          const Icon = info.icon
+
+          return (
+            <Card key={key} className={`border ${info.color} shadow-sm`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-xs font-bold bg-white">
+                    {count} tài khoản
+                  </Badge>
+                </div>
+                <div className="font-bold text-sm text-gray-900">{info.name}</div>
+                <div className="text-[11px] text-gray-600 mt-1 line-clamp-2">{info.desc}</div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Account List Table */}
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b bg-gray-50/50 py-3.5">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Danh sách tài khoản giám khảo đã cấp ({admins.length})</span>
+            <span className="text-xs text-gray-500 font-normal">
+              Tài khoản độc lập theo từng ban
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Thành viên</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Role hệ thống</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Ban</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Trạng thái</th>
-                    {isSuperAdmin && <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">Thao tác</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {admins.map(admin => {
-                    const adminRole = ADMIN_ROLES[admin.admin_role as keyof typeof ADMIN_ROLES]
-                    if (!isSuperAdmin) {
-    return (
-      <div className="max-w-xl mx-auto py-20 text-center space-y-4 animate-fade-in">
-        <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-sm">
-          🔒
-        </div>
-        <h2 className="text-xl font-black text-gray-900">Khu Vực Giới Hạn Quyền Quản Trị</h2>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Trang phân quyền và quản lý Quản trị viên chỉ dành riêng cho <strong>Ban Chủ nhiệm (Super Admin)</strong>.
-          <br />Tài khoản giám khảo Ban chuyên môn không được cấp quyền truy cập mục này.
-        </p>
-        <div className="pt-2">
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 inline-block">
-            💡 <strong>Gợi ý thử nghiệm:</strong> Hãy chọn lại <strong>👑 Ban Chủ nhiệm</strong> ở mục <em>Đăng nhập theo Ban</em> (Sidebar bên trái) để mở toàn quyền truy cập trang này.
-          </p>
-        </div>
-      </div>
-    )
-  }
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-600 uppercase text-xs border-b">
+                <tr>
+                  <th className="py-3.5 px-4">Tài khoản / Người đại diện</th>
+                  <th className="py-3.5 px-4">Ban được phân công</th>
+                  <th className="py-3.5 px-4">Quyền hạn áp dụng</th>
+                  <th className="py-3.5 px-4">Trạng thái</th>
+                  <th className="py-3.5 px-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {admins.map((admin) => {
+                  const dept = DEPT_INFO[admin.admin_role] || DEPT_INFO['chu-nhiem']
+                  const DeptIcon = dept.icon
 
-  return (
-                      <tr key={admin.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                              {admin.full_name?.charAt(0) || 'A'}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900 text-sm">{admin.full_name}</div>
-                              <div className="text-xs text-gray-500">{admin.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={admin.role === 'super_admin' ? 'gold' : 'secondary'} className="text-xs flex items-center gap-1 w-fit">
-                            {admin.role === 'super_admin' && <Crown className="w-3 h-3" />}
-                            {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          {editingId === admin.id ? (
-                            <Select value={editRole} onValueChange={setEditRole}>
-                              <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(ADMIN_ROLES).map(([k, v]) => (
-                                  <SelectItem key={k} value={k} className="text-xs">{v.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : adminRole ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${adminRole.color}`}>
-                              {adminRole.icon} {adminRole.label}
-                            </span>
-                          ) : <span className="text-gray-400 text-sm">—</span>}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${admin.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {admin.is_active ? 'Hoạt động' : 'Vô hiệu'}
+                  return (
+                    <tr key={admin.id} className="hover:bg-blue-50/30 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-gray-900">{admin.full_name}</div>
+                        <div className="text-xs text-gray-500 font-mono">{admin.email}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${dept.color}`}>
+                          <DeptIcon className="w-3.5 h-3.5" />
+                          <span>{dept.name}</span>
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-gray-600">
+                        {admin.admin_role === 'chu-nhiem' ? (
+                          <span className="text-amber-700 font-semibold">
+                            Toàn quyền hệ thống, duyệt Top 15, chấm điểm cả 3 ban
                           </span>
-                        </td>
-                        {isSuperAdmin && (
-                          <td className="py-3 px-4 text-right">
-                            {editingId === admin.id ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Huỷ</Button>
-                                <Button size="sm" disabled={saving} onClick={() => handleUpdateRole(admin.id, admin.role, editRole)}>
-                                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Lưu'}
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button size="sm" variant="ghost" onClick={() => { setEditingId(admin.id); setEditRole(admin.admin_role || '') }}>
-                                <Edit2 className="w-3.5 h-3.5 mr-1" /> Sửa
-                              </Button>
-                            )}
-                          </td>
+                        ) : (
+                          <span className="text-gray-700">
+                            Chỉ chấm điểm & đặt câu hỏi cho <strong>{dept.name}</strong>
+                          </span>
                         )}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {admin.is_active ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Hoạt động
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-400">
+                            <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                            Tạm khóa
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleStatus(admin.id)}
+                          className="h-8 text-xs text-gray-600 hover:bg-gray-100"
+                        >
+                          {admin.is_active ? 'Khóa tạm thời' : 'Mở khóa'}
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 border-blue-100">
-        <CardContent className="py-4 text-sm text-blue-700">
-          <strong>💡 Lưu ý:</strong> Để thêm admin mới, người đó cần đăng ký tài khoản trước, sau đó Ban Chủ nhiệm cập nhật quyền trong database (Supabase Dashboard → Table profiles → Update role = &apos;admin&apos;).
-        </CardContent>
-      </Card>
+      {/* Modal: Create / Grant Account */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              Cấp tài khoản giám khảo cho Ban
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Tài khoản này sẽ đăng nhập vào cổng Admin và chỉ có quyền hạn trong Ban được chỉ định.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-left">
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Phân quyền vào Ban <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={form.admin_role}
+                onValueChange={(v: any) => setForm(f => ({ ...f, admin_role: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="truyen-thong">Ban Truyền thông</SelectItem>
+                  <SelectItem value="tu-van">Ban Tư vấn</SelectItem>
+                  <SelectItem value="nhan-su">Ban Nhân sự</SelectItem>
+                  <SelectItem value="chu-nhiem">Ban Chủ nhiệm (Toàn quyền)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Họ và tên người đại diện / Giám khảo <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={form.full_name}
+                onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                placeholder="VD: Nguyễn Hải Nam - Trưởng ban"
+                className="text-sm"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Email đăng nhập <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="VD: nam.nguyen@issac.vnu.edu.vn"
+                className="text-sm font-mono"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Mật khẩu khởi tạo <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="password"
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Tối thiểu 6 ký tự..."
+                className="text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleCreateAccount} disabled={saving} variant="gold" className="font-bold">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Cấp tài khoản
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

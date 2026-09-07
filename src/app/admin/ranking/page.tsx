@@ -88,7 +88,7 @@ export default async function RankingPage() {
             <FinalizeButton quota={quota} published={published} totalRanked={ranked.length} />
           ) : (
             <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-600 font-semibold shadow-inner">
-              <span>🔒</span>
+              
               <span>Chỉ Ban Chủ nhiệm có quyền công bố kết quả TOP {quota}</span>
             </div>
           )}

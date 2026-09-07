@@ -5,7 +5,6 @@ export interface AdminRoleConfig {
   label: string
   shortLabel: string
   departmentName: string
-  icon: string
   badgeColor: string
   isSuperAdmin: boolean
   canEvaluateAll: boolean
@@ -17,10 +16,9 @@ export interface AdminRoleConfig {
 export const ADMIN_ROLE_CONFIGS: Record<AdminRoleType, AdminRoleConfig> = {
   'chu-nhiem': {
     slug: 'chu-nhiem',
-    label: 'Ban Chủ nhiệm (Toàn quyền)',
+    label: 'Ban Chủ nhiệm',
     shortLabel: 'Ban Chủ nhiệm',
     departmentName: 'Toàn bộ các Ban',
-    icon: '👑',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
     isSuperAdmin: true,
     canEvaluateAll: true,
@@ -33,7 +31,6 @@ export const ADMIN_ROLE_CONFIGS: Record<AdminRoleType, AdminRoleConfig> = {
     label: 'Ban Truyền thông',
     shortLabel: 'Ban Truyền thông',
     departmentName: 'Ban Truyền thông',
-    icon: '📣',
     badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
     isSuperAdmin: false,
     canEvaluateAll: false,
@@ -46,7 +43,6 @@ export const ADMIN_ROLE_CONFIGS: Record<AdminRoleType, AdminRoleConfig> = {
     label: 'Ban Tư vấn',
     shortLabel: 'Ban Tư vấn',
     departmentName: 'Ban Tư vấn',
-    icon: '💬',
     badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
     isSuperAdmin: false,
     canEvaluateAll: false,
@@ -59,7 +55,6 @@ export const ADMIN_ROLE_CONFIGS: Record<AdminRoleType, AdminRoleConfig> = {
     label: 'Ban Nhân sự',
     shortLabel: 'Ban Nhân sự',
     departmentName: 'Ban Nhân sự',
-    icon: '👥',
     badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
     isSuperAdmin: false,
     canEvaluateAll: false,
@@ -85,7 +80,6 @@ export function canEvaluateCandidate(adminRole: string | undefined, candidateDep
 
 export function canManageQuestion(adminRole: string | undefined, questionDeptSlug: string | null | undefined): boolean {
   if (!adminRole || adminRole === 'chu-nhiem' || adminRole === 'super_admin') return true
-  // Non-super-admins cannot edit general questions
   if (!questionDeptSlug) return false
   return adminRole === questionDeptSlug
 }

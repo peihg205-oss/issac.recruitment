@@ -223,7 +223,7 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Chỉ tiêu tuyển chọn', value: `${quota} thành viên`, desc: 'Chỉ tiêu phê duyệt TOP 15' },
-              { label: 'Số ban tuyển dụng', value: '4 Ban chuyên môn', desc: 'Nhân sự, TT&SK, Chuyên môn, Tài chính' },
+              { label: 'Số ban tuyển dụng', value: '3 Ban chuyên môn', desc: 'Ban Truyền thông, Ban Tư vấn, Ban Nhân sự' },
               { label: 'Điểm sàn phỏng vấn', value: '8.0 / 10.0', desc: 'Ngưỡng xét vào Top 15' },
               { label: 'Hình thức phỏng vấn', value: 'Online & Offline', desc: 'Trường Quốc tế VNU-IS / Google Meet' },
             ].map((item, i) => (

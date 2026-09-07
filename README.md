@@ -17,7 +17,7 @@ Hệ thống **iSSAC Recruitment Portal** là nền tảng quản lý tuyển d�
 - 📝 **Đăng ký & Đăng nhập**: Xác thực an toàn qua Supabase Auth, hỗ trợ ghi nhớ phiên đăng nhập.
 - 👤 **Hồ sơ cá nhân đa năng**: Cập nhật thông tin sinh viên VNU-IS (Khoa, ngành, MSSV, link CV, Facebook/LinkedIn, kinh nghiệm hoạt động).
 - 📋 **Ứng tuyển & Trả lời câu hỏi**:
-  - Chọn 1 trong 4 ban chuyên môn: Ban Nhân sự & Đối ngoại, Ban Truyền thông & Sự kiện, Ban Chuyên môn & Học thuật, Ban Tài chính & Hậu cần.
+  - Chọn 1 trong 3 ban chuyên môn: Ban Truyền thông, Ban Tư vấn, Ban Nhân sự.
   - Trả lời bộ câu hỏi phỏng vấn vòng đơn được phân loại theo ban đã chọn.
   - Tự động lưu bản nháp (Draft) và xác nhận nộp chính thức.
 - 📅 **Đặt lịch Phỏng vấn thông minh**:

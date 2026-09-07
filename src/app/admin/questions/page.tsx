@@ -1,4 +1,5 @@
 'use client'
+import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,7 +39,7 @@ export default function QuestionsPage() {
       supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
     ])
     setQuestions(qs || [])
-    setDepartments(depts || [])
+    setDepartments(depts && depts.length > 0 ? depts : MOCK_DEPARTMENTS)
     setLoading(false)
   }, [supabase])
 

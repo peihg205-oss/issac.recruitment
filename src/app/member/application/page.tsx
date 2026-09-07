@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Loader2, ChevronRight, ChevronLeft, Send, CheckCircle } from 'lucide-react'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
+import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
 interface Question { id: string; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
@@ -45,7 +46,7 @@ export default function ApplicationPage() {
       supabase.from('profiles').select('full_name, phone, student_id, university').eq('id', user.id).single(),
     ])
 
-    setDepartments(depts || [])
+    setDepartments(depts && depts.length > 0 ? depts : (MOCK_DEPARTMENTS as any))
     setExistingApp(app)
     setProfileComplete(!!(prof?.full_name && prof?.phone && prof?.student_id && prof?.university))
     setLoading(false)
@@ -67,13 +68,40 @@ export default function ApplicationPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   const loadQuestions = useCallback(async (deptId: string) => {
-    const { data: q } = await supabase
-      .from('questions')
-      .select('*, question_options(id, option_text)')
-      .eq('department_id', deptId)
-      .eq('is_active', true)
-      .order('sort_order')
-    setQuestions(q || [])
+    let qList: any[] = []
+    try {
+      const { data: q } = await supabase
+        .from('questions')
+        .select('*, question_options(id, option_text)')
+        .eq('department_id', deptId)
+        .eq('is_active', true)
+        .order('sort_order')
+      if (q && q.length > 0) qList = q
+    } catch {}
+
+    if (qList.length === 0) {
+      // Mock questions for the 3 departments
+      if (deptId === 'dept-1' || deptId.includes('truyen-thong')) {
+        qList = [
+          { id: 'q-tt-1', question_text: 'Vì sao bạn muốn tham gia Ban Truyền thông iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và mục tiêu của bạn...' },
+          { id: 'q-tt-2', question_text: 'Bạn có kinh nghiệm thiết kế (Photoshop/Canva) hoặc quay dựng video chưa? Hãy chia sẻ link sản phẩm nếu có.', question_type: 'long_text', is_required: true, placeholder: 'Link drive, portfolio hoặc mô tả kinh nghiệm...' },
+          { id: 'q-tt-3', question_text: 'Nếu được giao nhiệm vụ lên ý tưởng viral cho chiến dịch truyền thông của iSSAC, bạn sẽ làm gì?', question_type: 'long_text', is_required: false, placeholder: 'Ý tưởng sáng tạo của bạn...' }
+        ]
+      } else if (deptId === 'dept-2' || deptId.includes('tu-van')) {
+        qList = [
+          { id: 'q-tv-1', question_text: 'Vì sao bạn lựa chọn ứng tuyển vào Ban Tư vấn iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và nguyện vọng...' },
+          { id: 'q-tv-2', question_text: 'Theo bạn, những kỹ năng quan trọng nhất của một Đại sứ sinh viên khi tư vấn là gì?', question_type: 'long_text', is_required: true, placeholder: 'Kỹ năng lắng nghe, thấu cảm, truyền đạt...' },
+          { id: 'q-tv-3', question_text: 'Chia sẻ một tình huống bạn từng lắng nghe và hỗ trợ giải quyết khó khăn cho một người bạn.', question_type: 'long_text', is_required: false, placeholder: 'Kể lại trải nghiệm thực tế...' }
+        ]
+      } else {
+        qList = [
+          { id: 'q-ns-1', question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Lý do ứng tuyển...' },
+          { id: 'q-ns-2', question_text: 'Bạn đã có kinh nghiệm quản lý nhóm, gắn kết thành viên hoặc tổ chức team building chưa?', question_type: 'long_text', is_required: true, placeholder: 'Kinh nghiệm hoạt động đội nhóm...' },
+          { id: 'q-ns-3', question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm, bạn sẽ xử lý như thế nào?', question_type: 'long_text', is_required: false, placeholder: 'Cách giải quyết mâu thuẫn...' }
+        ]
+      }
+    }
+    setQuestions(qList)
   }, [supabase])
 
   useEffect(() => { if (selectedDept) loadQuestions(selectedDept) }, [selectedDept, loadQuestions])

@@ -489,9 +489,9 @@ export default function EvaluationDetailPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { val: 'pass', label: 'Chấp thuận: PASS', color: bcnDecision === 'pass' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-800 border' },
-                { val: 'waitlist', label: 'Chấp thuận: DỰ BỊ', color: bcnDecision === 'waitlist' ? 'bg-amber-500 text-white' : 'bg-white text-amber-800 border' },
-                { val: 'fail', label: 'Chấp thuận: TRƯỢT', color: bcnDecision === 'fail' ? 'bg-red-600 text-white' : 'bg-white text-red-800 border' },
+                { val: 'pass', label: 'Chấp thuận: Pass', color: bcnDecision === 'pass' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-800 border' },
+                { val: 'waitlist', label: 'Chấp thuận: Dự bị', color: bcnDecision === 'waitlist' ? 'bg-amber-500 text-white' : 'bg-white text-amber-800 border' },
+                { val: 'fail', label: 'Chấp thuận: Trượt', color: bcnDecision === 'fail' ? 'bg-red-600 text-white' : 'bg-white text-red-800 border' },
               ].map(item => (
                 <button
                   key={item.val}

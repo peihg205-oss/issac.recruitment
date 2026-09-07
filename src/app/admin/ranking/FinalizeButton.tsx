@@ -34,7 +34,7 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
           setPublished(true)
           toast({
             title: '✅ Đã công bố kết quả TOP 15 (Demo)!',
-            description: `Hệ thống đã tự động duyệt TOP ${quota} ứng viên điểm cao nhất thành PASS và gửi thông báo.`,
+            description: `Hệ thống đã tự động duyệt TOP ${quota} ứng viên điểm cao nhất thành Pass và gửi thông báo.`,
             variant: 'success'
           } as Parameters<typeof toast>[0])
         }, 800)
@@ -125,7 +125,7 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-sm space-y-1.5 text-amber-900 font-medium">
                 <div>• Chỉ tiêu tuyển: <strong className="text-amber-950 font-bold">{quota} thành viên chính thức</strong></div>
                 <div>• Tổng số ứng viên đã xếp hạng: <strong className="text-amber-950 font-bold">{totalRanked} ứng viên</strong></div>
-                <div>• Trạng thái đề xuất: <span className="font-bold text-emerald-700">TOP 1 - {quota} PASS</span>, còn lại Dự bị / Không đạt</div>
+                <div>• Trạng thái đề xuất: <span className="font-bold text-emerald-700">TOP 1 - {quota} Pass</span>, còn lại Dự bị / Không đạt</div>
               </div>
               <p className="text-xs text-gray-500">
                 💡 Sau khi bấm xác nhận, hệ thống sẽ gửi thông báo đến các ứng viên và hiển thị kết quả trong portal của họ.

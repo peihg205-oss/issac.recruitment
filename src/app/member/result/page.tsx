@@ -91,7 +91,7 @@ export default async function MemberResultPage() {
               </p>
               <div className="inline-flex items-center gap-2 bg-white text-emerald-900 rounded-full px-5 py-1.5 mt-4 shadow-md font-black text-sm">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
-                TRẠNG THÁI: CHÍNH THỨC TRÚNG TUYỂN (PASS)
+                TRẠNG THÁI: CHÍNH THỨC TRÚNG TUYỂN (Pass)
               </div>
             </div>
 

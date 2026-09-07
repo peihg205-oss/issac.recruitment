@@ -272,11 +272,11 @@ export default function RankingManager({
   const getDecisionBadge = (decision: string) => {
     switch (decision) {
       case 'pass':
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold whitespace-nowrap">PASS</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold whitespace-nowrap">Pass</Badge>
       case 'waitlist':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold whitespace-nowrap">DỰ BỊ</Badge>
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold whitespace-nowrap">Dự bị</Badge>
       case 'fail':
-        return <Badge className="bg-gray-100 text-gray-700 border-gray-300 font-bold whitespace-nowrap">TRƯỢT</Badge>
+        return <Badge className="bg-gray-100 text-gray-700 border-gray-300 font-bold whitespace-nowrap">Trượt</Badge>
       default:
         return <Badge variant="outline" className="text-gray-500 font-medium whitespace-nowrap">Chờ duyệt</Badge>
     }
@@ -483,7 +483,7 @@ export default function RankingManager({
             </div>
             <div>
               <div className="font-black text-base">
-                DANH SÁCH TOP {quota} THÀNH VIÊN CHÍNH THỨC ({passCount} PASS)
+                DANH SÁCH TOP {quota} THÀNH VIÊN CHÍNH THỨC ({passCount} Pass)
               </div>
             </div>
           </div>
@@ -629,25 +629,25 @@ export default function RankingManager({
                       </td>
 
                       {/* Ban Chủ nhiệm Decision */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
                           {getDecisionBadge(decision)}
 
                           {/* BCN Quick Actions (Only for BCN) */}
                           {isSuperAdmin && (
-                            <div className="flex items-center gap-1">
+                            <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
                               <button
                                 type="button"
                                 title="Chấp thuận đề xuất của Ban"
                                 onClick={() => handleApproveProposal(candidate.id)}
-                                className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                className="px-2 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 whitespace-nowrap shadow-sm transition-colors"
                               >
                                 Chấp thuận
                               </button>
                               <select
                                 value={decision}
                                 onChange={e => handleChangeDecision(candidate.id, e.target.value as any)}
-                                className="text-[10px] h-6 rounded border border-gray-300 bg-white font-medium text-gray-700 px-1"
+                                className="text-xs h-7 rounded-lg border border-gray-300 bg-white font-semibold text-gray-700 px-2 whitespace-nowrap shadow-sm"
                               >
                                 <option value="pass">Pass</option>
                                 <option value="waitlist">Dự bị</option>

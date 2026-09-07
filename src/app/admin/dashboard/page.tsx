@@ -88,7 +88,7 @@ export default async function AdminDashboardPage() {
     { label: 'Lịch phỏng vấn', value: isUsingMock ? MOCK_INTERVIEW_SLOTS.length : (interviews?.length || 0), icon: Calendar, color: 'bg-purple-50', iconColor: 'text-purple-600', accent: 'border-l-purple-500' },
     { label: 'Đã hoàn thành PV', value: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, icon: Users, color: 'bg-indigo-50', iconColor: 'text-indigo-600', accent: 'border-l-indigo-500' },
     { label: 'Đã chấm điểm', value: evalStats.submitted, icon: ClipboardList, color: 'bg-teal-50', iconColor: 'text-teal-600', accent: 'border-l-teal-500' },
-    { label: 'TOP 15 PASS', value: rankStats.pass, icon: Trophy, color: 'bg-emerald-50', iconColor: 'text-emerald-600', accent: 'border-l-emerald-500' },
+    { label: 'TOP 15 Pass', value: rankStats.pass, icon: Trophy, color: 'bg-emerald-50', iconColor: 'text-emerald-600', accent: 'border-l-emerald-500' },
     { label: 'Điểm TB phỏng vấn', value: `${evalStats.avgScore}/10`, icon: Star, color: 'bg-orange-50', iconColor: 'text-orange-600', accent: 'border-l-orange-500' },
   ]
 

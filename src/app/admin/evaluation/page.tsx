@@ -198,15 +198,15 @@ export default async function EvaluationListPage() {
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           {evalData?.bcn_decision === 'pass' ? (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold whitespace-nowrap">
-                              PASS
+                              Pass
                             </Badge>
                           ) : evalData?.bcn_decision === 'waitlist' ? (
                             <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs font-bold whitespace-nowrap">
-                              DỰ BỊ
+                              Dự bị
                             </Badge>
                           ) : evalData?.bcn_decision === 'fail' ? (
                             <Badge className="bg-gray-100 text-gray-700 border-gray-300 text-xs font-bold whitespace-nowrap">
-                              FAIL
+                              Trượt
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-gray-400 text-xs whitespace-nowrap">

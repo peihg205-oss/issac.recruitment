@@ -42,7 +42,23 @@ export default function ProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      reset({
+        full_name: 'Nguyễn Hà Phương',
+        phone: '0987123456',
+        date_of_birth: '2004-05-15',
+        gender: 'Nữ',
+        student_id: '22070142',
+        university: 'Trường Quốc tế - ĐHQGHN (VNU-IS)',
+        cohort: 'K22',
+        major: 'Hệ thống thông tin quản lý (MIS)',
+        high_school: 'THPT Chuyên Ngoại ngữ',
+        address: 'Thanh Xuân, Hà Nội',
+      })
+      setProfileComplete(true)
+      setLoading(false)
+      return
+    }
 
     const [{ data: profile }, { data: app }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),

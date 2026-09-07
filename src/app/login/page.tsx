@@ -8,12 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Eye, EyeOff, LogIn, ArrowLeft, Loader2,
-  Crown, Megaphone, MessageSquare, Users, Shield
+  Crown, Megaphone, MessageSquare, Users, Shield, UserCheck, Sparkles, FileText
 } from 'lucide-react'
 
 const schema = z.object({
@@ -119,6 +120,21 @@ function LoginForm() {
       router.push(redirectTo)
     } else if (profile?.role === 'admin' || profile?.role === 'super_admin') {
       router.push('/admin/dashboard')
+    } else {
+      router.push('/member/dashboard')
+    }
+    router.refresh()
+  }
+
+  const handleCandidateQuickLogin = (mode: 'dashboard' | 'apply') => {
+    document.cookie = 'issac_member_demo=true; path=/; max-age=2592000'
+    toast({
+      title: 'Đăng nhập Demo Ứng Viên',
+      description: mode === 'apply' ? 'Đang chuyển đến form nộp đơn ứng tuyển...' : 'Đang chuyển đến Dashboard tiến trình...',
+      variant: 'success'
+    } as Parameters<typeof toast>[0])
+    if (mode === 'apply') {
+      router.push('/member/application')
     } else {
       router.push('/member/dashboard')
     }
@@ -243,6 +259,46 @@ function LoginForm() {
               <Link href="/register" className="text-blue-600 font-bold hover:underline">
                 Đăng ký tài khoản
               </Link>
+            </div>
+
+            {/* Candidate Demo Quick Login Section */}
+            <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  DEMO DÀNH CHO NGƯỜI APPLY (ỨNG VIÊN)
+                </span>
+                <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">
+                  1-Click Test
+                </Badge>
+              </div>
+              <p className="text-[11px] text-gray-600 mb-2.5 leading-relaxed">
+                Trải nghiệm giao diện nộp đơn, xem tiến độ xét tuyển và tra cứu kết quả của ứng viên <strong>Nguyễn Hà Phương (K22 - VNU-IS)</strong>:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCandidateQuickLogin('dashboard')}
+                  className="p-2.5 rounded-xl bg-white border border-emerald-300 text-left hover:bg-emerald-100/60 transition-all shadow-sm group"
+                >
+                  <div className="font-bold text-xs text-emerald-900 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Xem Tiến độ & Kết quả</span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Lộ trình 7 bước, lịch PV, TOP 15</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCandidateQuickLogin('apply')}
+                  className="p-2.5 rounded-xl bg-white border border-emerald-300 text-left hover:bg-emerald-100/60 transition-all shadow-sm group"
+                >
+                  <div className="font-bold text-xs text-emerald-900 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Form Nộp Đơn Mới</span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Chọn ban, trả lời câu hỏi, nộp đơn</div>
+                </button>
+              </div>
             </div>
 
             {/* Department Accounts Quick Login Section */}

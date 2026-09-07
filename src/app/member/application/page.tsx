@@ -38,7 +38,13 @@ export default function ApplicationPage() {
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setDepartments(MOCK_DEPARTMENTS as any)
+      setProfileComplete(true)
+      setSelectedDept('dept-1')
+      setLoading(false)
+      return
+    }
 
     const [{ data: depts }, { data: app }, { data: prof }] = await Promise.all([
       supabase.from('departments').select('*').neq('slug', 'chu-nhiem').eq('is_active', true),
@@ -117,7 +123,19 @@ export default function ApplicationPage() {
 
   const handleSubmit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setSubmitting(true)
+      setTimeout(() => {
+        setSubmitting(false)
+        toast({
+          title: 'Nộp đơn thành công!',
+          description: 'Hồ sơ của bạn đã được chuyển đến Ban tuyển dụng iSSAC.',
+          variant: 'success'
+        } as Parameters<typeof toast>[0])
+        router.push('/member/dashboard')
+      }, 800)
+      return
+    }
     setSubmitting(true)
 
     // Create or update application

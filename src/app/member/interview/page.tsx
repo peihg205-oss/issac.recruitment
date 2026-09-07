@@ -1,4 +1,5 @@
 'use client'
+import { MOCK_INTERVIEW_SLOTS } from '@/lib/mock-data'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +20,27 @@ export default function MemberInterviewPage() {
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setApplication({
+        id: 'app-01',
+        status: 'interview_scheduled',
+        department_id: 'dept-1'
+      })
+      setMyInterview({
+        id: 'iv-01',
+        status: 'scheduled',
+        interview_slots: {
+          interview_date: '2026-09-12',
+          start_time: '08:30',
+          end_time: '10:00',
+          format: 'offline',
+          location: 'Phòng Hội đồng 302, Nhà C, VNU-IS (Làng Sinh viên HACINCO)',
+        }
+      })
+      setSlots(MOCK_INTERVIEW_SLOTS as any)
+      setLoading(false)
+      return
+    }
 
     const { data: app } = await supabase
       .from('applications')
@@ -55,7 +76,18 @@ export default function MemberInterviewPage() {
 
   const bookSlot = async (slotId: string) => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !application) return
+    if (!user) {
+      setBooking(slotId)
+      setTimeout(() => {
+        setBooking(null)
+        toast({
+          title: 'Đã đặt ca phỏng vấn thành công (Demo)!',
+          description: 'Hệ thống đã ghi nhận lịch phỏng vấn của bạn.',
+          variant: 'success'
+        } as Parameters<typeof toast>[0])
+      }, 600)
+      return
+    }
     setBooking(slotId)
 
     // Check if slot still available

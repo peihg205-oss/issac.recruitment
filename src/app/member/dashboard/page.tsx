@@ -1,24 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   CheckCircle, Clock, FileText, Calendar, Trophy,
-  ArrowRight, AlertCircle, ChevronRight, User
+  ArrowRight, AlertCircle, ChevronRight, User, Sparkles
 } from 'lucide-react'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDateTime } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
+import { MOCK_CANDIDATES } from '@/lib/mock-data'
 
 const TIMELINE_STEPS = [
-  { key: 'submitted', label: 'Đã nộp đơn', icon: FileText },
-  { key: 'received', label: 'Đã nhận đơn', icon: CheckCircle },
-  { key: 'approved', label: 'Đã duyệt hồ sơ', icon: CheckCircle },
-  { key: 'interview_scheduled', label: 'Chuyển vòng PV', icon: Calendar },
-  { key: 'interviewed', label: 'Đã phỏng vấn', icon: CheckCircle },
-  { key: 'evaluated', label: 'Đã đánh giá', icon: CheckCircle },
-  { key: 'finalized', label: 'Công bố kết quả', icon: Trophy },
+  { key: 'submitted', label: '1. Đã nộp đơn', icon: FileText },
+  { key: 'received', label: '2. Đã tiếp nhận hồ sơ', icon: CheckCircle },
+  { key: 'approved', label: '3. Duyệt hồ sơ & Vòng đơn', icon: CheckCircle },
+  { key: 'interview_scheduled', label: '4. Đặt lịch phỏng vấn', icon: Calendar },
+  { key: 'interviewed', label: '5. Tham gia phỏng vấn', icon: CheckCircle },
+  { key: 'evaluated', label: '6. Hội đồng chấm điểm', icon: CheckCircle },
+  { key: 'finalized', label: '7. Công bố kết quả TOP 15', icon: Trophy },
 ]
 
 const STATUS_ORDER: ApplicationStatus[] = [
@@ -41,148 +41,162 @@ function getTimelineStatus(currentStatus: ApplicationStatus, stepKey: string) {
 
 export default async function MemberDashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*, departments(name, color)')
-    .eq('id', user.id)
-    .single()
+  let profile: any = null
+  let application: any = null
+  let interview: any = null
+  let ranking: any = null
+  let finalResult: any = null
+  let notifications: any[] = []
+  let resultsPublished = true
 
-  const { data: application } = await supabase
-    .from('applications')
-    .select('*, departments!applications_department_id_fkey(name, slug, color)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: interview } = application ? await supabase
-    .from('interviews')
-    .select('*, interview_slots(*)')
-    .eq('application_id', application.id)
-    .single() : { data: null }
+    if (user) {
+      const [{ data: prof }, { data: app }, { data: iv }, { data: rk }, { data: fr }, { data: notifs }, { data: setts }] = await Promise.all([
+        supabase.from('profiles').select('*, departments(name, color)').eq('id', user.id).single(),
+        supabase.from('applications').select('*, departments!applications_department_id_fkey(name, color, slug)').eq('user_id', user.id).limit(1).single(),
+        supabase.from('interviews').select('*, interview_slots(*)').eq('user_id', user.id).limit(1).single(),
+        supabase.from('candidate_rankings').select('rank_number, final_score, result, applications!inner(user_id)').eq('applications.user_id', user.id).single(),
+        supabase.from('final_results').select('*').eq('user_id', user.id).single(),
+        supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('system_settings').select('key, value').eq('key', 'results_published').single()
+      ])
 
-  const { data: ranking } = application ? await supabase
-    .from('candidate_rankings')
-    .select('*')
-    .eq('application_id', application.id)
-    .single() : { data: null }
+      profile = prof
+      application = app
+      interview = iv
+      ranking = rk
+      finalResult = fr
+      notifications = notifs || []
+      resultsPublished = setts?.value === 'true'
+    }
+  } catch {
+    // Fallback handled below
+  }
 
-  const { data: finalResult } = application ? await supabase
-    .from('final_results')
-    .select('*')
-    .eq('application_id', application.id)
-    .single() : { data: null }
+  // Demo fallback applicant: Nguyen Ha Phuong
+  if (!profile) {
+    const demoCand = MOCK_CANDIDATES[0]
+    profile = {
+      full_name: demoCand.profiles.full_name,
+      student_id: demoCand.profiles.student_id,
+      email: demoCand.profiles.email,
+      phone: demoCand.profiles.phone,
+      university: demoCand.profiles.university,
+      major: demoCand.profiles.major,
+      cohort: demoCand.profiles.cohort,
+    }
+    application = {
+      id: demoCand.id,
+      status: demoCand.status,
+      submitted_at: demoCand.submitted_at,
+      departments: demoCand.departments,
+    }
+    interview = {
+      interview_slots: {
+        interview_date: '2026-09-12',
+        start_time: '08:30',
+        end_time: '10:00',
+        location: 'Phòng Hội đồng 302, Nhà C, VNU-IS (Làng Sinh viên HACINCO)',
+        format: 'offline',
+      }
+    }
+    ranking = {
+      rank_number: demoCand.candidate_rankings.rank_number,
+      final_score: demoCand.candidate_rankings.final_score,
+      result: demoCand.candidate_rankings.result,
+    }
+    finalResult = {
+      result: 'pass',
+      announcement_message: 'Chúc mừng bạn đã xuất sắc vượt qua các vòng tuyển chọn và trở thành Thành viên chính thức của CLB Đại sứ Sinh viên iSSAC (TOP 1 Toàn CLB)!',
+    }
+    notifications = [
+      { id: 'n1', type: 'success', title: 'Chúc mừng trúng tuyển', message: 'Bạn đã chính thức lọt vào TOP 15 Thành viên chính thức iSSAC.', created_at: '2026-09-05' },
+      { id: 'n2', type: 'info', title: 'Nhắc lịch phỏng vấn', message: 'Ca phỏng vấn của bạn đã hoàn thành với điểm số 9.6/10.', created_at: '2026-09-04' },
+    ]
+    resultsPublished = true
+  }
 
-  const { data: notifications } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  const { data: settings } = await supabase
-    .from('system_settings')
-    .select('key, value')
-    .in('key', ['results_published'])
-
-  const resultsPublished = settings?.find(s => s.key === 'results_published')?.value === 'true'
-
-  const profileComplete = !!(profile?.full_name && profile?.phone && profile?.student_id && profile?.university)
+  const dept = application?.departments as any
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Welcome header */}
-      <div className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-3xl p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-16" />
-        <div className="relative">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-blue-200 text-sm font-medium mb-1">Xin chào,</p>
-              <h1 className="text-2xl sm:text-3xl font-black mb-2">
-                {profile?.full_name || 'Ứng viên'} 👋
-              </h1>
-              <p className="text-blue-200 text-sm">
-                Chào mừng bạn đến với iSSAC Portal — Mùa tuyển thành viên 2026
-              </p>
-            </div>
-            <div className="hidden sm:flex w-16 h-16 bg-white/10 rounded-2xl items-center justify-center border border-white/20 flex-shrink-0">
-              <User className="w-8 h-8 text-blue-200" />
-            </div>
+      {/* Welcome banner */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-amber-300 border border-white/15 mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            CỔNG THÔNG TIN ỨNG VIÊN iSSAC
           </div>
+          <h1 className="text-2xl sm:text-3xl font-black mb-2">
+            Xin chào, {profile?.full_name}!
+          </h1>
+          <p className="text-blue-200 text-sm max-w-xl leading-relaxed">
+            Theo dõi tiến trình hồ sơ, ca phỏng vấn và kết quả xét tuyển chính thức vào Câu lạc bộ Đại sứ Sinh viên (iSSAC).
+          </p>
 
-          {application && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2 text-sm">
-                <span className="text-blue-200">Ban:</span>{' '}
-                <span className="font-bold">{(application as any).departments?.name || '—'}</span>
-              </div>
-              <div className={`rounded-xl px-4 py-2 text-sm font-medium ${APPLICATION_STATUS_COLORS[application.status as ApplicationStatus] || 'bg-gray-100 text-gray-700'}`}>
-                {APPLICATION_STATUS_LABELS[application.status as ApplicationStatus] || application.status}
-              </div>
-            </div>
-          )}
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Link href="/member/application">
+              <Button size="sm" variant="gold" className="font-bold gap-1.5 shadow-md">
+                <FileText className="w-4 h-4" /> Xem đơn ứng tuyển
+              </Button>
+            </Link>
+            <Link href="/member/interview">
+              <Button size="sm" variant="outline" className="text-white border-white/30 hover:bg-white/10 font-bold gap-1.5">
+                <Calendar className="w-4 h-4" /> Lịch phỏng vấn
+              </Button>
+            </Link>
+            <Link href="/member/result">
+              <Button size="sm" variant="outline" className="text-white border-white/30 hover:bg-white/10 font-bold gap-1.5">
+                <Trophy className="w-4 h-4 text-amber-400" /> Tra cứu kết quả
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Profile incomplete warning */}
-      {!profileComplete && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-semibold text-amber-800 text-sm">Hồ sơ chưa hoàn thiện</p>
-            <p className="text-amber-700 text-sm">Vui lòng điền đầy đủ thông tin cá nhân trước khi ứng tuyển.</p>
-          </div>
-          <Link href="/member/profile">
-            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">Điền ngay</Button>
-          </Link>
-        </div>
-      )}
-
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: 'Trạng thái đơn',
-            value: application ? APPLICATION_STATUS_LABELS[application.status as ApplicationStatus] : 'Chưa có',
+            label: 'Ban đăng ký',
+            value: dept?.name || 'Chưa chọn',
             icon: FileText,
-            color: 'bg-blue-50',
+            color: 'bg-blue-50 border-blue-200',
             iconColor: 'text-blue-600',
           },
           {
             label: 'Lịch phỏng vấn',
-            value: interview ? formatDateTime((interview.interview_slots as any)?.interview_date) : 'Chưa có',
+            value: interview ? `${interview.interview_slots?.interview_date} (${interview.interview_slots?.start_time})` : 'Chưa có',
             icon: Calendar,
-            color: 'bg-emerald-50',
+            color: 'bg-emerald-50 border-emerald-200',
             iconColor: 'text-emerald-600',
           },
           {
-            label: 'Xếp hạng',
-            value: ranking?.rank_number ? `#${ranking.rank_number}` : '—',
+            label: 'Thứ hạng & Điểm PV',
+            value: ranking?.rank_number ? `#${ranking.rank_number} (${Number(ranking.final_score).toFixed(1)}đ)` : '—',
             icon: Trophy,
-            color: 'bg-amber-50',
+            color: 'bg-amber-50 border-amber-200',
             iconColor: 'text-amber-600',
           },
           {
-            label: 'Thông báo mới',
-            value: notifications?.length || 0,
-            icon: AlertCircle,
-            color: 'bg-purple-50',
+            label: 'Trạng thái vòng tuyển',
+            value: application ? (APPLICATION_STATUS_LABELS[application.status as ApplicationStatus] || application.status) : 'Chưa nộp',
+            icon: CheckCircle,
+            color: 'bg-purple-50 border-purple-200',
             iconColor: 'text-purple-600',
           },
         ].map((stat, i) => (
-          <Card key={i} className={`${stat.color} border-0`}>
+          <Card key={i} className={`${stat.color} border shadow-sm`}>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm`}>
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                 <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
               <div>
-                <div className="text-xs text-gray-500">{stat.label}</div>
-                <div className="font-bold text-gray-900 text-sm">{stat.value}</div>
+                <div className="text-xs text-gray-500 font-medium">{stat.label}</div>
+                <div className="font-bold text-gray-900 text-sm mt-0.5">{stat.value}</div>
               </div>
             </CardContent>
           </Card>
@@ -191,133 +205,110 @@ export default async function MemberDashboardPage() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Application Timeline */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Tiến trình ứng tuyển</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b bg-gray-50/50">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-600" />
+              Lộ trình 7 bước tuyển thành viên
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {!application ? (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm mb-4">Bạn chưa có đơn ứng tuyển nào.</p>
-                <Link href="/member/application">
-                  <Button size="sm">Nộp đơn ngay</Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {TIMELINE_STEPS.map((step, i) => {
-                  const status = getTimelineStatus(application.status as ApplicationStatus, step.key)
-                  return (
-                    <div key={step.key} className="flex items-center gap-3">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-all ${
-                        status === 'done' ? 'bg-green-500 text-white' :
-                        status === 'current' ? 'bg-blue-600 text-white ring-4 ring-blue-100' :
-                        'bg-gray-100 text-gray-400'
-                      }`}>
-                        {status === 'done' ? <CheckCircle className="w-4 h-4" /> :
-                         status === 'current' ? <Clock className="w-4 h-4" /> : i + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className={`text-sm font-medium ${
-                          status === 'done' ? 'text-green-700' :
-                          status === 'current' ? 'text-blue-700 font-bold' :
-                          'text-gray-400'
-                        }`}>{step.label}</div>
-                      </div>
-                      {status === 'current' && (
-                        <Badge variant="secondary" className="text-xs">Hiện tại</Badge>
-                      )}
+          <CardContent className="p-5">
+            <div className="space-y-4">
+              {TIMELINE_STEPS.map((step, i) => {
+                const status = application ? getTimelineStatus(application.status as ApplicationStatus, step.key) : 'pending'
+                return (
+                  <div key={step.key} className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-all ${
+                      status === 'done' ? 'bg-green-500 text-white' :
+                      status === 'current' ? 'bg-blue-600 text-white ring-4 ring-blue-100' :
+                      'bg-gray-100 text-gray-400'
+                    }`}>
+                      {status === 'done' ? <CheckCircle className="w-4 h-4" /> :
+                       status === 'current' ? <Clock className="w-4 h-4" /> : i + 1}
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                    <div className="flex-1">
+                      <div className={`text-sm font-semibold ${
+                        status === 'done' ? 'text-green-700' :
+                        status === 'current' ? 'text-blue-700 font-bold' :
+                        'text-gray-400'
+                      }`}>
+                        {step.label}
+                      </div>
+                    </div>
+                    {status === 'current' && (
+                      <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Hiện tại</Badge>
+                    )}
+                    {status === 'done' && (
+                      <span className="text-xs text-green-600 font-semibold">Hoàn thành</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Quick actions & Result */}
+        {/* Right column: Results & Quick Actions */}
         <div className="space-y-4">
-          {/* Final result card */}
+          {/* Final Result Card */}
           {finalResult && resultsPublished && (
-            <Card className={`border-2 ${
-              finalResult.result === 'pass' ? 'border-green-300 bg-green-50' :
-              finalResult.result === 'waitlist' ? 'border-amber-300 bg-amber-50' :
-              'border-red-200 bg-red-50'
-            }`}>
+            <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm overflow-hidden">
               <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-3">
-                  {finalResult.result === 'pass' ? '🎉' : finalResult.result === 'waitlist' ? '⏳' : '😔'}
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-md">
+                  <Trophy className="w-6 h-6 text-amber-300" />
                 </div>
-                <h3 className={`text-xl font-black mb-2 ${
-                  finalResult.result === 'pass' ? 'text-green-800' :
-                  finalResult.result === 'waitlist' ? 'text-amber-800' : 'text-red-800'
-                }`}>
-                  {finalResult.result === 'pass' ? 'CHÚC MỪNG! Bạn đã đạt!' :
-                   finalResult.result === 'waitlist' ? 'Bạn đang ở danh sách dự bị' :
-                   'Cảm ơn bạn đã tham gia'}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  KẾT QUẢ CHÍNH THỨC: TRÚNG TUYỂN
+                </div>
+                <h3 className="text-xl font-black text-emerald-950 mb-2">
+                  CHÚC MỪNG BẠN ĐÃ TRÚNG TUYỂN!
                 </h3>
-                <p className={`text-sm ${
-                  finalResult.result === 'pass' ? 'text-green-700' :
-                  finalResult.result === 'waitlist' ? 'text-amber-700' : 'text-red-700'
-                }`}>
-                  {finalResult.announcement_message || (
-                    finalResult.result === 'pass'
-                      ? 'Bạn đã trở thành thành viên chính thức của iSSAC!'
-                      : 'Cảm ơn bạn đã nộp đơn ứng tuyển vào iSSAC.'
-                  )}
+                <p className="text-xs text-emerald-800 leading-relaxed max-w-md mx-auto">
+                  {finalResult.announcement_message}
                 </p>
+
+                <div className="mt-4 pt-3 border-t border-emerald-200 flex justify-center gap-6 text-center">
+                  <div>
+                    <div className="text-xs text-emerald-700 font-medium">Thứ hạng toàn CLB</div>
+                    <div className="text-2xl font-black text-emerald-900">#{ranking?.rank_number || 1}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-emerald-700 font-medium">Điểm phỏng vấn</div>
+                    <div className="text-2xl font-black text-blue-700">{ranking?.final_score || 9.6}/10</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-emerald-700 font-medium">Ban trúng tuyển</div>
+                    <div className="text-xs font-bold text-gray-900 mt-2">{dept?.name || 'Ban Truyền thông'}</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Hành động nhanh</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b bg-gray-50/50">
+              <CardTitle className="text-base font-bold">Thao tác ứng viên</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="p-3 space-y-1">
               {[
-                { href: '/member/application', label: application ? 'Xem đơn ứng tuyển' : 'Nộp đơn ứng tuyển', icon: FileText, show: true },
-                { href: '/member/profile', label: 'Cập nhật hồ sơ', icon: User, show: true },
-                { href: '/member/interview', label: 'Chọn lịch phỏng vấn', icon: Calendar, show: application?.status === 'approved' },
-                { href: '/member/result', label: 'Xem kết quả', icon: Trophy, show: resultsPublished },
-              ].filter(a => a.show).map((action, i) => (
+                { href: '/member/application', label: 'Xem đơn ứng tuyển & câu trả lời', icon: FileText },
+                { href: '/member/interview', label: 'Chi tiết ca phỏng vấn & phòng thi', icon: Calendar },
+                { href: '/member/result', label: 'Xem thông báo kết quả & bước tiếp theo', icon: Trophy },
+                { href: '/member/profile', label: 'Cập nhật thông tin sinh viên', icon: User },
+              ].map((action, i) => (
                 <Link key={i} href={action.href}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 transition-colors group">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors">
                     <action.icon className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors" />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700 flex-1">{action.label}</span>
+                  <span className="text-xs font-bold text-gray-700 group-hover:text-blue-700 flex-1">{action.label}</span>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
                 </Link>
               ))}
             </CardContent>
           </Card>
-
-          {/* Notifications */}
-          {notifications && notifications.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Thông báo mới</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {notifications.slice(0, 3).map(notif => (
-                  <div key={notif.id} className="flex gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                      notif.type === 'success' ? 'bg-green-500' :
-                      notif.type === 'warning' ? 'bg-amber-500' :
-                      notif.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                    }`} />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{notif.title}</div>
-                      <div className="text-xs text-gray-500">{notif.message}</div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

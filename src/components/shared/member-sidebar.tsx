@@ -38,7 +38,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
       {/* Logo */}
       <div className="p-5 border-b border-blue-50">
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/issac-logo.png" alt="iSSAC" width={36} height={36} className="rounded-full" />
+          <Image src="/issac-logo.png" alt="iSSAC" width={38} height={40} className="object-contain drop-shadow-sm" />
           <div>
             <div className="font-black text-blue-900 text-sm">iSSAC Portal</div>
             <div className="text-xs text-blue-400">Member Dashboard</div>

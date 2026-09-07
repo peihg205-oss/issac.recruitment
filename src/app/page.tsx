@@ -11,7 +11,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/issac-logo.png" alt="iSSAC Logo" width={40} height={40} className="rounded-full" />
+              <Image src="/issac-logo.png" alt="iSSAC Logo" width={42} height={45} className="object-contain" />
               <div className="hidden sm:block">
                 <div className="font-bold text-blue-900 text-sm">iSSAC</div>
                 <div className="text-xs text-blue-500">VNU-IS Ambassadors Club</div>
@@ -45,15 +45,16 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
-          <div className="flex justify-center mb-8">
+                    <div className="flex justify-center mb-8">
             <div className="relative">
-              <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-2xl scale-150" />
+              <div className="absolute inset-0 bg-blue-400/20 blur-2xl scale-125" />
               <Image
-                src="/issac-logo.png"
-                alt="iSSAC Logo"
-                width={120}
-                height={120}
-                className="relative rounded-full border-4 border-white/20 shadow-2xl"
+                src="/issac-logo-full.png"
+                alt="iSSAC - Bridge to Success"
+                width={380}
+                height={113}
+                className="relative object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.45)] max-w-[90vw]"
+                priority
               />
             </div>
           </div>
@@ -290,7 +291,7 @@ export default function HomePage() {
       <section className="py-24" style={{background: 'linear-gradient(135deg, #0f1b4c 0%, #1e3a8a 100%)'}}>
         <div className="max-w-4xl mx-auto px-4 text-center">
           <div className="flex justify-center mb-6">
-            <Image src="/issac-logo.png" alt="iSSAC" width={80} height={80} className="rounded-full border-4 border-white/20" />
+            <Image src="/issac-logo-full.png" alt="iSSAC" width={300} height={90} className="object-contain drop-shadow-xl mx-auto" />
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
             Sẵn sàng gia nhập iSSAC?
@@ -319,7 +320,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <Image src="/issac-logo.png" alt="iSSAC" width={36} height={36} className="rounded-full" />
+              <Image src="/issac-logo.png" alt="iSSAC" width={40} height={42} className="object-contain" />
               <div>
                 <div className="font-bold text-white">iSSAC</div>
                 <div className="text-gray-400 text-xs">VNU-IS Ambassadors Club</div>

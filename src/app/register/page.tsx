@@ -92,9 +92,7 @@ export default function RegisterPage() {
       {/* Left side */}
       <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md">
-          <div className="flex justify-center mb-8">
-            <Image src="/issac-logo.png" alt="iSSAC" width={100} height={100} className="rounded-full border-4 border-white/20" />
-          </div>
+          <div className="flex justify-center mb-6"><Image src="/issac-logo-full.png" alt="iSSAC - Bridge to Success" width={280} height={84} className="object-contain drop-shadow-lg" priority /></div>
           <h1 className="text-3xl font-black text-center mb-4">
             Tham gia iSSAC
           </h1>
@@ -118,7 +116,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md py-8">
           <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 animate-slide-up">
             <div className="flex lg:hidden justify-center mb-6">
-              <Image src="/issac-logo.png" alt="iSSAC" width={64} height={64} className="rounded-full" />
+              <Image src="/issac-logo.png" alt="iSSAC" width={56} height={60} className="object-contain drop-shadow-sm" />
             </div>
 
             <div className="mb-8">

@@ -77,12 +77,7 @@ function LoginForm() {
       {/* Left side */}
       <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md">
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-2xl scale-150" />
-              <Image src="/issac-logo.png" alt="iSSAC" width={100} height={100} className="relative rounded-full border-4 border-white/20" />
-            </div>
-          </div>
+          <div className="flex justify-center mb-6"><Image src="/issac-logo-full.png" alt="iSSAC - Bridge to Success" width={280} height={84} className="object-contain drop-shadow-lg" priority /></div>
           <h1 className="text-3xl font-black text-center mb-3">
             iSSAC Portal
           </h1>
@@ -108,7 +103,7 @@ function LoginForm() {
           <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 animate-slide-up">
             {/* Mobile logo */}
             <div className="flex lg:hidden justify-center mb-6">
-              <Image src="/issac-logo.png" alt="iSSAC" width={64} height={64} className="rounded-full" />
+              <Image src="/issac-logo.png" alt="iSSAC" width={56} height={60} className="object-contain drop-shadow-sm" />
             </div>
 
             <div className="mb-6">

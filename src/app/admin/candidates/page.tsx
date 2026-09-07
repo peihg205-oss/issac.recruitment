@@ -104,11 +104,8 @@ export default function CandidatesPage() {
     } as Parameters<typeof toast>[0])
   }
 
-  const scopedCandidates = isSuperAdmin
-    ? candidates
-    : candidates.filter(c => c.departments?.slug === activeRole)
-
-  const filtered = scopedCandidates
+  // Tất cả các Ban đều xem được danh sách ứng viên toàn CLB
+  const filtered = candidates
     .filter(c => {
       const p = c.profiles
       const matchesSearch = !search ||
@@ -116,10 +113,7 @@ export default function CandidatesPage() {
         p?.email?.toLowerCase().includes(search.toLowerCase()) ||
         p?.student_id?.toLowerCase().includes(search.toLowerCase())
 
-      const matchesDept = isSuperAdmin
-        ? (deptFilter === 'all' || c.departments?.slug === deptFilter)
-        : true
-
+      const matchesDept = deptFilter === 'all' || c.departments?.slug === deptFilter
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter
       return matchesSearch && matchesDept && matchesStatus
     })
@@ -188,24 +182,18 @@ export default function CandidatesPage() {
               />
             </div>
 
-            {/* Department Filter */}
-            {isSuperAdmin ? (
-              <Select value={deptFilter} onValueChange={setDeptFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tất cả Ban" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả các Ban</SelectItem>
-                  {departments.map(d => (
-                    <SelectItem key={d.id} value={d.slug}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-xs font-bold text-[#1559c5]">
-                Phạm vi: {userDeptObj?.name || 'Ban của bạn'}
-              </div>
-            )}
+            {/* Department Filter - Tất cả đều được xem danh sách theo ban */}
+            <Select value={deptFilter} onValueChange={setDeptFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tất cả Ban" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả các Ban</SelectItem>
+                {departments.map(d => (
+                  <SelectItem key={d.id} value={d.slug}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>

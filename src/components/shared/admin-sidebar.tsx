@@ -8,7 +8,7 @@ import {
   LogOut, CheckSquare, Crown, Megaphone, MessageSquare
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from '@/lib/permissions'
 
 interface NavItem {
   href: string
@@ -45,6 +45,7 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
 
   const roleKey = (user?.admin_role && user.admin_role in ADMIN_ROLE_CONFIGS ? user.admin_role : 'chu-nhiem') as AdminRoleType
   const currentConfig = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS['chu-nhiem']
+  const acc = EVALUATOR_ACCOUNTS[roleKey] || EVALUATOR_ACCOUNTS['chu-nhiem']
   const isSuper = currentConfig.isSuperAdmin
 
   const mainItems = navItems.filter(n => n.group === 'main')
@@ -88,16 +89,16 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
       <div className="px-4 py-3.5 border-b border-white/10">
         <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-white/20 flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm">
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'A'}
+            {acc.avatarInitial}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-white text-xs truncate">
-              {user?.full_name || 'Admin'}
+              {acc.name}
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               {getRoleIcon()}
               <span className="text-[11px] font-semibold text-blue-200 truncate">
-                {currentConfig.shortLabel}
+                {acc.title}
               </span>
             </div>
           </div>

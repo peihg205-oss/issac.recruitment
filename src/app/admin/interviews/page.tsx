@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Calendar, Plus, Edit2, Trash2, Users, Clock, Video, MapPin, Loader2 } from 'lucide-react'
+import { Calendar, Plus, Edit2, Check, Trash2, Users, Clock, Video, MapPin, Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
@@ -89,6 +89,7 @@ export default function InterviewsAdminPage() {
       location: form.location || null,
       meeting_url: form.meeting_url || null,
       max_candidates: form.max_candidates,
+      approval_status: isSuperAdmin ? 'approved' : 'pending',
       is_active: true,
     }
 
@@ -101,9 +102,22 @@ export default function InterviewsAdminPage() {
 
     setSaving(false)
     if (error) { toast({ title: 'Lỗi', description: error.message, variant: 'destructive' }); return }
-    toast({ title: '✅ Đã lưu slot phỏng vấn!' } as Parameters<typeof toast>[0])
+    toast({
+      title: isSuperAdmin ? '✅ Đã lưu slot phỏng vấn!' : 'Đã gửi đề xuất lịch phỏng vấn!',
+      description: isSuperAdmin ? undefined : 'Lịch phỏng vấn đang chờ Ban Chủ nhiệm phê duyệt trước khi mở cho ứng viên.',
+      variant: 'success'
+    } as Parameters<typeof toast>[0])
     setShowForm(false)
     fetchData()
+  }
+
+  const handleApproveSlot = async (slotId: string) => {
+    setSlots(prev => prev.map(s => s.id === slotId ? { ...s, approval_status: 'approved' } : s))
+    toast({
+      title: 'Đã phê duyệt lịch phỏng vấn!',
+      description: 'Slot phỏng vấn đã được Ban Chủ nhiệm phê chuẩn chính thức mở cho ứng viên.',
+      variant: 'success'
+    } as Parameters<typeof toast>[0])
   }
 
   const handleDelete = async (id: string) => {
@@ -114,9 +128,8 @@ export default function InterviewsAdminPage() {
     fetchData()
   }
 
-  const scopedSlots = isSuperAdmin
-    ? slots
-    : slots.filter(s => !s.department_id || s.departments?.slug === activeRole || s.department_id === userDeptObj?.id)
+  // Tất cả các Ban đều xem được đầy đủ toàn bộ lịch phỏng vấn
+  const scopedSlots = slots
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -126,7 +139,7 @@ export default function InterviewsAdminPage() {
             <Calendar className="w-6 h-6 text-blue-600" />
             Quản lý Lịch phỏng vấn
           </h1>
-          <p className="text-gray-500 text-sm mt-1">{scopedSlots.length} slot dành cho ban</p>
+          <p className="text-gray-500 text-sm mt-1">{scopedSlots.length} slot phỏng vấn toàn CLB</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="w-4 h-4" /> Thêm slot
@@ -155,7 +168,18 @@ export default function InterviewsAdminPage() {
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <Badge variant="secondary" className="text-xs mb-2">{dept?.name || 'Tất cả ban'}</Badge>
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                        <Badge variant="secondary" className="text-xs">{dept?.name || 'Toàn CLB'}</Badge>
+                        {slot.approval_status === 'pending' ? (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                            Chờ BCN duyệt
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                            Đã duyệt
+                          </Badge>
+                        )}
+                      </div>
                       <div className="font-bold text-gray-900">{formatDate(slot.interview_date)}</div>
                       <div className="text-blue-600 font-semibold text-sm">{slot.start_time?.slice(0,5)} — {slot.end_time?.slice(0,5)}</div>
                     </div>
@@ -190,6 +214,19 @@ export default function InterviewsAdminPage() {
                       style={{width: `${(booked / slot.max_candidates) * 100}%`}}
                     />
                   </div>
+
+                  {/* BCN Phê duyệt button */}
+                  {isSuperAdmin && slot.approval_status === 'pending' && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => handleApproveSlot(slot.id)}
+                        className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Phê duyệt lịch này
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )

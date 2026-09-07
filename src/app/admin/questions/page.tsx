@@ -171,18 +171,12 @@ export default function QuestionsPage() {
     }
   }
 
-  // PHÂN QUYỀN HIỂN THỊ CÂU HỎI:
-  // - Ban Chủ nhiệm: Xem toàn bộ câu hỏi (Tất cả, Chung, và 3 Ban)
-  // - Ban chuyên môn: CHỈ xem câu hỏi của Ban mình + câu hỏi Chung (Tuyệt đối không thấy câu hỏi của các Ban khác)
-  const scopedQuestions = isSuperAdmin
-    ? questions
-    : questions.filter(q => !q.department_id || q.departments?.slug === activeRole || q.department_id === userDeptObj?.id)
-
+  // Tất cả các Ban đều xem được toàn bộ danh sách câu hỏi
   const filtered = deptFilter === 'all'
-    ? scopedQuestions
+    ? questions
     : deptFilter === 'general'
-    ? scopedQuestions.filter(q => !q.department_id)
-    : scopedQuestions.filter(q => q.departments?.slug === deptFilter || q.department_id === departments.find(d => d.slug === deptFilter)?.id)
+    ? questions.filter(q => !q.department_id)
+    : questions.filter(q => q.departments?.slug === deptFilter || q.department_id === departments.find(d => d.slug === deptFilter)?.id)
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl">
@@ -205,81 +199,41 @@ export default function QuestionsPage() {
         </Button>
       </div>
 
-      {/* Filter Tabs — Phân quyền theo vai trò */}
+      {/* Filter Tabs — Xem danh sách đầy đủ tất cả các ban */}
       <div className="flex gap-2 flex-wrap items-center">
-        {/* Ban Chủ nhiệm xem toàn bộ, Ban chuyên môn chỉ có các tab thuộc thẩm quyền */}
-        {isSuperAdmin ? (
-          <>
-            <button
-              onClick={() => setDeptFilter('all')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                deptFilter === 'all'
-                  ? 'bg-[#1559c5] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              onClick={() => setDeptFilter('general')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                deptFilter === 'general'
-                  ? 'bg-[#1559c5] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Chung
-            </button>
-            {departments.map(d => (
-              <button
-                key={d.id}
-                onClick={() => setDeptFilter(d.slug)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  deptFilter === d.slug
-                    ? 'bg-[#1559c5] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {d.name}
-              </button>
-            ))}
-          </>
-        ) : (
-          <>
-            {userDeptObj && (
-              <button
-                onClick={() => setDeptFilter(userDeptObj.slug)}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
-                  deptFilter === userDeptObj.slug
-                    ? 'bg-[#1559c5] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {userDeptObj.name} (Ban mình)
-              </button>
-            )}
-            <button
-              onClick={() => setDeptFilter('general')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                deptFilter === 'general'
-                  ? 'bg-[#1559c5] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Câu hỏi chung (Toàn CLB)
-            </button>
-            <button
-              onClick={() => setDeptFilter('all')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                deptFilter === 'all'
-                  ? 'bg-[#1559c5] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Tất cả
-            </button>
-          </>
-        )}
+        <button
+          onClick={() => setDeptFilter('all')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+            deptFilter === 'all'
+              ? 'bg-[#1559c5] text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Tất cả
+        </button>
+        <button
+          onClick={() => setDeptFilter('general')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+            deptFilter === 'general'
+              ? 'bg-[#1559c5] text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Chung
+        </button>
+        {departments.map(d => (
+          <button
+            key={d.id}
+            onClick={() => setDeptFilter(d.slug)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              deptFilter === d.slug
+                ? 'bg-[#1559c5] text-white shadow-sm font-bold'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {d.name} {d.slug === activeRole && !isSuperAdmin ? '(Ban mình)' : ''}
+          </button>
+        ))}
       </div>
 
       {/* Questions List */}

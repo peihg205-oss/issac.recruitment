@@ -41,10 +41,8 @@ export default async function EvaluationListPage() {
 
   const allApps = (applications && applications.length > 0) ? applications : MOCK_CANDIDATES
 
-  // Filter according to department naturally
-  const apps = isSuperAdmin
-    ? allApps
-    : allApps.filter(a => (a.departments as any)?.slug === activeRole)
+  // Tất cả các Ban đều xem được danh sách đầy đủ toàn CLB
+  const apps = allApps
 
   const scored = apps.filter(a => {
     const final = (a.candidate_rankings as any)?.final_score
@@ -222,11 +220,22 @@ export default async function EvaluationListPage() {
                                 <Eye className="w-3.5 h-3.5 mr-1" /> Hồ sơ
                               </Button>
                             </Link>
-                            <Link href={`/admin/evaluation/${app.id}`}>
-                              <Button size="sm" className="h-8 text-xs font-bold bg-[#1559c5] hover:bg-[#0f449e] text-white rounded-lg shadow-sm">
-                                <ClipboardList className="w-3.5 h-3.5 mr-1" /> Chấm điểm
-                              </Button>
-                            </Link>
+                            {(() => {
+                              const canGrade = isSuperAdmin || (app.departments as any)?.slug === activeRole
+                              return canGrade ? (
+                                <Link href={`/admin/evaluation/${app.id}`}>
+                                  <Button size="sm" className="h-8 text-xs font-bold bg-[#1559c5] hover:bg-[#0f449e] text-white rounded-lg shadow-sm">
+                                    <ClipboardList className="w-3.5 h-3.5 mr-1" /> Chấm điểm
+                                  </Button>
+                                </Link>
+                              ) : (
+                                <Link href={`/admin/evaluation/${app.id}`}>
+                                  <Button variant="outline" size="sm" className="h-8 text-xs font-semibold text-gray-600 hover:text-[#1559c5] hover:bg-blue-50/50 rounded-lg border-gray-200 shadow-sm">
+                                    <Eye className="w-3.5 h-3.5 mr-1 text-gray-400" /> Xem điểm
+                                  </Button>
+                                </Link>
+                              )
+                            })()}
                           </div>
                         </td>
                       </tr>

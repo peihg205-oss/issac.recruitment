@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/shared/admin-sidebar'
-import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from '@/lib/permissions'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -21,12 +21,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   let profile = null
 
+  const acc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS['chu-nhiem']
+
   if (!user) {
     profile = {
-      full_name: `${currentConfig.label}`,
-      email: `${activeRole}@issac.vnu.edu.vn`,
+      full_name: acc.name,
+      email: acc.email,
       role: currentConfig.isSuperAdmin ? 'super_admin' : 'admin',
       admin_role: activeRole,
+      title: acc.title,
+      avatarInitial: acc.avatarInitial,
     }
   } else {
     const { data: userProfile } = await supabase
@@ -36,10 +40,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       .single()
 
     profile = userProfile || {
-      full_name: user.email || 'Admin',
-      email: user.email || '',
+      full_name: acc.name,
+      email: acc.email,
       role: currentConfig.isSuperAdmin ? 'super_admin' : 'admin',
       admin_role: activeRole,
+      title: acc.title,
+      avatarInitial: acc.avatarInitial,
     }
   }
 

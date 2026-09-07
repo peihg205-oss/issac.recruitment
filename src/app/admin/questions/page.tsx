@@ -186,11 +186,6 @@ export default function QuestionsPage() {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <HelpCircle className="w-6 h-6 text-[#1559c5]" />
             Quản lý Câu hỏi
-            {!isSuperAdmin && userDeptObj && (
-              <span className="text-base font-medium text-gray-500">
-                — {userDeptObj.name}
-              </span>
-            )}
           </h1>
         </div>
 

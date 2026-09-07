@@ -1,341 +1,536 @@
+'use client'
+
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Users, Star, Award, BookOpen, Megaphone, MessageSquare, ChevronDown } from 'lucide-react'
+import {
+  Megaphone, MessageSquare, Calendar, TrendingUp, LayoutGrid,
+  Check, ArrowRight, Share2, Play, ChevronRight, ChevronLeft,
+  Globe, ExternalLink, Sparkles, UserCheck, ShieldCheck, Heart
+} from 'lucide-react'
 
 export default function HomePage() {
+  const [activeSlide, setActiveSlide] = useState(0)
+
+  const cards = [
+    {
+      num: '01',
+      title: 'Truyền thông',
+      desc: 'Sáng tạo nội dung, lan tỏa hình ảnh và giá trị của Trường Quốc tế.',
+      icon: Megaphone,
+    },
+    {
+      num: '02',
+      title: 'Tư vấn tuyển sinh',
+      desc: 'Đồng hành cùng thí sinh và phụ huynh trong hành trình chọn trường.',
+      icon: MessageSquare,
+    },
+    {
+      num: '03',
+      title: 'Sự kiện',
+      desc: 'Tổ chức và tham gia các sự kiện học thuật, trải nghiệm và cộng đồng.',
+      icon: Calendar,
+    },
+    {
+      num: '04',
+      title: 'Môi trường phát triển',
+      desc: 'Rèn luyện kỹ năng, mở rộng mối quan hệ và phát triển bản thân.',
+      icon: TrendingUp,
+    },
+    {
+      num: '05',
+      title: 'Member Hub',
+      desc: 'Nền tảng quản lý hoạt động, minh chứng và kết nối thành viên.',
+      icon: LayoutGrid,
+    },
+  ]
+
+  const socialLinks = [
+    {
+      name: 'Facebook',
+      handle: '@iSSAC.VNUIS',
+      href: 'https://facebook.com/iSSAC.VNUIS',
+      bgBtn: 'bg-[#1877f2] hover:bg-[#166fe5]',
+      icon: (
+        <div className="w-10 h-10 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-black text-lg">
+          f
+        </div>
+      ),
+    },
+    {
+      name: 'TikTok',
+      handle: '@issac.club',
+      href: 'https://tiktok.com/@issac.club',
+      bgBtn: 'bg-[#000000] hover:bg-gray-800',
+      icon: (
+        <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-black text-sm">
+          d
+        </div>
+      ),
+    },
+    {
+      name: 'Instagram',
+      handle: '@issac.club',
+      href: 'https://instagram.com/issac.club',
+      bgBtn: 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90',
+      icon: (
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#fd1d1d] via-[#e1306c] to-[#833ab4] text-white flex items-center justify-center font-bold text-xs">
+          ig
+        </div>
+      ),
+    },
+    {
+      name: 'YouTube',
+      handle: 'issac_club',
+      href: 'https://youtube.com',
+      bgBtn: 'bg-[#ff0000] hover:bg-[#e60000]',
+      icon: (
+        <div className="w-10 h-10 rounded-full bg-[#ff0000] text-white flex items-center justify-center font-bold text-xs">
+          ▶
+        </div>
+      ),
+    },
+    {
+      name: 'Website',
+      handle: 'issac.vn',
+      href: 'https://issactestnotdone.vercel.app',
+      bgBtn: 'bg-[#1559c5] hover:bg-[#0f449e]',
+      icon: (
+        <div className="w-10 h-10 rounded-full bg-[#1559c5] text-white flex items-center justify-center">
+          <Globe className="w-5 h-5" />
+        </div>
+      ),
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* NAVBAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-blue-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <Image src="/issac-logo.png" alt="iSSAC Logo" width={42} height={45} className="object-contain" />
-              <div className="hidden sm:block">
-                <div className="font-bold text-blue-900 text-sm">iSSAC</div>
-                <div className="text-xs text-blue-500">VNU-IS Ambassadors Club</div>
+    <div className="min-h-screen bg-[#fcfbf9] text-gray-900 selection:bg-[#fdc455]/30">
+      {/* 1. TOP HEADER / NAVBAR (Exact brand royal blue) */}
+      <header className="sticky top-0 z-50 bg-[#1559c5] border-b border-white/10 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          {/* Logo & Brand Name */}
+          <Link href="/" className="flex items-center gap-3.5 group">
+            <Image
+              src="/issac-logo.png"
+              alt="iSSAC Logo"
+              width={48}
+              height={51}
+              className="object-contain flex-shrink-0 drop-shadow-md group-hover:scale-105 transition-transform"
+              priority
+            />
+            <div className="text-white text-left leading-tight hidden sm:block">
+              <div className="font-extrabold text-[11px] tracking-wider uppercase opacity-95">
+                CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN
               </div>
-            </Link>
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-              <Link href="/#about" className="hover:text-blue-700 transition-colors">Về iSSAC</Link>
-              <Link href="/#departments" className="hover:text-blue-700 transition-colors">Ban hoạt động</Link>
-              <Link href="/#events" className="hover:text-blue-700 transition-colors">Sự kiện</Link>
-              <Link href="/contact" className="hover:text-blue-700 transition-colors">Liên hệ</Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/admin/dashboard"><Button variant="ghost" size="sm" className="text-blue-900 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs gap-1.5 border border-blue-200"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Admin Portal</Button></Link><Link href="/login">
-                <Button variant="outline" size="sm">Đăng nhập</Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="gold" size="sm">Tham gia ngay</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16" style={{background: 'linear-gradient(135deg, #0f1b4c 0%, #1e3a8a 50%, #1e40af 100%)'}}>
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
-                    <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-400/20 blur-2xl scale-125" />
-              <Image
-                src="/issac-logo-full.png"
-                alt="iSSAC - Bridge to Success"
-                width={380}
-                height={113}
-                className="relative object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.45)] max-w-[90vw]"
-                priority
-              />
-            </div>
-          </div>
-
-          <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/30 rounded-full px-5 py-2 text-amber-300 text-sm font-medium mb-6">
-            <Star className="w-4 h-4 fill-current" />
-            Tuyển thành viên chính thức 2026
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-4 leading-tight">
-            Bridge to
-            <span className="block text-transparent bg-clip-text" style={{backgroundImage: 'linear-gradient(135deg, #f59e0b, #fbbf24, #fde68a)'}}>
-              Success
-            </span>
-          </h1>
-
-          <p className="text-blue-200 text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
-            <span className="font-bold text-white">iSSAC</span> — Câu lạc bộ Đại sứ Sinh viên VNU-IS.
-            Nơi bạn phát triển bản thân, kết nối cộng đồng và tạo dựng tương lai.
-          </p>
-
-          <p className="text-blue-300 text-base mb-10">
-            VNU-IS Ambassadors Club · Bridge to Success
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/register">
-              <Button size="xl" variant="gold" className="group font-bold">
-                Nộp đơn ứng tuyển
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link href="/#about">
-              <Button size="xl" variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:text-white font-semibold">
-                Tìm hiểu thêm
-              </Button>
-            </Link>
-          </div>
-
-          <div className="mt-16 grid grid-cols-3 gap-6 max-w-md mx-auto">
-            {[
-              {num: '3+', label: 'Ban hoạt động'},
-              {num: '100+', label: 'Thành viên'},
-              {num: '50+', label: 'Sự kiện/năm'},
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl font-black text-amber-400">{stat.num}</div>
-                <div className="text-blue-300 text-xs mt-1">{stat.label}</div>
+              <div className="font-black text-sm tracking-wide text-[#fdc455]">
+                BRIDGE TO SUCCESS
               </div>
-            ))}
+              <div className="font-semibold text-[10px] tracking-wider uppercase opacity-85">
+                VNU-IS AMBASSADORS CLUB
+              </div>
+            </div>
+          </Link>
+
+          {/* Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-white">
+            <a href="#about" className="hover:text-[#fdc455] transition-colors border-b-2 border-transparent hover:border-[#fdc455] py-1">
+              Về iSSAC
+            </a>
+            <a href="#activities" className="hover:text-[#fdc455] transition-colors py-1">
+              Thành viên
+            </a>
+            <a href="#activities" className="hover:text-[#fdc455] transition-colors py-1">
+              Hoạt động
+            </a>
+            <a href="#events" className="hover:text-[#fdc455] transition-colors py-1">
+              Sự kiện
+            </a>
+            <a href="#social" className="hover:text-[#fdc455] transition-colors py-1">
+              Tin tức
+            </a>
+            <a href="#contact" className="hover:text-[#fdc455] transition-colors py-1">
+              Liên hệ
+            </a>
+          </nav>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2.5">
+            <a
+              href="#social"
+              className="hidden md:inline-flex items-center gap-2 bg-[#fdc455] hover:bg-[#f59e0b] text-gray-950 font-bold px-4 py-2 rounded-full text-xs shadow-sm transition-all"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Kết nối Mạng xã hội</span>
+            </a>
+
+            <Link
+              href="/admin/dashboard"
+              className="hidden sm:inline-flex items-center gap-1.5 border border-white/40 text-white hover:bg-white/10 font-bold px-3 py-2 rounded-full text-xs transition-colors"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#fdc455]" />
+              <span>Admin Portal</span>
+            </Link>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 bg-white text-[#1559c5] hover:bg-blue-50 font-bold px-4 py-2 rounded-full text-xs shadow-sm transition-all"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Đăng nhập</span>
+            </Link>
           </div>
         </div>
+      </header>
 
-        <a href="#about" className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 hover:text-white transition-colors animate-bounce">
-          <ChevronDown className="w-6 h-6" />
-        </a>
+      {/* 2. HERO SECTION (Screenshot 1 matching) */}
+      <section className="bg-[#1559c5] text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column: Heading & Content */}
+            <div className="lg:col-span-6 space-y-6 text-left">
+              {/* Badge */}
+              <div className="inline-block">
+                <span className="bg-[#fdc455] text-gray-950 text-xs font-black uppercase px-4 py-1.5 rounded-full tracking-wider shadow-sm">
+                  CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN
+                </span>
+              </div>
+
+              {/* Main Heading */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.12] tracking-tight">
+                <span className="text-[#fdc455]">iSSAC</span> - Kết nối, lan tỏa và truyền cảm hứng
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-blue-100 text-base sm:text-lg leading-relaxed max-w-xl font-medium">
+                Những sinh viên tiên phong - cùng kết nối, lan tỏa và kiến tạo giá trị cho cộng đồng Trường Quốc tế.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+                <a
+                  href="#about"
+                  className="bg-[#fdc455] hover:bg-[#f59e0b] text-gray-950 font-black px-6 py-3 rounded-full text-sm shadow-md transition-all inline-flex items-center gap-1.5 hover:translate-x-0.5"
+                >
+                  <span>Khám phá iSSAC</span>
+                  <span>›</span>
+                </a>
+
+                <Link
+                  href="/member/application"
+                  className="border-2 border-white text-white hover:bg-white/15 font-black px-6 py-3 rounded-full text-sm transition-all inline-flex items-center gap-1.5"
+                >
+                  <span>Tham gia ứng tuyển</span>
+                  <span>›</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Hero Real Photo Frame */}
+            <div className="lg:col-span-6">
+              <div className="relative">
+                {/* Photo container with white border */}
+                <div className="rounded-[2.2rem] border-4 border-white overflow-hidden shadow-2xl bg-white relative aspect-[16/10]">
+                  <Image
+                    src="/issac-hero-team.jpg"
+                    alt="Đại sứ sinh viên iSSAC VNU-IS"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+
+                {/* Carousel Controls */}
+                <div className="flex items-center justify-between mt-4 px-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide(prev => Math.max(0, prev - 1))}
+                    className="w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 text-white flex items-center justify-center transition-colors shadow-sm"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-6 h-2 rounded-full bg-[#fdc455]" />
+                    <span className="w-2 h-2 rounded-full bg-white/50" />
+                    <span className="w-2 h-2 rounded-full bg-white/50" />
+                    <span className="w-2 h-2 rounded-full bg-white/50" />
+                    <span className="w-2 h-2 rounded-full bg-white/50" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide(prev => Math.min(4, prev + 1))}
+                    className="w-9 h-9 rounded-full bg-white/25 hover:bg-white/40 text-white flex items-center justify-center transition-colors shadow-sm"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="about" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 text-blue-600 text-sm font-medium mb-4">
-              Về chúng tôi
+      {/* 3. FIVE WARM CREAM CARDS (Screenshot 1 matching) */}
+      <section className="-mt-10 relative z-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="activities">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {cards.map((c) => {
+            const Icon = c.icon
+            return (
+              <div
+                key={c.num}
+                className="bg-[#fff7e8] border border-[#fed7aa]/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group"
+              >
+                {/* Watermark Number */}
+                <span className="absolute top-2 right-4 text-4xl font-black text-[#e5d8c3] select-none pointer-events-none opacity-80">
+                  {c.num}
+                </span>
+
+                <div className="space-y-3 relative z-10 text-left">
+                  {/* Round Blue Icon Badge */}
+                  <div className="w-10 h-10 rounded-full bg-[#1559c5] text-white flex items-center justify-center shadow-sm">
+                    <Icon className="w-5 h-5" />
+                  </div>
+
+                  {/* Title & Description */}
+                  <div>
+                    <h3 className="font-extrabold text-sm text-gray-950 mb-1 leading-snug">
+                      {c.title}
+                    </h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {c.desc}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* 4. SECTION: VỀ iSSAC (Screenshot 2 matching) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="about">
+        <div className="grid lg:grid-cols-12 gap-8 items-stretch">
+          {/* Left: Video Box */}
+          <div className="lg:col-span-6 flex flex-col">
+            <div className="bg-[#1251b5] rounded-3xl overflow-hidden shadow-lg flex flex-col flex-1 border border-blue-800">
+              {/* Top blue pill */}
+              <div className="p-4 pb-2">
+                <span className="bg-[#1559c5] border border-blue-400/30 text-white text-xs font-bold px-3 py-1 rounded-lg inline-block">
+                  Video giới thiệu iSSAC
+                </span>
+              </div>
+
+              {/* Video Embed / Thumbnail */}
+              <div className="relative flex-1 min-h-[280px] bg-slate-900 group">
+                <Image
+                  src="/issac-video-thumb.jpg"
+                  alt="RECAP 2nd Anniversary of iSSAC Club"
+                  fill
+                  className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+                <a
+                  href="https://youtube.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <div className="w-16 h-12 rounded-2xl bg-[#ff0000] hover:bg-red-700 text-white flex items-center justify-center shadow-2xl transition-transform group-hover:scale-110">
+                    <Play className="w-6 h-6 fill-white ml-0.5" />
+                  </div>
+                </a>
+              </div>
+
+              {/* Bottom bar */}
+              <div className="p-4 bg-[#1251b5] flex items-center justify-between text-white text-sm font-bold">
+                <span>iSSAC - Kết nối, lan tỏa và truyền cảm hứng</span>
+                <div className="w-7 h-7 rounded-full bg-[#1559c5] flex items-center justify-center">
+                  ›
+                </div>
+              </div>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-blue-900 mb-4">
-              iSSAC là gì?
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
-              <strong>iSSAC</strong> (VNU-IS Ambassadors Club) là câu lạc bộ đại sứ sinh viên thuộc Trường Đại học Công nghệ Thông tin — Đại học Quốc gia TP.HCM.
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Users className="w-8 h-8 text-blue-600" />,
-                title: 'Kết nối & Cộng đồng',
-                description: 'Xây dựng mạng lưới bạn bè, mentor và cơ hội nghề nghiệp trong và ngoài trường.',
-                bg: 'bg-blue-50',
-              },
-              {
-                icon: <Star className="w-8 h-8 text-amber-500" />,
-                title: 'Phát triển Bản thân',
-                description: 'Rèn luyện kỹ năng mềm, lãnh đạo và chuyên môn qua các dự án thực tế.',
-                bg: 'bg-amber-50',
-              },
-              {
-                icon: <Award className="w-8 h-8 text-emerald-600" />,
-                title: 'Đại sứ Sinh viên',
-                description: 'Đại diện cho tiếng nói sinh viên, cầu nối giữa sinh viên và nhà trường.',
-                bg: 'bg-emerald-50',
-              },
-            ].map((item, i) => (
-              <div key={i} className={`${item.bg} rounded-2xl p-8 border border-blue-50 hover:shadow-lg transition-shadow group`}>
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
+          {/* Right: Về iSSAC Text & Checklist Card */}
+          <div className="lg:col-span-6 flex flex-col">
+            <div className="bg-[#fff7e8] border border-[#fed7aa]/60 rounded-3xl p-8 sm:p-10 shadow-sm flex flex-col justify-center flex-1 text-left">
+              <h2 className="text-3xl sm:text-4xl font-black text-[#1559c5] mb-6">
+                Về iSSAC
+              </h2>
+
+              <div className="space-y-4 text-xs sm:text-sm text-gray-800 leading-relaxed">
+                {[
+                  'iSSAC là Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN, được Ban Giám hiệu, Đảng ủy và Đoàn Trường Quốc tế phê duyệt, được xây dựng để tạo môi trường phát triển cho sinh viên.',
+                  'Ban Chủ nhiệm được chuẩn y theo cơ chế của BCH Đoàn Trường, các chương trình hoạt động tuân thủ quy định của Đoàn Trường Quốc tế, có cố vấn là thầy cô phòng TT&TS định hướng rõ ràng.',
+                  'Chức năng chính: truyền thông hình ảnh sinh viên VNUIS, tư vấn tuyển sinh, hỗ trợ học sinh và phụ huynh THPT định hướng và nhập học, tổ chức sự kiện, đào tạo kỹ năng và phát triển đội ngũ.',
+                  'Nơi hội tụ những bạn trẻ năng động, sáng tạo, trách nhiệm và sẵn sàng đồng hành.',
+                  'Môi trường phát triển có mục tiêu rõ ràng, thành viên đoàn kết và có quy tắc chung để hoạt động dựa trên tập thể và không bỏ ai lại phía sau.'
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-[#fdc455] text-[#0f347a] flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-sm">
+                      ✓
+                    </div>
+                    <p className="flex-1 text-gray-800">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. SECTION: NỀN TẢNG MẠNG XÃ HỘI (Screenshot 3 matching) */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="social">
+        <div className="grid lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column: Social description and bullet points */}
+          <div className="lg:col-span-6 space-y-6 text-left">
+            <div>
+              <span className="text-[#1559c5] font-black text-xs uppercase tracking-widest block mb-2">
+                MẠNG XÃ HỘI
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#1559c5] tracking-tight mb-3">
+                Nền tảng mạng xã hội của iSSAC
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Nơi lan tỏa và lưu giữ những khoảnh khắc, câu chuyện và giá trị của iSSAC. Hãy theo dõi iSSAC trên các nền tảng mạng xã hội.
+              </p>
+            </div>
+
+            {/* Bullet Points Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-gray-700">
+              {[
+                'Cập nhật tin tức & sự kiện mới nhất mà iSSAC tham gia',
+                'Nơi những câu chuyện đáng nhớ được chia sẻ',
+                'Lưu trữ những khoảnh khắc đáng nhớ',
+                'Livestream, Webinar, Talkshow hấp dẫn',
+                'Kết nối câu chuyện của thành viên',
+                'Cơ hội nghề nghiệp & hợp tác khi học tại VNUIS',
+                'Chia sẻ kiến thức & kinh nghiệm về ngành học tại VNUIS',
+                'Đồng hành và giải đáp câu hỏi của các em THPT',
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[#1559c5] font-bold">✓</span>
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Button */}
+            <div className="pt-2">
+              <a
+                href="https://facebook.com/iSSAC.VNUIS"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#fdc455] hover:bg-[#f59e0b] text-gray-950 font-black px-6 py-3 rounded-full text-sm shadow-md transition-all inline-flex items-center gap-1.5"
+              >
+                <span>Truy cập ngay</span>
+                <span>›</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Right Column: Social Media Cards Stack */}
+          <div className="lg:col-span-6 space-y-3">
+            {socialLinks.map((item) => (
+              <div
+                key={item.name}
+                className="bg-white border border-gray-200/80 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-3.5">
                   {item.icon}
+                  <div className="text-left">
+                    <div className="font-extrabold text-sm text-gray-950">{item.name}</div>
+                    <div className="text-xs text-gray-500 font-medium">{item.handle}</div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{item.description}</p>
+
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${item.bgBtn} text-white text-xs font-bold px-5 py-2 rounded-full transition-all shadow-sm`}
+                >
+                  Truy cập ngay
+                </a>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* DEPARTMENTS */}
-      <section id="departments" className="py-24" style={{background: 'linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%)'}}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 text-blue-600 text-sm font-medium mb-4">
-              Ban hoạt động
+      {/* 6. RECRUITMENT CAMPAIGN BANNER (TOP 15 SELECTION) */}
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="recruitment">
+        <div className="bg-[#1559c5] rounded-[2.5rem] p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden text-center">
+          <div className="max-w-3xl mx-auto space-y-5 relative z-10">
+            <div className="inline-flex items-center gap-2 bg-[#fdc455] text-gray-950 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">
+              <Sparkles className="w-3.5 h-3.5" />
+              CHIẾN DỊCH TUYỂN THÀNH VIÊN CHÍNH THỨC 2026
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-blue-900 mb-4">
-              Chọn ban phù hợp với bạn
+
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight">
+              Trở thành 1 trong <span className="text-[#fdc455]">TOP 15</span> Đại sứ sinh viên iSSAC
             </h2>
-            <p className="text-gray-600 max-w-xl mx-auto">
-              iSSAC có 3 ban chuyên biệt, mỗi ban đem lại trải nghiệm và kỹ năng khác nhau.
+
+            <p className="text-blue-100 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+              Tuyển sinh cho 3 ban chuyên môn: <strong>Ban Truyền thông</strong>, <strong>Ban Tư vấn</strong>, và <strong>Ban Nhân sự</strong>. Chấm điểm theo thang tiêu chuẩn, xếp hạng minh bạch và thẩm định trực tiếp bởi Ban Chủ nhiệm.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-3.5 pt-3">
+              <Link
+                href="/member/application"
+                className="bg-[#fdc455] hover:bg-[#f59e0b] text-gray-950 font-black px-7 py-3.5 rounded-full text-sm shadow-lg transition-all inline-flex items-center gap-2 hover:scale-105"
+              >
+                <span>Nộp đơn ứng tuyển ngay</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <Link
+                href="/member/dashboard"
+                className="border-2 border-white text-white hover:bg-white/15 font-black px-6 py-3.5 rounded-full text-sm transition-all inline-flex items-center gap-2"
+              >
+                <span>Tra cứu tiến độ hồ sơ</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. FOOTER */}
+      <footer className="bg-[#0f3e8f] text-white py-14 px-4 sm:px-6 lg:px-8 border-t border-blue-900" id="contact">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          {/* Col 1 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Image src="/issac-logo.png" alt="iSSAC Logo" width={40} height={42} className="object-contain" />
+              <div>
+                <div className="font-extrabold text-xs text-[#fdc455]">CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN</div>
+                <div className="font-black text-sm text-white">VNU-IS AMBASSADORS CLUB (iSSAC)</div>
+              </div>
+            </div>
+            <p className="text-xs text-blue-200 leading-relaxed">
+              Trực thuộc Đoàn Thanh niên - Hội Sinh viên Trường Quốc tế, Đại học Quốc gia Hà Nội.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Megaphone className="w-10 h-10" />,
-                title: 'Ban Truyền thông',
-                slug: 'truyen-thong',
-                color: 'from-blue-500 to-blue-700',
-                textColor: 'text-blue-700',
-                bgColor: 'bg-blue-50',
-                borderColor: 'border-blue-200',
-                description: 'Sáng tạo nội dung, thiết kế, chụp ảnh và quản lý mạng xã hội của CLB.',
-                skills: ['Content creation', 'Graphic Design', 'Social Media', 'Photography'],
-              },
-              {
-                icon: <MessageSquare className="w-10 h-10" />,
-                title: 'Ban Tư vấn',
-                slug: 'tu-van',
-                color: 'from-emerald-500 to-emerald-700',
-                textColor: 'text-emerald-700',
-                bgColor: 'bg-emerald-50',
-                borderColor: 'border-emerald-200',
-                description: 'Tư vấn hướng nghiệp, học bổng và định hướng phát triển cho sinh viên.',
-                skills: ['Career Counseling', 'Communication', 'Mentoring', 'Event Planning'],
-              },
-              {
-                icon: <Users className="w-10 h-10" />,
-                title: 'Ban Nhân sự',
-                slug: 'nhan-su',
-                color: 'from-purple-500 to-purple-700',
-                textColor: 'text-purple-700',
-                bgColor: 'bg-purple-50',
-                borderColor: 'border-purple-200',
-                description: 'Quản lý nhân sự, tổ chức hoạt động nội bộ và vận hành CLB.',
-                skills: ['HR Management', 'Event Organizing', 'Team Building', 'Leadership'],
-              },
-            ].map((dept, i) => (
-              <div key={i} className={`${dept.bgColor} border ${dept.borderColor} rounded-2xl overflow-hidden hover:shadow-xl transition-all group`}>
-                <div className={`bg-gradient-to-br ${dept.color} p-8 text-white`}>
-                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    {dept.icon}
-                  </div>
-                  <h3 className="text-xl font-bold">{dept.title}</h3>
-                </div>
-                <div className="p-6">
-                  <p className="text-gray-600 mb-4 leading-relaxed">{dept.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {dept.skills.map((skill, j) => (
-                      <span key={j} className={`text-xs px-3 py-1 rounded-full bg-white border ${dept.borderColor} ${dept.textColor} font-medium`}>
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+          {/* Col 2 */}
+          <div className="space-y-2 text-xs text-blue-200">
+            <div className="font-bold text-sm text-white mb-2">Địa điểm & Liên hệ</div>
+            <div>• Trụ sở: Làng Sinh viên HACINCO, 99 Ngụy Như Kon Tum, Thanh Xuân, Hà Nội</div>
+            <div>• Email CLB: clbdaisu@isvnu.vn / issac@vnu.edu.vn</div>
+            <div>• Hotline: (024) 3557 5992</div>
+          </div>
+
+          {/* Col 3 */}
+          <div className="space-y-2 text-xs text-blue-200">
+            <div className="font-bold text-sm text-white mb-2">Đường dẫn nhanh</div>
+            <div><Link href="/login" className="hover:text-[#fdc455] transition-colors">• Cổng Đăng nhập (Admin & Ứng viên)</Link></div>
+            <div><Link href="/admin/ranking" className="hover:text-[#fdc455] transition-colors">• Bảng Xếp Hạng Tuyển Sinh (TOP 15)</Link></div>
+            <div><Link href="/member/application" className="hover:text-[#fdc455] transition-colors">• Điền đơn ứng tuyển 3 ban</Link></div>
           </div>
         </div>
-      </section>
 
-      {/* EVENTS */}
-      <section id="events" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 text-amber-700 text-sm font-medium mb-4">
-              Sự kiện nổi bật
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-blue-900 mb-4">
-              Hoạt động của iSSAC
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'iSSAC Orientation Day',
-                category: 'Định hướng',
-                date: 'Tháng 9, 2026',
-                desc: 'Ngày hội giới thiệu về CLB và các cơ hội tham gia dành cho tân sinh viên.',
-                color: 'bg-blue-600',
-              },
-              {
-                title: 'Career Talk Series',
-                category: 'Hướng nghiệp',
-                date: 'Tháng 10, 2026',
-                desc: 'Chuỗi buổi nói chuyện với các chuyên gia và alumni về định hướng nghề nghiệp.',
-                color: 'bg-emerald-600',
-              },
-              {
-                title: 'iSSAC Club Anniversary',
-                category: 'Sự kiện lớn',
-                date: 'Tháng 11, 2026',
-                desc: 'Lễ kỷ niệm thành lập CLB với các hoạt động văn nghệ, chia sẻ và networking.',
-                color: 'bg-amber-500',
-              },
-            ].map((event, i) => (
-              <div key={i} className="bg-white border border-blue-50 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow group">
-                <div className={`${event.color} h-3`} />
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{event.category}</span>
-                    <span className="text-xs text-blue-600 font-medium">{event.date}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">{event.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{event.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24" style={{background: 'linear-gradient(135deg, #0f1b4c 0%, #1e3a8a 100%)'}}>
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <div className="flex justify-center mb-6">
-            <Image src="/issac-logo-full.png" alt="iSSAC" width={300} height={90} className="object-contain drop-shadow-xl mx-auto" />
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-            Sẵn sàng gia nhập iSSAC?
-          </h2>
-          <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">
-            Đăng ký ngay hôm nay để bắt đầu hành trình phát triển bản thân cùng cộng đồng iSSAC.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="xl" variant="gold" className="font-bold">
-                Đăng ký ngay
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/admin/dashboard"><Button variant="ghost" size="sm" className="text-blue-900 hover:text-blue-700 hover:bg-blue-50 font-bold text-xs gap-1.5 border border-blue-200"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Admin Portal</Button></Link><Link href="/login">
-              <Button size="xl" variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:text-white">
-                Đã có tài khoản
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="bg-gray-900 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <Image src="/issac-logo.png" alt="iSSAC" width={40} height={42} className="object-contain" />
-              <div>
-                <div className="font-bold text-white">iSSAC</div>
-                <div className="text-gray-400 text-xs">VNU-IS Ambassadors Club</div>
-              </div>
-            </div>
-            <div className="flex gap-6 text-sm text-gray-400">
-              <Link href="/about" className="hover:text-white transition-colors">Về iSSAC</Link>
-              <Link href="/contact" className="hover:text-white transition-colors">Liên hệ</Link>
-              <Link href="/login" className="hover:text-white transition-colors">Đăng nhập</Link>
-              <Link href="/register" className="hover:text-white transition-colors">Đăng ký</Link>
-            </div>
-            <div className="text-gray-500 text-xs">
-              © 2026 iSSAC — Bridge to Success
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-blue-800/60 text-center text-xs text-blue-300">
+          © 2026 iSSAC - Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế, ĐHQGHN. All rights reserved.
         </div>
       </footer>
     </div>

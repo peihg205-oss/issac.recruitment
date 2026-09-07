@@ -70,7 +70,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group',
                 active
-                  ? 'bg-blue-700 text-white shadow-sm'
+                  ? 'bg-[#1559c5] text-white shadow-sm font-bold'
                   : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
               )}
             >

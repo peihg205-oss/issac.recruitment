@@ -1,41 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --issac-navy: #0f1b4c;
-  --issac-blue: #1e40af;
-  --issac-blue-light: #3b82f6;
-  --issac-gold: #f59e0b;
-  --issac-gold-light: #fbbf24;
-  --issac-white: #ffffff;
-  --issac-light: #f0f5ff;
+  --issac-blue: #1657c1;
+  --issac-blue-dark: #0f449e;
+  --issac-blue-light: #2b70ea;
+  --issac-gold: #fdc455;
+  --issac-gold-hover: #f59e0b;
+  --issac-cream: #fff7e8;
+  --issac-cream-light: #fffdf7;
+  --issac-watermark: #e5d8c3;
 }
 
 @layer base {
   body {
-    font-family: 'Inter', 'Nunito', system-ui, sans-serif;
-    color: #111827;
-    background-color: #f9fafb;
+    font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+    color: #0f172a;
+    background-color: #fcfbf9;
   }
 }
 
 @layer utilities {
-  .text-gradient-gold {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .bg-issac-blue {
+    background-color: #1657c1;
   }
-  .text-gradient-blue {
-    background: linear-gradient(135deg, #1e40af, #3b82f6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .bg-issac-gold {
+    background-color: #fdc455;
   }
-  .issac-hero-bg {
-    background: linear-gradient(135deg, #0f1b4c 0%, #1e3a8a 50%, #1e40af 100%);
+  .bg-issac-cream {
+    background-color: #fff7e8;
   }
-  .issac-sidebar-bg {
-    background: linear-gradient(180deg, #0f1b4c 0%, #1e3a8a 100%);
+  .text-issac-blue {
+    color: #1657c1;
+  }
+  .text-issac-gold {
+    color: #fdc455;
+  }
+  .border-issac-blue {
+    border-color: #1657c1;
+  }
+  .border-issac-gold {
+    border-color: #fdc455;
+  }
+  .border-issac-cream {
+    border-color: #fed7aa;
+  }
+  .btn-issac-gold {
+    background-color: #fdc455;
+    color: #111827;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(253, 196, 85, 0.35);
+  }
+  .btn-issac-gold:hover {
+    background-color: #f59e0b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+  .btn-issac-blue {
+    background-color: #1657c1;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+  }
+  .btn-issac-blue:hover {
+    background-color: #0f449e;
+    transform: translateY(-1px);
+  }
+  .btn-issac-outline-white {
+    border: 2px solid #ffffff;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.5rem 1.5rem;
+    background-color: transparent;
+    transition: all 0.2s ease;
+  }
+  .btn-issac-outline-white:hover {
+    background-color: rgba(255, 255, 255, 0.15);
   }
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
@@ -51,7 +96,7 @@
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
+  from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 

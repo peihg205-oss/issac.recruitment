@@ -66,7 +66,7 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
   }
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col text-white shadow-xl flex-shrink-0" style={{background: 'linear-gradient(180deg, #0f1b4c 0%, #1e3a8a 100%)'}}>
+    <aside className="w-64 min-h-screen flex flex-col text-white shadow-xl flex-shrink-0" style={{background: 'linear-gradient(180deg, #1559c5 0%, #0d3d8a 100%)'}}>
       {/* Brand Header */}
       <div className="p-5 border-b border-white/10">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
@@ -120,7 +120,7 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     active
-                      ? 'bg-amber-400 text-blue-950 font-bold shadow-md shadow-amber-400/20'
+                      ? 'bg-[#fdc455] text-gray-950 font-black font-bold shadow-md shadow-amber-400/20'
                       : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   }`}
                 >

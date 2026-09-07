@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Eye, EyeOff, LogIn, ArrowLeft, Loader2,
-  Crown, Megaphone, MessageSquare, Users, Shield, UserCheck, Sparkles, FileText
+  Crown, Megaphone, MessageSquare, Users, Shield,
+  UserCheck, Sparkles, FileText, CheckCircle2
 } from 'lucide-react'
 
 const schema = z.object({
@@ -29,7 +30,7 @@ const DEMO_ADMIN_ACCOUNTS = [
     name: 'Ban Chủ nhiệm',
     email: 'bcn@issac.vnu.edu.vn',
     icon: Crown,
-    color: 'text-amber-600 bg-amber-50 border-amber-200',
+    color: 'text-amber-900 bg-amber-50 border-amber-200 hover:bg-amber-100/70',
     desc: 'Toàn quyền duyệt Top 15 và chấm điểm cả 3 ban',
   },
   {
@@ -37,24 +38,24 @@ const DEMO_ADMIN_ACCOUNTS = [
     name: 'Ban Truyền thông',
     email: 'truyenthong@issac.vnu.edu.vn',
     icon: Megaphone,
-    color: 'text-blue-600 bg-blue-50 border-blue-200',
-    desc: 'Chỉ chấm điểm và đặt câu hỏi Ban Truyền thông',
+    color: 'text-blue-900 bg-blue-50 border-blue-200 hover:bg-blue-100/70',
+    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Truyền thông',
   },
   {
     role: 'tu-van',
     name: 'Ban Tư vấn',
     email: 'tuvan@issac.vnu.edu.vn',
     icon: MessageSquare,
-    color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-    desc: 'Chỉ chấm điểm và đặt câu hỏi Ban Tư vấn',
+    color: 'text-emerald-900 bg-emerald-50 border-emerald-200 hover:bg-emerald-100/70',
+    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Tư vấn',
   },
   {
     role: 'nhan-su',
     name: 'Ban Nhân sự',
     email: 'nhansu@issac.vnu.edu.vn',
     icon: Users,
-    color: 'text-purple-600 bg-purple-50 border-purple-200',
-    desc: 'Chỉ chấm điểm và đặt câu hỏi Ban Nhân sự',
+    color: 'text-purple-900 bg-purple-50 border-purple-200 hover:bg-purple-100/70',
+    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Nhân sự',
   },
 ]
 
@@ -70,17 +71,16 @@ function LoginForm() {
     resolver: zodResolver(schema),
   })
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (values: FormData) => {
     setLoading(true)
 
-    // Check if logging in with demo department account
-    const matchedDept = DEMO_ADMIN_ACCOUNTS.find(a => a.email.toLowerCase() === data.email.toLowerCase())
-    if (matchedDept) {
-      document.cookie = `issac_admin_role=${matchedDept.role}; path=/; max-age=2592000`
-      setLoading(false)
+    // Demo admin email quick bypass
+    const matchedRole = DEMO_ADMIN_ACCOUNTS.find(a => a.email === values.email)?.role
+    if (matchedRole) {
+      document.cookie = `issac_admin_role=${matchedRole}; path=/; max-age=2592000`
       toast({
         title: 'Đăng nhập thành công',
-        description: `Chào mừng bạn trở lại với quyền ${matchedDept.name}.`,
+        description: `Đang chuyển vào cổng quản lý với quyền ${DEMO_ADMIN_ACCOUNTS.find(a => a.role === matchedRole)?.name}...`,
         variant: 'success'
       } as Parameters<typeof toast>[0])
       router.push('/admin/dashboard')
@@ -88,17 +88,18 @@ function LoginForm() {
       return
     }
 
-    const { error, data: authData } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
     })
+
     setLoading(false)
 
     if (error) {
       toast({
         title: 'Đăng nhập thất bại',
         description: error.message === 'Invalid login credentials'
-          ? 'Email hoặc mật khẩu không đúng. Bạn có thể chọn đăng nhập bằng các tài khoản phân quyền bên dưới.'
+          ? 'Email hoặc mật khẩu không chính xác'
           : error.message,
         variant: 'destructive'
       })
@@ -155,36 +156,39 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{background: 'linear-gradient(135deg, #0f1b4c 0%, #1e3a8a 60%, #1e40af 100%)'}}>
+    <div className="min-h-screen flex bg-[#1559c5]">
       {/* Left side */}
       <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md text-center">
           <div className="flex justify-center mb-6">
             <Image
-              src="/issac-logo-full.png"
+              src="/issac-logo.png"
               alt="iSSAC - Bridge to Success"
-              width={300}
-              height={90}
-              className="object-contain drop-shadow-xl"
+              width={100}
+              height={106}
+              className="object-contain drop-shadow-2xl"
               priority
             />
           </div>
-          <h1 className="text-2xl font-black mb-3">
-            Cổng Quản Lý Tuyển Thành Viên
+          <div className="text-xs font-black text-[#fdc455] uppercase tracking-widest mb-1">
+            CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN
+          </div>
+          <h1 className="text-3xl font-black mb-3">
+            Cổng Đăng Nhập Hệ Thống
           </h1>
-          <p className="text-blue-200 text-sm mb-8 leading-relaxed">
-            Hệ thống quản lý hồ sơ và phân quyền tuyển dụng độc lập cho Ban Chủ nhiệm, Ban Truyền thông, Ban Tư vấn và Ban Nhân sự.
+          <p className="text-blue-100 text-sm mb-8 leading-relaxed font-medium">
+            Hệ thống phân quyền tuyển chọn thành viên chính thức iSSAC cho Ban Chủ nhiệm và 3 Ban chuyên môn.
           </p>
-          <div className="space-y-3 text-left">
+          <div className="space-y-2.5 text-left">
             {[
-              'Phân quyền chấm điểm phỏng vấn theo từng Ban',
-              'Ngân hàng câu hỏi tuyển sinh độc lập',
-              'Tự động tổng hợp điểm và xếp hạng Top 15',
-              'Đặt lịch phỏng vấn và gửi thông báo trực tuyến'
+              'Chấm điểm phỏng vấn độc lập & giải trình lý do',
+              'Xếp hạng tự động theo Ban & Toàn CLB',
+              'Ban Chủ nhiệm thẩm định và phê chuẩn Top 15',
+              'Theo dõi tiến trình xét tuyển dành cho ứng viên'
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs text-blue-100 bg-white/5 border border-white/10 rounded-xl p-3">
-                <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-                <span>{item}</span>
+              <div key={i} className="flex items-center gap-3 text-xs text-blue-50 bg-white/10 border border-white/15 rounded-2xl p-3 backdrop-blur-sm">
+                <div className="w-2 h-2 rounded-full bg-[#fdc455] flex-shrink-0" />
+                <span className="font-semibold">{item}</span>
               </div>
             ))}
           </div>
@@ -194,18 +198,18 @@ function LoginForm() {
       {/* Right side - Login form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div className="w-full max-w-md py-6">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 animate-slide-up">
+          <div className="bg-white rounded-[2rem] shadow-2xl p-8 sm:p-10 border border-blue-100">
             {/* Mobile logo */}
-            <div className="flex lg:hidden justify-center mb-6">
-              <Image src="/issac-logo.png" alt="iSSAC" width={56} height={60} className="object-contain drop-shadow-sm" />
+            <div className="flex lg:hidden justify-center mb-4">
+              <Image src="/issac-logo.png" alt="iSSAC" width={56} height={60} className="object-contain" />
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-black text-gray-900 mb-1">Đăng nhập</h2>
-              <p className="text-gray-500 text-sm">Đăng nhập tài khoản tuyển sinh iSSAC</p>
+            <div className="mb-6 text-left">
+              <h2 className="text-2xl font-black text-gray-950 mb-1">Đăng nhập</h2>
+              <p className="text-gray-500 text-xs font-medium">Hệ thống quản lý tuyển sinh & Cổng ứng viên iSSAC</p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs font-bold text-gray-700">Email đăng nhập</Label>
                 <Input
@@ -213,7 +217,7 @@ function LoginForm() {
                   type="email"
                   placeholder="example@vnu.edu.vn"
                   {...register('email')}
-                  className={errors.email ? 'border-red-300 focus-visible:ring-red-400' : ''}
+                  className={`text-sm rounded-xl h-11 ${errors.email ? 'border-red-300' : 'border-gray-200'}`}
                 />
                 {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
               </div>
@@ -226,7 +230,7 @@ function LoginForm() {
                     type={showPw ? 'text' : 'password'}
                     placeholder="••••••••"
                     {...register('password')}
-                    className={`pr-10 ${errors.password ? 'border-red-300 focus-visible:ring-red-400' : ''}`}
+                    className={`pr-10 text-sm rounded-xl h-11 ${errors.password ? 'border-red-300' : 'border-gray-200'}`}
                   />
                   <button
                     type="button"
@@ -240,12 +244,16 @@ function LoginForm() {
               </div>
 
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                <Link href="/forgot-password" className="text-xs text-[#1559c5] font-semibold hover:underline">
                   Quên mật khẩu?
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full font-bold" size="lg" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full font-black bg-[#1559c5] hover:bg-[#0f449e] text-white rounded-full h-11 text-sm shadow-md"
+                disabled={loading}
+              >
                 {loading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang đăng nhập...</>
                 ) : (
@@ -254,58 +262,58 @@ function LoginForm() {
               </Button>
             </form>
 
-            <div className="mt-5 text-center text-xs text-gray-500">
-              Dành cho ứng viên mới?{' '}
-              <Link href="/register" className="text-blue-600 font-bold hover:underline">
-                Đăng ký tài khoản
+            <div className="mt-4 text-center text-xs text-gray-500">
+              Chưa có tài khoản sinh viên?{' '}
+              <Link href="/register" className="text-[#1559c5] font-bold hover:underline">
+                Đăng ký ứng tuyển
               </Link>
             </div>
 
             {/* Candidate Demo Quick Login Section */}
-            <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-200 shadow-sm">
+            <div className="mt-6 p-4 rounded-2xl bg-[#fff7e8] border border-[#fed7aa] shadow-sm text-left">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-amber-600" />
                   DEMO DÀNH CHO NGƯỜI APPLY (ỨNG VIÊN)
                 </span>
-                <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shadow-sm">
-                  1-Click Test
-                </Badge>
+                <span className="bg-[#fdc455] text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  1-Click
+                </span>
               </div>
-              <p className="text-[11px] text-gray-600 mb-2.5 leading-relaxed">
-                Trải nghiệm giao diện nộp đơn, xem tiến độ xét tuyển và tra cứu kết quả của ứng viên <strong>Nguyễn Hà Phương (K22 - VNU-IS)</strong>:
+              <p className="text-[11px] text-gray-700 mb-2.5 leading-relaxed">
+                Trải nghiệm tài khoản ứng viên <strong>Nguyễn Hà Phương (K22 - VNU-IS)</strong>:
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleCandidateQuickLogin('dashboard')}
-                  className="p-2.5 rounded-xl bg-white border border-emerald-300 text-left hover:bg-emerald-100/60 transition-all shadow-sm group"
+                  className="p-2.5 rounded-xl bg-white border border-amber-300 text-left hover:bg-amber-100/50 transition-all shadow-sm"
                 >
-                  <div className="font-bold text-xs text-emerald-900 flex items-center gap-1">
+                  <div className="font-bold text-xs text-amber-950 flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>Xem Tiến độ & Kết quả</span>
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">Lộ trình 7 bước, lịch PV, TOP 15</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Lộ trình, ca PV, TOP 15</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCandidateQuickLogin('apply')}
-                  className="p-2.5 rounded-xl bg-white border border-emerald-300 text-left hover:bg-emerald-100/60 transition-all shadow-sm group"
+                  className="p-2.5 rounded-xl bg-white border border-amber-300 text-left hover:bg-amber-100/50 transition-all shadow-sm"
                 >
-                  <div className="font-bold text-xs text-emerald-900 flex items-center gap-1">
+                  <div className="font-bold text-xs text-amber-950 flex items-center gap-1">
                     <FileText className="w-3.5 h-3.5 text-blue-600" />
                     <span>Form Nộp Đơn Mới</span>
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">Chọn ban, trả lời câu hỏi, nộp đơn</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Chọn ban & trả lời câu hỏi</div>
                 </button>
               </div>
             </div>
 
             {/* Department Accounts Quick Login Section */}
-            <div className="mt-6 pt-5 border-t border-gray-100">
-              <div className="text-xs font-bold text-gray-700 mb-2 flex items-center justify-between">
+            <div className="mt-5 pt-4 border-t border-gray-100 text-left">
+              <div className="text-xs font-bold text-gray-800 mb-2 flex items-center justify-between">
                 <span>Tài khoản Giám khảo các Ban</span>
-                <span className="text-[10px] text-gray-400 font-normal">Đăng nhập nhanh</span>
+                <span className="text-[10px] text-gray-400 font-normal">1-Click Admin</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -331,9 +339,9 @@ function LoginForm() {
               </div>
             </div>
 
-            <div className="mt-5 text-center">
-              <Link href="/" className="inline-flex items-center gap-1 text-gray-400 text-xs hover:text-gray-600 transition-colors">
-                <ArrowLeft className="w-3 h-3" /> Về trang chủ
+            <div className="mt-6 text-center">
+              <Link href="/" className="inline-flex items-center gap-1 text-gray-500 text-xs hover:text-[#1559c5] font-semibold transition-colors">
+                <ArrowLeft className="w-3 h-3" /> Về trang chủ iSSAC
               </Link>
             </div>
           </div>
@@ -345,7 +353,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0f1b4c] text-white text-sm">Đang tải...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#1559c5] text-white text-sm">Đang tải...</div>}>
       <LoginForm />
     </Suspense>
   )

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { 
-  Loader2, ChevronRight, ChevronLeft, Send, CheckCircle2, 
+  Loader2, ChevronRight, ChevronLeft, Send, CheckCircle2, Megaphone, MessagesSquare, Users, 
   Check, Building2, FileText, AlertCircle, Sparkles, Star
 } from 'lucide-react'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/lib/utils'
@@ -189,6 +189,18 @@ export default function ApplicationPage() {
     router.push('/member/dashboard')
   }
 
+    const getDeptIcon = (dept: Department) => {
+    const slug = (dept.slug || "").toLowerCase()
+    const name = (dept.name || "").toLowerCase()
+    if (slug.includes("truyen-thong") || name.includes("truyền thông")) {
+      return <Megaphone className="w-5 h-5" />
+    }
+    if (slug.includes("tu-van") || name.includes("tư vấn")) {
+      return <MessagesSquare className="w-5 h-5" />
+    }
+    return <Users className="w-5 h-5" />
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -211,8 +223,8 @@ export default function ApplicationPage() {
           </p>
         </div>
 
-        <div className="bg-white border-2 border-blue-200 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-400" />
+        <div className="bg-white border-2 border-[#1657c1] rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+          
           
           <div className="text-center space-y-3 py-4 max-w-md mx-auto">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 border border-blue-200 text-[#1657c1] flex items-center justify-center shadow-xs">
@@ -263,7 +275,7 @@ export default function ApplicationPage() {
       </div>
 
       {/* 2. Progress Stepper: Tone Xanh & Vàng iSSAC */}
-      <div className="bg-white border-2 border-blue-100 rounded-2xl p-4 shadow-xs">
+      <div className="bg-white border-2 border-slate-200/90 rounded-2xl p-4 bg-white shadow-xs">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           {[
             { n: 1, l: 'Chọn ban' },
@@ -275,7 +287,7 @@ export default function ApplicationPage() {
 
             return (
               <div key={s.n} className="flex items-center gap-2 sm:gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                   isDone 
                     ? 'bg-[#1657c1] text-white shadow-xs' 
                     : isActive 
@@ -318,12 +330,19 @@ export default function ApplicationPage() {
           {/* Nguyện vọng 1: 3 Ban chuyên môn */}
           <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-3">
-              <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
-                Nguyện vọng 1 — Ban muốn ứng tuyển chính thức
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
+                    Nguyện vọng 1 - Ban muốn ứng tuyển chính thức
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Lựa chọn Ban chuyên môn phù hợp nhất với thế mạnh và định hướng của bạn
+                  </p>
+                </div>
+                <span className="text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                  Bắt buộc
+                </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Lựa chọn Ban chuyên môn phù hợp nhất với thế mạnh và định hướng của bạn
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -335,26 +354,34 @@ export default function ApplicationPage() {
                     key={dept.id}
                     type="button"
                     onClick={() => setSelectedDept(dept.id)}
-                    className={`p-5 rounded-2xl border-2 text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                    className={`group p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                       isSelected
-                        ? 'border-[#1657c1] bg-gradient-to-b from-blue-50/70 to-white shadow-sm ring-2 ring-blue-100'
-                        : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50/60'
+                        ? "border-[#1657c1] bg-gradient-to-b from-blue-50/60 via-white to-amber-50/15 shadow-md ring-2 ring-[#1657c1]/20 -translate-y-0.5"
+                        : "border-slate-200 bg-white hover:border-blue-400 hover:bg-slate-50/50 hover:shadow-xs hover:-translate-y-0.5"
                     }`}
                   >
-                    {isSelected && (
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#1657c1]" />
-                    )}
-
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className={`font-bold text-base ${isSelected ? 'text-[#1657c1]' : 'text-slate-900'}`}>
-                          {dept.name}
+                      {/* Top icon and radio check */}
+                      <div className="flex items-center justify-between gap-2 mb-3.5">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${
+                          isSelected 
+                            ? "bg-blue-100/80 border-blue-300 text-[#1657c1] shadow-xs" 
+                            : "bg-slate-100 border-slate-200 text-slate-500 group-hover:border-blue-200 group-hover:text-[#1657c1]"
+                        }`}>
+                          {getDeptIcon(dept)}
                         </div>
-                        {isSelected && (
-                          <span className="w-5 h-5 rounded-full bg-[#1657c1] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                            ✓
-                          </span>
+
+                        {isSelected ? (
+                          <div className="w-5 h-5 rounded-full bg-[#1657c1] text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-blue-300" />
                         )}
+                      </div>
+
+                      <div className={`font-bold text-base mb-1.5 ${isSelected ? "text-[#1657c1]" : "text-slate-900 group-hover:text-[#1657c1] transition-colors"}`}>
+                        {dept.name}
                       </div>
 
                       <div className="text-xs text-slate-500 leading-relaxed">
@@ -362,13 +389,14 @@ export default function ApplicationPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-2">
+                    <div className="mt-5 pt-2">
                       {isSelected ? (
-                        <span className="inline-flex items-center text-[11px] font-extrabold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-md">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-lg shadow-xs">
+                          <Sparkles className="w-3 h-3 text-amber-600" />
                           Đã chọn làm NV1
                         </span>
                       ) : (
-                        <span className="text-[11px] font-semibold text-slate-400">
+                        <span className="text-[11px] font-semibold text-slate-400 group-hover:text-blue-600 transition-colors">
                           Nhấn để chọn ban này
                         </span>
                       )}
@@ -427,7 +455,7 @@ export default function ApplicationPage() {
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
-                  Câu hỏi ứng tuyển — {departments.find(d => d.id === selectedDept)?.name}
+                  Câu hỏi ứng tuyển - {departments.find(d => d.id === selectedDept)?.name}
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Vui lòng trả lời chân thành và đầy đủ các câu hỏi để Hội đồng tuyển sinh hiểu rõ về bạn

@@ -97,7 +97,7 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Dashboard Ban Tuyển Quân</h1>
+          <h1 className="text-2xl font-black text-gray-900">Dashboard Tuyển Quân</h1>
           <p className="text-gray-500 text-sm mt-1">Tổng quan tiến độ tuyển thành viên iSSAC - VNU-IS Ambassadors Club</p>
         </div>
         <div className="flex items-center gap-2">

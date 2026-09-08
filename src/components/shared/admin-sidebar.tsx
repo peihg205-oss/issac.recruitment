@@ -68,14 +68,14 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
 
   return (
     <aside className="w-64 min-h-screen flex flex-col text-white shadow-xl flex-shrink-0" style={{background: 'linear-gradient(180deg, #1559c5 0%, #0d3d8a 100%)'}}>
-      {/* Brand Header */}
-      <div className="p-5 border-b border-white/10">
+      {/* Brand Header - Matching h-16 height with header */}
+      <div className="h-16 px-5 border-b border-white/10 flex items-center shrink-0">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
           <Image
             src="/issac-logo.png"
             alt="iSSAC Logo"
-            width={44}
-            height={47}
+            width={38}
+            height={40}
             className="object-contain flex-shrink-0 drop-shadow-md group-hover:scale-105 transition-transform"
           />
           <div>
@@ -83,26 +83,6 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
             <div className="text-[11px] text-blue-300 font-medium">Recruitment Portal</div>
           </div>
         </Link>
-      </div>
-
-      {/* User / Department Account Badge (Clean & Professional) */}
-      <div className="px-4 py-3.5 border-b border-white/10">
-        <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-white/20 flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm">
-            {acc.avatarInitial}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-white text-xs truncate">
-              {acc.name}
-            </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              {getRoleIcon()}
-              <span className="text-[11px] font-semibold text-blue-200 truncate">
-                {acc.title}
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Nav List */}

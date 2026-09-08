@@ -1,462 +1,422 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   CheckCircle2, Clock, FileText, Calendar, Trophy,
-  ArrowRight, ChevronRight, User, Sparkles, Building,
-  Award, MapPin, Mail, Phone, GraduationCap, Check, ExternalLink,
-  MessageSquare, Users, ShieldCheck, HeartHandshake
+  ChevronRight, User, Sparkles, Building, MapPin,
+  ExternalLink, Mail, Check, Eye, Heart, PartyPopper,
+  AlertCircle
 } from 'lucide-react'
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatDateTime, formatFullTimestamp } from '@/lib/utils'
-import { type ApplicationStatus } from '@/types/database'
+import { formatDate, formatFullTimestamp } from '@/lib/utils'
 import { MOCK_CANDIDATES } from '@/lib/mock-data'
 
-export default async function MemberDashboardPage() {
-  const supabase = await createClient()
+interface StepItem {
+  number: number
+  title: string
+  sublabel: string
+  status: 'done' | 'current' | 'waiting'
+}
 
-  let profile: any = null
-  let application: any = null
-  let interview: any = null
-  let ranking: any = null
-  let finalResult: any = null
-  let notifications: any[] = []
-  let resultsPublished = true
+export default function MemberDashboardPage() {
+  const supabase = createClient()
 
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
+  const [application, setApplication] = useState<any>(null)
+  const [interview, setInterview] = useState<any>(null)
+  const [finalResult, setFinalResult] = useState<any>(null)
+  const [resultsPublished, setResultsPublished] = useState(true)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [hasViewedResult, setHasViewedResult] = useState(false)
 
-    if (user) {
-      const [{ data: prof }, { data: app }, { data: iv }, { data: rk }, { data: fr }, { data: notifs }, { data: setts }] = await Promise.all([
-        supabase.from('profiles').select('*, departments(name, color)').eq('id', user.id).single(),
-        supabase.from('applications').select('*, departments!applications_department_id_fkey(name, color, slug)').eq('user_id', user.id).limit(1).single(),
-        supabase.from('interviews').select('*, interview_slots(*)').eq('user_id', user.id).limit(1).single(),
-        supabase.from('candidate_rankings').select('rank_number, final_score, result, applications!inner(user_id)').eq('applications.user_id', user.id).single(),
-        supabase.from('final_results').select('*').eq('user_id', user.id).single(),
-        supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('system_settings').select('key, value').eq('key', 'results_published').single()
-      ])
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
 
-      profile = prof
-      application = app
-      interview = iv
-      ranking = rk
-      finalResult = fr
-      notifications = notifs || []
-      resultsPublished = setts?.value === 'true'
-    }
-  } catch {
-    // Fallback handled below
-  }
+      if (user) {
+        const [{ data: prof }, { data: app }, { data: iv }, { data: fr }, { data: setts }] = await Promise.all([
+          supabase.from('profiles').select('*, departments(name, color)').eq('id', user.id).single(),
+          supabase.from('applications').select('*, departments!applications_department_id_fkey(name, color, slug)').eq('user_id', user.id).limit(1).single(),
+          supabase.from('interviews').select('*, interview_slots(*)').eq('user_id', user.id).limit(1).single(),
+          supabase.from('final_results').select('*').eq('user_id', user.id).single(),
+          supabase.from('system_settings').select('key, value').eq('key', 'results_published').single()
+        ])
 
-  // Demo fallback applicant: Nguyen Ha Phuong (Top 1)
-  if (!profile) {
-    const demoCand = MOCK_CANDIDATES[0]
-    profile = {
-      full_name: demoCand.profiles.full_name,
-      student_id: demoCand.profiles.student_id,
-      email: demoCand.profiles.email,
-      phone: demoCand.profiles.phone,
-      university: demoCand.profiles.university,
-      major: demoCand.profiles.major,
-      cohort: demoCand.profiles.cohort,
-      gpa: demoCand.profiles.gpa,
-    }
-    application = {
-      id: demoCand.id,
-      status: demoCand.status,
-      submitted_at: demoCand.submitted_at,
-      departments: demoCand.departments,
-    }
-    interview = {
-      interview_slots: {
-        interview_date: '2026-09-12',
-        start_time: '08:30',
-        end_time: '10:00',
-        location: 'Phòng Hội đồng 302, Nhà C, VNU-IS (Làng Sinh viên HACINCO)',
-        format: 'offline',
+        if (prof) setProfile(prof)
+        if (app) setApplication(app)
+        if (iv) setInterview(iv)
+        if (fr) setFinalResult(fr)
+        if (setts) setResultsPublished(setts.value === 'true')
       }
+    } catch {
+      // Demo fallback handled below
+    } finally {
+      setLoading(false)
     }
-    ranking = {
-      rank_number: demoCand.candidate_rankings.rank_number,
-      final_score: demoCand.candidate_rankings.final_score,
-      result: demoCand.candidate_rankings.result,
-    }
-    finalResult = {
-      result: 'pass',
-      announcement_message: 'Chúc mừng bạn đã xuất sắc vượt qua các vòng tuyển chọn và trở thành Thành viên chính thức của CLB Đại sứ Sinh viên iSSAC (Thủ khoa vòng tuyển · Xếp hạng #1 Toàn CLB)!',
-    }
-    resultsPublished = true
+  }, [supabase])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Fallback demo applicant: Nguyen Ha Phuong
+  const currentProfile = profile || {
+    full_name: MOCK_CANDIDATES[0].profiles.full_name,
+    student_id: MOCK_CANDIDATES[0].profiles.student_id,
+    email: MOCK_CANDIDATES[0].profiles.email,
+    phone: MOCK_CANDIDATES[0].profiles.phone,
+    university: MOCK_CANDIDATES[0].profiles.university,
+    major: MOCK_CANDIDATES[0].profiles.major,
+    cohort: MOCK_CANDIDATES[0].profiles.cohort,
   }
 
-  const dept = application?.departments as any
-  const submissionTimestamp = application?.submitted_at || '2026-09-01T08:30:00+07:00'
-  const { dateStr: subDate, timeStr: subTime } = formatFullTimestamp(submissionTimestamp)
+  const currentApp = application || {
+    id: MOCK_CANDIDATES[0].id,
+    status: MOCK_CANDIDATES[0].status,
+    submitted_at: MOCK_CANDIDATES[0].submitted_at,
+    departments: MOCK_CANDIDATES[0].departments,
+  }
+
+  const currentInterview = interview || {
+    interview_slots: {
+      interview_date: '2026-09-12',
+      start_time: '08:30',
+      end_time: '10:00',
+      location: 'Phòng Hội đồng 302, Nhà C, VNU-IS (Làng Sinh viên HACINCO)',
+      format: 'offline',
+    }
+  }
+
+  const currentFinalResult = finalResult || {
+    result: 'pass',
+    announcement_message: 'Chúc mừng bạn đã xuất sắc vượt qua các vòng đánh giá tuyển chọn và chính thức trở thành Thành viên CLB Đại sứ Sinh viên VNU-IS (iSSAC) - Ban Truyền thông Gen 10!',
+  }
+
+  const deptName = currentApp?.departments?.name || 'Ban Truyền thông'
+  const isPassed = currentFinalResult?.result === 'pass'
+
+  // 5 Journey Steps matching wireframe:
+  // (1) Hồ sơ  (2) Đơn  (3) PV  (4) Đánh giá  (5) Kết quả
+  const steps: StepItem[] = [
+    { number: 1, title: 'Hồ sơ', sublabel: 'Đã tạo hồ sơ', status: 'done' },
+    { number: 2, title: 'Đơn', sublabel: 'Đã nộp đơn', status: 'done' },
+    { number: 3, title: 'PV', sublabel: 'Đã phỏng vấn', status: 'done' },
+    { number: 4, title: 'Đánh giá', sublabel: 'Hoàn tất chấm', status: 'done' },
+    { number: 5, title: 'Kết quả', sublabel: 'Chờ xem kết quả', status: hasViewedResult ? 'done' : 'current' },
+  ]
+
+  const handleOpenResult = () => {
+    setShowResultModal(true)
+    setHasViewedResult(true)
+  }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in pb-12">
-      {/* Executive Welcome Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-950 text-white shadow-xl border border-blue-800/40 p-6 sm:p-8">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in pb-12">
+      {/* 1. Header: Greeting matching wireframe */}
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
+          XIN CHÀO, {currentProfile.full_name?.toUpperCase()} 👋
+        </h1>
+        <p className="text-gray-500 text-sm font-medium">
+          Chào mừng bạn đến với hành trình Gen 10 — CLB Đại sứ Sinh viên VNU-IS (iSSAC)
+        </p>
+      </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>CLB ĐẠI SỨ SINH VIÊN VNU-IS (iSSAC) · TUYỂN QUÂN GEN 10</span>
+      {/* 2. Top 3 Cards matching wireframe: [Ban] [Vòng hiện tại] [Trạng thái] */}
+      {/* Notice: No rank or score exposed here! Clean and suspenseful */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Card 1: Ban */}
+        <Card className="border shadow-xs bg-white hover:border-blue-200 transition-colors">
+          <CardContent className="p-4">
+            <div className="text-xs text-gray-500 font-medium">Ban ứng tuyển</div>
+            <div className="text-lg font-bold text-gray-900 mt-1">
+              {deptName}
             </div>
+            <div className="text-[11px] text-gray-400 mt-0.5">Nguyện vọng 1 (NV1)</div>
+          </CardContent>
+        </Card>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Xin chào, {profile?.full_name}! 👋
-            </h1>
+        {/* Card 2: Vòng hiện tại */}
+        <Card className="border shadow-xs bg-white hover:border-blue-200 transition-colors">
+          <CardContent className="p-4">
+            <div className="text-xs text-gray-500 font-medium">Vòng hiện tại</div>
+            <div className="text-lg font-bold text-blue-700 mt-1 flex items-center gap-1.5 font-mono">
+              <span>5/5</span>
+              <span className="text-xs font-semibold text-gray-500 font-sans">(Công bố kết quả)</span>
+            </div>
+            <div className="text-[11px] text-gray-400 mt-0.5">Vòng tuyển chọn cuối cùng</div>
+          </CardContent>
+        </Card>
 
-            <p className="text-blue-200/90 text-xs sm:text-sm leading-relaxed">
-              MSSV: <span className="font-mono font-bold text-white">{profile?.student_id || '22070142'}</span> · Ngành <span className="font-bold text-white">{profile?.major || 'MIS'}</span> ({profile?.cohort || 'K22'}) · Trường Quốc tế - ĐHQGHN.
-              Hồ sơ của bạn đã hoàn thành tất cả các vòng đánh giá tuyển chọn.
+        {/* Card 3: Trạng thái */}
+        <Card className="border shadow-xs bg-white hover:border-blue-200 transition-colors">
+          <CardContent className="p-4">
+            <div className="text-xs text-gray-500 font-medium">Trạng thái</div>
+            <div className="text-lg font-bold text-emerald-700 mt-1 flex items-center gap-1.5">
+              <span>Đã phỏng vấn</span>
+              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
+                ✓
+              </span>
+            </div>
+            <div className="text-[11px] text-emerald-600 font-medium mt-0.5">
+              Hội đồng đã hoàn tất chấm điểm
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 3. Section: HÀNH TRÌNH GIA NHẬP iSSAC (5-step process) */}
+      <Card className="border shadow-xs bg-white overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b bg-gray-50/70">
+          <CardTitle className="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600" />
+            HÀNH TRÌNH GIA NHẬP iSSAC
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="relative">
+            {/* Connecting line */}
+            <div className="absolute top-4 left-6 right-6 h-0.5 bg-gray-200 hidden sm:block -z-0" />
+            
+            <div className="grid grid-cols-5 gap-2 relative z-10 text-center">
+              {steps.map((step) => {
+                const isDone = step.status === 'done'
+                const isCurrent = step.status === 'current'
+                return (
+                  <div key={step.number} className="flex flex-col items-center space-y-1.5">
+                    {/* Circle Node: 1, 2, 3, 4, 5 */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      isDone
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : isCurrent
+                        ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-xs animate-pulse'
+                        : 'bg-white border-2 border-gray-300 text-gray-500'
+                    }`}>
+                      {isDone ? '✓' : step.number}
+                    </div>
+
+                    {/* Step Title matching wireframe: Hồ sơ, Đơn, PV, Đánh giá, Kết quả */}
+                    <div className="text-xs sm:text-sm font-bold text-gray-900">
+                      {step.title}
+                    </div>
+
+                    {/* Symbol indicator: ✓, ●, ○ */}
+                    <div className="text-xs">
+                      {isDone ? (
+                        <span className="text-emerald-600 font-bold">✓</span>
+                      ) : isCurrent ? (
+                        <span className="text-blue-600 font-bold text-sm">●</span>
+                      ) : (
+                        <span className="text-gray-400 font-bold text-sm">○</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Two Information Cards matching wireframe: [THÔNG TIN ỨNG TUYỂN] [LỊCH PHỎNG VẤN] */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card Left: THÔNG TIN ỨNG TUYỂN */}
+        <Card className="border shadow-xs bg-white hover:border-blue-200 transition-colors">
+          <CardHeader className="py-3 px-5 border-b bg-gray-50/70">
+            <CardTitle className="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              THÔNG TIN ỨNG TUYỂN
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-2 text-xs sm:text-sm">
+            <div className="flex justify-between py-1 border-b border-gray-100">
+              <span className="text-gray-500">Ban đăng ký:</span>
+              <span className="font-bold text-gray-900">{deptName}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-gray-100">
+              <span className="text-gray-500">Nguyện vọng:</span>
+              <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-bold text-[11px]">
+                NV1 Chính thức
+              </Badge>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-500">Mã đơn ứng tuyển:</span>
+              <span className="font-mono text-gray-700">#app-01 · 01/09/2026</span>
+            </div>
+            <div className="pt-2">
+              <Link href="/member/application" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">
+                Xem lại câu trả lời đơn ứng tuyển <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card Right: LỊCH PHỎNG VẤN */}
+        <Card className="border shadow-xs bg-white hover:border-blue-200 transition-colors">
+          <CardHeader className="py-3 px-5 border-b bg-gray-50/70">
+            <CardTitle className="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-blue-600" />
+              LỊCH PHỎNG VẤN
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-2 text-xs sm:text-sm">
+            <div className="flex justify-between py-1 border-b border-gray-100">
+              <span className="text-gray-500">Giờ phỏng vấn:</span>
+              <span className="font-mono font-bold text-blue-900">
+                {currentInterview?.interview_slots?.start_time || '08:30'}
+              </span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-gray-100">
+              <span className="text-gray-500">Ngày phỏng vấn:</span>
+              <span className="font-semibold text-gray-900 font-mono">
+                {currentInterview?.interview_slots?.interview_date ? formatDate(currentInterview.interview_slots.interview_date) : '12/09/2026'}
+              </span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-500">Địa điểm:</span>
+              <span className="text-gray-700 text-right truncate max-w-[180px]" title={currentInterview?.interview_slots?.location}>
+                Phòng 302, Nhà C (HACINCO)
+              </span>
+            </div>
+            <div className="pt-2">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Đã hoàn thành ca phỏng vấn
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 5. Section: THÔNG BÁO TỪ iSSAC & NÚT ẤN ĐỂ XEM KẾT QUẢ (BẤT NGỜ) */}
+      <Card className="border border-blue-100 bg-gradient-to-br from-blue-50/60 via-white to-amber-50/40 shadow-xs overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b bg-white/70">
+          <CardTitle className="text-xs font-black uppercase tracking-wider text-gray-800 flex items-center gap-2">
+            <Mail className="w-4 h-4 text-blue-600" />
+            THÔNG BÁO TỪ HỘI ĐỒNG TUYỂN SINH iSSAC
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5 sm:p-6 space-y-4">
+          <div className="space-y-2 text-xs sm:text-sm text-gray-800 leading-relaxed">
+            <p className="font-semibold text-gray-900">
+              Thân gửi bạn {currentProfile.full_name},
             </p>
-
-            {/* Clean, High-Contrast Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-2.5">
-              <Link href="/member/result">
-                <Button size="sm" variant="gold" className="font-bold gap-1.5 shadow-md hover:scale-[1.02] transition-transform">
-                  <Trophy className="w-4 h-4" /> Tra cứu kết quả xét tuyển
-                </Button>
-              </Link>
-
-              <Link href="/member/application">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition-colors shadow-2xs backdrop-blur-sm"
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-300" />
-                  Xem đơn ứng tuyển
-                </button>
-              </Link>
-
-              <Link href="/member/interview">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition-colors shadow-2xs backdrop-blur-sm"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-blue-300" />
-                  Lịch phỏng vấn
-                </button>
-              </Link>
-            </div>
+            <p className="text-gray-700">
+              Trước tiên, CLB Đại sứ Sinh viên Trường Quốc tế — ĐHQGHN (iSSAC) xin gửi lời cảm ơn chân thành nhất đến bạn vì đã dành thời gian, sự quan tâm và nhiệt huyết tham gia đợt tuyển quân Gen 10.
+            </p>
+            <p className="text-gray-700">
+              Hành trình vừa qua là cơ hội quý báu để CLB được lắng nghe những chia sẻ, câu chuyện và tài năng của bạn. Dù kết quả như thế nào thì hy vọng bạn vẫn sẽ luôn theo dõi và đồng hành cùng CLB trong các hoạt động sắp tới nhé! ✨
+            </p>
           </div>
 
-          {/* Right Hero Badge: Official Status */}
-          <div className="shrink-0 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 p-4 sm:p-5 flex md:flex-col items-center md:items-center justify-between gap-4 md:text-center min-w-[200px]">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-amber-950 flex items-center justify-center shadow-md">
-              <Trophy className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-blue-200 font-bold">Thứ hạng xét tuyển</div>
-              <div className="text-2xl font-black text-amber-300">
-                #{ranking?.rank_number || 1} <span className="text-xs text-blue-200 font-normal">Toàn CLB</span>
+          {/* Call to action button: "Ấn để xem kết quả" for surprise */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-blue-100 shadow-2xs">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0 shadow-2xs">
+                <Sparkles className="w-5 h-5 text-amber-600" />
               </div>
-              <div className="text-xs font-semibold text-emerald-300 mt-0.5 flex items-center justify-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Thủ khoa vòng tuyển ({ranking?.final_score || 9.6}đ)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Professional KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Department */}
-        <Card className="shadow-xs border hover:border-blue-300 transition-colors bg-white">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-              <Building className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500 font-medium">Ban đăng ký (NV1)</div>
-              <div className="font-bold text-sm text-gray-900 truncate">{dept?.name || 'Ban Truyền thông'}</div>
-              <div className="text-[11px] text-gray-400 truncate">Trường Quốc tế - VNU-IS</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Interview schedule */}
-        <Card className="shadow-xs border hover:border-indigo-300 transition-colors bg-white">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500 font-medium">Ca phỏng vấn đã thi</div>
-              <div className="font-bold text-sm text-gray-900 font-mono">08:30 · 12/09/2026</div>
-              <div className="text-[11px] text-gray-400 truncate">Phòng 302, Nhà C (HACINCO)</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: Score & Rank */}
-        <Card className="shadow-xs border hover:border-amber-300 transition-colors bg-white">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-              <Award className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500 font-medium">Điểm & Thứ hạng</div>
-              <div className="font-black text-sm text-blue-700">
-                {ranking?.final_score ? `${Number(ranking.final_score).toFixed(1)}/10` : '9.6/10'}
-                <span className="ml-1.5 text-xs font-bold text-amber-600">#{ranking?.rank_number || 1}</span>
-              </div>
-              <div className="text-[11px] text-gray-400">Xếp hạng cao nhất toàn CLB</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 4: Official Result */}
-        <Card className="shadow-xs border border-emerald-200 bg-emerald-50/30 hover:border-emerald-400 transition-colors">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-emerald-800 font-semibold">Quyết định tuyển chọn</div>
-              <div className="font-black text-sm text-emerald-950 truncate">Trúng tuyển chính thức</div>
-              <div className="text-[11px] text-emerald-700 font-bold">Trạng thái: PASS</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main 2-Column Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 cols): Modern Recruitment Process & Applicant Details */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Recruitment Progress Stepper */}
-          <Card className="shadow-xs border bg-white overflow-hidden">
-            <CardHeader className="py-3.5 px-5 border-b bg-gray-50/80 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                Tiến trình tuyển sinh 4 chặng (Nhiệm kỳ Gen 10)
-              </CardTitle>
-              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[11px] font-bold">
-                100% Hoàn thành
-              </Badge>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              {/* Step 1 */}
-              <div className="flex items-start gap-3.5 relative pb-4 border-l-2 border-emerald-500 ml-3 pl-5">
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow-xs">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-900">Vòng 1: Nộp hồ sơ đơn ứng tuyển</span>
-                    <span className="text-[11px] font-mono text-gray-500">{subTime} · {subDate}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Đã hoàn thành nộp 6/6 câu hỏi và đính kèm liên kết CV trực tuyến vào Ban Truyền thông.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex items-start gap-3.5 relative pb-4 border-l-2 border-emerald-500 ml-3 pl-5">
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow-xs">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-900">Vòng 2: Xét duyệt hồ sơ & Phân bổ ca thi</span>
-                    <span className="text-[11px] font-semibold text-emerald-700">Đạt chuẩn xét duyệt</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Hồ sơ hợp lệ, vượt qua vòng sơ loại và được mời vào vòng phỏng vấn chuyên môn trực tiếp.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex items-start gap-3.5 relative pb-4 border-l-2 border-emerald-500 ml-3 pl-5">
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow-xs">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-900">Vòng 3: Phỏng vấn trực tiếp với Hội đồng</span>
-                    <span className="text-[11px] font-black text-blue-700 font-mono">Điểm PV: 9.6/10</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Đã hoàn thành ca phỏng vấn ngày 12/09 tại Phòng 302 Nhà C. Hội đồng đánh giá xuất sắc 4 tiêu chí.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="flex items-start gap-3.5 relative ml-3 pl-5">
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow-xs ring-4 ring-emerald-100">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-900">Vòng 4: Công bố kết quả chính thức (Top 15)</span>
-                    <Badge className="bg-emerald-600 text-white text-[10px] font-bold">Chính thức</Badge>
-                  </div>
-                  <p className="text-xs text-emerald-800 font-medium mt-0.5">
-                    Ban Chủ nhiệm phê duyệt kết quả trúng tuyển Thủ khoa (#1 Toàn CLB).
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Profile Summary */}
-          <Card className="shadow-xs border bg-white">
-            <CardHeader className="py-3 px-5 border-b bg-gray-50/80">
-              <CardTitle className="text-sm font-bold text-gray-900 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  Thông tin ứng viên đã đăng ký
-                </div>
-                <Link href="/member/profile" className="text-xs text-blue-600 hover:underline font-semibold">
-                  Chỉnh sửa hồ sơ →
-                </Link>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5">
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="text-gray-500 text-[11px]">Họ và tên</div>
-                  <div className="font-bold text-gray-900 mt-0.5">{profile?.full_name}</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="text-gray-500 text-[11px]">Mã số sinh viên</div>
-                  <div className="font-mono font-bold text-gray-900 mt-0.5">{profile?.student_id || '22070142'}</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="text-gray-500 text-[11px]">Email sinh viên VNU</div>
-                  <div className="font-mono text-gray-800 truncate mt-0.5">{profile?.email}</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="text-gray-500 text-[11px]">Ngành học & Điểm GPA</div>
-                  <div className="font-bold text-gray-900 mt-0.5">
-                    {profile?.major || 'MIS'} · <span className="text-amber-600 font-mono">{profile?.gpa || 3.82}/4.0</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs">
-                <span className="text-gray-500">Giờ gửi hồ sơ ghi nhận: <strong className="font-mono text-gray-800">{subTime} ngày {subDate}</strong></span>
-                <Link href="/member/application" className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline">
-                  <FileText className="w-3.5 h-3.5" />
-                  Mở đơn đã nộp
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column (5 cols): Official Admission Certificate & Next Steps */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Formal Acceptance Notice Card */}
-          <div className="rounded-3xl border-2 border-emerald-300 bg-gradient-to-b from-emerald-50/90 via-teal-50/50 to-white p-6 shadow-sm relative overflow-hidden">
-            {/* Header seal */}
-            <div className="flex items-center justify-between border-b border-emerald-200/80 pb-3 mb-4">
               <div>
-                <div className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Trường Quốc tế — ĐHQGHN</div>
-                <div className="text-xs font-black text-emerald-950">CLB ĐẠI SỨ SINH VIÊN (iSSAC)</div>
+                <div className="text-xs font-bold text-gray-900">
+                  Kết quả xét tuyển chính thức đã có!
+                </div>
+                <div className="text-[11px] text-gray-500">
+                  Hội đồng tuyển sinh đã hoàn tất phê duyệt quyết định.
+                </div>
               </div>
-              <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 shadow-2xs">
-                CHÍNH THỨC
-              </Badge>
             </div>
 
-            <div className="text-center space-y-2 mb-5">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
-                <Trophy className="w-7 h-7 text-amber-300" />
+            <Button
+              onClick={handleOpenResult}
+              variant="gold"
+              className="w-full sm:w-auto font-black text-xs sm:text-sm px-6 py-2.5 gap-2 shadow-sm hover:scale-[1.02] transition-transform cursor-pointer"
+            >
+              <Eye className="w-4 h-4" />
+              Ấn để xem kết quả
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 6. MODAL BẤT NGỜ: THƯ CHÚC MỪNG KẾT QUẢ XÉT TUYỂN */}
+      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border shadow-xl">
+          <DialogHeader className="text-center space-y-3 pb-2">
+            {isPassed ? (
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-md animate-bounce">
+                <PartyPopper className="w-9 h-9 text-emerald-700" />
               </div>
-              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                QUYẾT ĐỊNH: TRÚNG TUYỂN PASS
+            ) : (
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center shadow-md">
+                <Heart className="w-9 h-9 text-blue-700" />
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-emerald-950 leading-snug">
-                CHÚC MỪNG TÂN ĐẠI SỨ SINH VIÊN!
-              </h2>
-              <p className="text-xs text-emerald-800 leading-relaxed max-w-xs mx-auto">
-                Ban Chủ nhiệm CLB iSSAC trân trọng chúc mừng ứng viên <strong className="text-emerald-950">{profile?.full_name}</strong> đã xuất sắc trở thành thành viên chính thức của <strong className="text-emerald-950">{dept?.name || 'Ban Truyền thông'}</strong>.
+            )}
+
+            <DialogTitle className="text-xl sm:text-2xl font-black text-emerald-950 text-center">
+              {isPassed ? '🎉 XIN CHÚC MỪNG BẠN!' : 'THÔNG BÁO KẾT QUẢ TUYỂN SINH'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-center text-xs sm:text-sm text-gray-700 leading-relaxed">
+            {isPassed ? (
+              <>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 font-black text-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  KẾT QUẢ: TRÚNG TUYỂN (PASS)
+                </div>
+
+                <p className="font-medium text-gray-900">
+                  Chúc mừng bạn <strong className="text-emerald-900 font-bold">{currentProfile.full_name}</strong> đã xuất sắc vượt qua các vòng tuyển chọn và chính thức trở thành Thành viên của CLB Đại sứ Sinh viên VNU-IS (iSSAC)!
+                </p>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-left space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-800">Ban trúng tuyển:</span>
+                    <strong className="text-emerald-950">{deptName}</strong>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-800">Tư cách:</span>
+                    <strong className="text-emerald-950">Đại sứ Sinh viên Gen 10</strong>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-600 italic">
+                  "Chào mừng bạn gia nhập gia đình iSSAC. Hẹn gặp bạn tại buổi First Meeting & Lễ ra mắt Ban để cùng nhau bắt đầu hành trình đáng nhớ!"
+                </p>
+              </>
+            ) : (
+              <p>
+                Cảm ơn bạn đã tham gia ứng tuyển cùng iSSAC. Hy vọng sẽ có dịp gặp lại bạn trong những sự kiện mở sắp tới của CLB.
               </p>
-            </div>
+            )}
+          </div>
 
-            {/* Score pill */}
-            <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-2xl border border-emerald-200/90 text-center mb-5 shadow-2xs">
-              <div>
-                <div className="text-[11px] text-gray-500 font-medium">Điểm phỏng vấn</div>
-                <div className="text-xl font-black text-blue-700 font-mono">9.6<span className="text-xs text-gray-400">/10</span></div>
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-500 font-medium">Thứ hạng tuyển sinh</div>
-                <div className="text-xl font-black text-amber-600">#1 <span className="text-xs text-emerald-700 font-bold">Thủ khoa</span></div>
-              </div>
-            </div>
-
-            {/* 3 Next steps */}
-            <div className="space-y-2 text-xs border-t border-emerald-200/80 pt-4 mb-5">
-              <div className="text-xs font-bold text-emerald-950 mb-1">Các bước tiếp theo cho Tân thành viên:</div>
-              
-              <div className="flex items-start gap-2 text-emerald-900">
-                <span className="w-4 h-4 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
-                <span>Gia nhập nhóm Zalo nội bộ Tân thành viên iSSAC Gen 10.</span>
-              </div>
-
-              <div className="flex items-start gap-2 text-emerald-900">
-                <span className="w-4 h-4 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
-                <span>Tham dự <strong>First Meeting & Lễ ra mắt Ban</strong> lúc 19:30 Thứ Bảy (19/09/2026).</span>
-              </div>
-
-              <div className="flex items-start gap-2 text-emerald-900">
-                <span className="w-4 h-4 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-                <span>Nhận đồng phục áo Polo Đại sứ và thẻ thành viên chính thức.</span>
-              </div>
-            </div>
-
-            <Link href="/member/result" className="block">
-              <Button variant="gold" className="w-full font-black text-xs gap-1.5 shadow-xs">
-                <Trophy className="w-4 h-4" /> Xem chi tiết Thư trúng tuyển & Nhận xét
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t">
+            <Link href="/member/result" className="w-full sm:flex-1">
+              <Button variant="gold" className="w-full font-bold text-xs gap-1.5">
+                <Trophy className="w-3.5 h-3.5" /> Xem chi tiết thư kết quả
               </Button>
             </Link>
-          </div>
-
-          {/* Quick navigation shortcuts */}
-          <Card className="shadow-xs border bg-white">
-            <CardHeader className="py-3 px-5 border-b bg-gray-50/80">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                Lối tắt thao tác ứng viên
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 space-y-1">
-              {[
-                { href: '/member/application', label: 'Xem lại đơn ứng tuyển (6 câu trả lời)', icon: FileText },
-                { href: '/member/interview', label: 'Chi tiết ca phỏng vấn & phòng thi', icon: Calendar },
-                { href: '/member/result', label: 'Bảng điểm 4 tiêu chí & giải trình', icon: Trophy },
-                { href: '/member/profile', label: 'Cập nhật thông tin sinh viên', icon: User },
-              ].map((action, i) => (
-                <Link
-                  key={i}
-                  href={action.href}
-                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/70 transition-colors group text-xs"
-                >
-                  <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors shrink-0">
-                    <action.icon className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <span className="font-semibold text-gray-700 group-hover:text-blue-900 flex-1">{action.label}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowResultModal(false)}
+              className="w-full sm:w-auto text-xs"
+            >
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

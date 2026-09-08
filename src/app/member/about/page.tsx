@@ -46,7 +46,7 @@ export default function MemberAboutPage() {
           </p>
         </div>
 
-        <div className="pt-4 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-blue-100">
+        <div className="pt-4 border-t border-white/20 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-blue-100">
           <div>
             <div className="text-slate-300 font-medium">Nhiệm kỳ</div>
             <div className="text-sm font-bold text-white mt-0.5">2026 - 2027</div>
@@ -66,7 +66,7 @@ export default function MemberAboutPage() {
         </div>
       </div>
 
-      {/* 3. CHÍNH SÁCH ĐÃI NGỘ & QUYỀN LỢI ĐẠI SỨ */}
+      {/* 3. CHÍNH SÁCH ĐÃI NGỘ & QUYỀN LỢI ĐẠI SỨ (STYLE XANH VÀNG XEN KẼ RÕ RÀNG) */}
       <div className="space-y-4">
         <div className="border-b border-slate-200 pb-3">
           <h2 className="text-lg sm:text-xl font-bold text-slate-900">
@@ -77,10 +77,10 @@ export default function MemberAboutPage() {
           </p>
         </div>
 
-        {/* Khối nổi bật: Chi trả kinh phí & Thù lao */}
-        <div className="rounded-2xl bg-amber-50/80 border-2 border-amber-300 p-6 space-y-2">
+        {/* Card 1: VÀNG - Quyền lợi tài chính & Thù lao */}
+        <div className="rounded-2xl bg-amber-50/80 border-2 border-[#fdc455] p-6 space-y-2 shadow-xs">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2.5 py-0.5 rounded">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-950 bg-[#fdc455] px-2.5 py-0.5 rounded shadow-2xs">
               Chính sách tài chính chính thức
             </span>
             <span className="text-xs font-medium text-amber-800">
@@ -95,59 +95,75 @@ export default function MemberAboutPage() {
           </p>
         </div>
 
-        {/* Các quyền lợi cốt lõi khác */}
+        {/* Grid 4 Quyền lợi xen kẽ Xanh - Vàng */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-5 space-y-2">
-            <div className="text-xs font-bold text-[#1657c1] uppercase tracking-wide">
-              Thực chiến quản lý sự kiện
+          {/* Card 2: XANH - Quản lý sự kiện */}
+          <div className="rounded-2xl bg-blue-50/70 border-2 border-[#1657c1] p-5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white bg-[#1657c1] uppercase tracking-wide px-2.5 py-0.5 rounded">
+                Thực chiến sự kiện
+              </span>
+              <span className="text-xs font-semibold text-[#1657c1]">Quy mô toàn trường</span>
             </div>
-            <h4 className="text-base font-bold text-slate-900">
+            <h4 className="text-base font-bold text-slate-900 pt-1">
               Chủ trì & Trực tiếp làm Ban Tổ chức sự kiện
             </h4>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
               Được tự tay lên ý tưởng, xây dựng kế hoạch kịch bản và đứng ở vị trí <strong>Ban Tổ chức (BTC)</strong> tại các sự kiện quy mô hàng nghìn người như <strong>ISTART CAMP, JOBLINK, ENROLLMENT DAY</strong>.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-5 space-y-2">
-            <div className="text-xs font-bold text-[#1657c1] uppercase tracking-wide">
-              Chứng nhận & Học thuật
+          {/* Card 3: VÀNG - Chứng nhận & LOR */}
+          <div className="rounded-2xl bg-amber-50/70 border-2 border-[#fdc455] p-5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-950 bg-[#fdc455] uppercase tracking-wide px-2.5 py-0.5 rounded">
+                Chứng nhận & Học thuật
+              </span>
+              <span className="text-xs font-semibold text-amber-900">Hồ sơ xin việc & Học bổng</span>
             </div>
-            <h4 className="text-base font-bold text-slate-900">
+            <h4 className="text-base font-bold text-slate-900 pt-1">
               Chứng nhận chính thức & Thư giới thiệu (LOR)
             </h4>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
               Cộng điểm rèn luyện tối đa theo quy chế, nhận <strong>Chứng nhận Đại sứ Sinh viên chính thức</strong> từ Trường Quốc tế - ĐHQGHN và cơ hội nhận <strong>Thư giới thiệu</strong> từ Ban Giám hiệu phục vụ học bổng du học và xin việc.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-5 space-y-2">
-            <div className="text-xs font-bold text-[#1657c1] uppercase tracking-wide">
-              Đào tạo năng lực
+          {/* Card 4: VÀNG - Đào tạo năng lực lãnh đạo */}
+          <div className="rounded-2xl bg-amber-50/70 border-2 border-[#fdc455] p-5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-950 bg-[#fdc455] uppercase tracking-wide px-2.5 py-0.5 rounded">
+                Đào tạo năng lực
+              </span>
+              <span className="text-xs font-semibold text-amber-900">Tập huấn chuyên sâu</span>
             </div>
-            <h4 className="text-base font-bold text-slate-900">
+            <h4 className="text-base font-bold text-slate-900 pt-1">
               Tập huấn kỹ năng lãnh đạo & Tác phong ngoại giao
             </h4>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
               Được đào tạo định kỳ về kỹ năng thuyết trình, đàm phán đối ngoại, quản trị thời gian, giải quyết vấn đề dưới áp lực và phong thái đại sứ chuyên nghiệp.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-5 space-y-2">
-            <div className="text-xs font-bold text-[#1657c1] uppercase tracking-wide">
-              Mạng lưới & Đời sống
+          {/* Card 5: XANH - Mạng lưới quan hệ & Đời sống */}
+          <div className="rounded-2xl bg-blue-50/70 border-2 border-[#1657c1] p-5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white bg-[#1657c1] uppercase tracking-wide px-2.5 py-0.5 rounded">
+                Mạng lưới & Đời sống
+              </span>
+              <span className="text-xs font-semibold text-[#1657c1]">Gia đình iSSAC</span>
             </div>
-            <h4 className="text-base font-bold text-slate-900">
+            <h4 className="text-base font-bold text-slate-900 pt-1">
               Mở rộng Networking & Văn hóa gia đình gắn kết
             </h4>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
               Kết nối trực tiếp với lãnh đạo Nhà trường, các doanh nghiệp đối tác và mạng lưới cựu Đại sứ thành đạt; gắn kết tuổi trẻ qua các chuyến Team Building, Dã ngoại và Sinh nhật ấm cúng.
             </p>
           </div>
         </div>
       </div>
 
-      {/* 4. CƠ CẤU VÀ NHIỆM VỤ 3 BAN CHUYÊN MÔN */}
+      {/* 4. CƠ CẤU VÀ NHIỆM VỤ 3 BAN CHUYÊN MÔN (XEN KẼ XANH - VÀNG - XANH) */}
       <div className="space-y-5">
         <div className="border-b border-slate-200 pb-3">
           <h2 className="text-lg sm:text-xl font-bold text-slate-900">
@@ -159,24 +175,24 @@ export default function MemberAboutPage() {
         </div>
 
         <div className="space-y-5">
-          {/* BAN 1: BAN TƯ VẤN (ADV) */}
-          <div className="rounded-2xl bg-white border-2 border-[#1657c1] p-6 sm:p-7 space-y-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          {/* BAN 1: BAN TƯ VẤN (ADV) - BOX XANH */}
+          <div className="rounded-2xl bg-blue-50/40 border-2 border-[#1657c1] p-6 sm:p-7 space-y-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200/80 pb-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white bg-[#1657c1] px-2.5 py-0.5 rounded">
                   Khối Cốt lõi - Sự kiện & Cố vấn sinh viên
                 </span>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5">
                   Ban Tư vấn (Advising & Support)
                 </h3>
               </div>
-              <span className="self-start sm:self-auto text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+              <span className="self-start sm:self-auto text-xs font-bold text-[#1657c1] bg-blue-100 border border-blue-200 px-3 py-1 rounded-full">
                 Mã ban: ADV
               </span>
             </div>
 
             {/* Khối Điểm nhấn Tổ chức sự kiện & BTC */}
-            <div className="p-5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-3">
+            <div className="p-5 rounded-xl bg-white border-2 border-blue-200 space-y-3 shadow-2xs">
               <div className="text-xs font-bold uppercase tracking-wide text-[#1657c1]">
                 Đặc quyền học tập & Trực tiếp làm Ban Tổ chức (BTC) Sự kiện
               </div>
@@ -185,7 +201,7 @@ export default function MemberAboutPage() {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="p-3.5 rounded-lg bg-white border border-blue-200">
+                <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-200">
                   <div className="font-bold text-[#1657c1] text-xs uppercase">
                     ISTART CAMP
                   </div>
@@ -194,7 +210,7 @@ export default function MemberAboutPage() {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-white border border-blue-200">
+                <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-200">
                   <div className="font-bold text-[#1657c1] text-xs uppercase">
                     JOBLINK
                   </div>
@@ -203,7 +219,7 @@ export default function MemberAboutPage() {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-white border border-blue-200">
+                <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-200">
                   <div className="font-bold text-[#1657c1] text-xs uppercase">
                     ENROLLMENT DAY
                   </div>
@@ -217,7 +233,7 @@ export default function MemberAboutPage() {
             {/* Chức năng & Nhiệm vụ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-[#1657c1] text-xs uppercase tracking-wide">
                   Chức năng chính
                 </div>
                 <p className="text-slate-600 leading-relaxed text-justify">
@@ -226,7 +242,7 @@ export default function MemberAboutPage() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-[#1657c1] text-xs uppercase tracking-wide">
                   Nhiệm vụ cụ thể
                 </div>
                 <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
@@ -238,30 +254,30 @@ export default function MemberAboutPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-              <span className="font-bold text-slate-900">Đối tượng phù hợp:</span> Bạn yêu thích công việc tổ chức sự kiện thực tế, muốn học quy trình quản lý chương trình từ A đến Z, có khả năng giao tiếp tự tin và muốn truyền cảm hứng đến bạn bè.
+            <div className="p-3.5 rounded-xl bg-blue-100/60 border border-blue-200 text-xs text-slate-800">
+              <span className="font-bold text-[#1657c1]">Đối tượng phù hợp:</span> Bạn yêu thích công việc tổ chức sự kiện thực tế, muốn học quy trình quản lý chương trình từ A đến Z, có khả năng giao tiếp tự tin và muốn truyền cảm hứng đến bạn bè.
             </div>
           </div>
 
-          {/* BAN 2: BAN TRUYỀN THÔNG (COM) */}
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-6 sm:p-7 space-y-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          {/* BAN 2: BAN TRUYỀN THÔNG (COM) - BOX VÀNG */}
+          <div className="rounded-2xl bg-amber-50/40 border-2 border-[#fdc455] p-6 sm:p-7 space-y-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-950 bg-[#fdc455] px-2.5 py-0.5 rounded">
                   Khối Sáng tạo & Media
                 </span>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5">
                   Ban Truyền thông (Media & Creative)
                 </h3>
               </div>
-              <span className="self-start sm:self-auto text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+              <span className="self-start sm:self-auto text-xs font-bold text-amber-950 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full">
                 Mã ban: COM
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
                   Chức năng chính
                 </div>
                 <p className="text-slate-600 leading-relaxed text-justify">
@@ -270,7 +286,7 @@ export default function MemberAboutPage() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
                   Nhiệm vụ cụ thể
                 </div>
                 <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
@@ -282,30 +298,30 @@ export default function MemberAboutPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-              <span className="font-bold text-slate-900">Đối tượng phù hợp:</span> Bạn yêu thích sáng tạo nội dung, có mắt thẩm mỹ hiện đại, thích quay chụp ảnh, dựng video hoặc muốn phát triển nghề nghiệp trong ngành Marketing và Truyền thông.
+            <div className="p-3.5 rounded-xl bg-amber-100/70 border border-amber-300 text-xs text-amber-950">
+              <span className="font-bold text-amber-950">Đối tượng phù hợp:</span> Bạn yêu thích sáng tạo nội dung, có mắt thẩm mỹ hiện đại, thích quay chụp ảnh, dựng video hoặc muốn phát triển nghề nghiệp trong ngành Marketing và Truyền thông.
             </div>
           </div>
 
-          {/* BAN 3: BAN NHÂN SỰ (HR) */}
-          <div className="rounded-2xl bg-white border-2 border-slate-200 p-6 sm:p-7 space-y-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          {/* BAN 3: BAN NHÂN SỰ (HR) - BOX XANH */}
+          <div className="rounded-2xl bg-blue-50/40 border-2 border-[#1657c1] p-6 sm:p-7 space-y-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200/80 pb-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white bg-[#1657c1] px-2.5 py-0.5 rounded">
                   Khối Quản trị & Vận hành
                 </span>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5">
                   Ban Nhân sự (HR & Organization)
                 </h3>
               </div>
-              <span className="self-start sm:self-auto text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+              <span className="self-start sm:self-auto text-xs font-bold text-[#1657c1] bg-blue-100 border border-blue-200 px-3 py-1 rounded-full">
                 Mã ban: HR
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-[#1657c1] text-xs uppercase tracking-wide">
                   Chức năng chính
                 </div>
                 <p className="text-slate-600 leading-relaxed text-justify">
@@ -314,7 +330,7 @@ export default function MemberAboutPage() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="font-bold text-slate-900 text-xs uppercase tracking-wide text-[#1657c1]">
+                <div className="font-bold text-[#1657c1] text-xs uppercase tracking-wide">
                   Nhiệm vụ cụ thể
                 </div>
                 <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
@@ -326,8 +342,8 @@ export default function MemberAboutPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-              <span className="font-bold text-slate-900">Đối tượng phù hợp:</span> Bạn là người chu đáo, cẩn thận, có kỹ năng sắp xếp công việc khoa học, thấu hiểu tâm lý và mong muốn theo đuổi mảng Quản trị nhân sự hoặc Quản lý dự án.
+            <div className="p-3.5 rounded-xl bg-blue-100/60 border border-blue-200 text-xs text-slate-800">
+              <span className="font-bold text-[#1657c1]">Đối tượng phù hợp:</span> Bạn là người chu đáo, cẩn thận, có kỹ năng sắp xếp công việc khoa học, thấu hiểu tâm lý và mong muốn theo đuổi mảng Quản trị nhân sự hoặc Quản lý dự án.
             </div>
           </div>
         </div>

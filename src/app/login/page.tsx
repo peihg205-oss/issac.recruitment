@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
+import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
 import {
   Eye, EyeOff, LogIn, ArrowLeft, Loader2,
   Crown, Megaphone, MessageSquare, Users, Shield,
@@ -65,6 +66,7 @@ function LoginForm() {
   const { toast } = useToast()
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showForgotModal, setShowForgotModal] = useState(false)
   const supabase = createClient()
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
@@ -268,9 +270,13 @@ function LoginForm() {
               </div>
 
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-xs text-[#1559c5] font-semibold hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs text-[#1559c5] font-semibold hover:underline cursor-pointer"
+                >
                   Quên mật khẩu?
-                </Link>
+                </button>
               </div>
 
               <Button
@@ -371,6 +377,7 @@ function LoginForm() {
           </div>
         </div>
       </div>
+      <ForgotPasswordModal open={showForgotModal} onOpenChange={setShowForgotModal} />
     </div>
   )
 }

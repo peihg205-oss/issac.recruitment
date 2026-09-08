@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Search, Download, Eye, CheckCircle, XCircle, Clock,
-  ArrowUpDown, Users, Loader2, ChevronRight, Filter
+  ArrowUpDown, Users, Loader2, ChevronRight, Filter, Key, Trash2
 } from 'lucide-react'
+import { CandidateAccountModal } from "@/components/admin/candidate-account-modal"
+import { isCandidateDeleted } from "@/lib/candidate-account-manager"
 import Link from 'next/link'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -40,6 +42,8 @@ export default function CandidatesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [updating, setUpdating] = useState<string | null>(null)
   const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
+  const [accountModalCandidate, setAccountModalCandidate] = useState<any>(null)
+  const [showAccountModal, setShowAccountModal] = useState(false)
 
   useEffect(() => {
     const match = document.cookie.match(/issac_admin_role=([^;]+)/)
@@ -324,10 +328,23 @@ export default function CandidatesPage() {
                               Duyệt
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                            onClick={() => {
+                              setAccountModalCandidate(c)
+                              setShowAccountModal(true)
+                            }}
+                            title="Kiểm tra mật khẩu & Quản lý tài khoản"
+                          >
+                            <Key className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                            Tài khoản
+                          </Button>
                           <Link href={`/admin/candidates/${c.id}`}>
                             <Button size="sm" variant="ghost" className="h-8 text-xs text-blue-600 hover:bg-blue-50">
                               <Eye className="w-3.5 h-3.5 mr-1" />
-                              Xem chi tiết
+                              Hồ sơ
                             </Button>
                           </Link>
                         </div>
@@ -340,6 +357,15 @@ export default function CandidatesPage() {
           )}
         </div>
       </Card>
+      {/* Candidate Account & Password Management Modal */}
+      <CandidateAccountModal
+        candidate={accountModalCandidate}
+        open={showAccountModal}
+        onOpenChange={setShowAccountModal}
+        onCandidateDeleted={(delId) => {
+          setCandidates(prev => prev.filter(x => x.id !== delId))
+        }}
+      />
     </div>
   )
 }

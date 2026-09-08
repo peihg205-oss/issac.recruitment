@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, getCandidateApplicationAnswers } from '@/lib/mock-data'
+import { CandidateDetailAccountBtn } from "@/components/admin/candidate-detail-account-btn"
 
 export default async function CandidateDetailPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -110,6 +111,7 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
 
         {/* Right Header: Exact Giờ Gửi & Final Result */}
         <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2">
+          <CandidateDetailAccountBtn candidate={appData} />
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold shadow-2xs">
             <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span>Giờ gửi hồ sơ: <strong className="font-mono font-black text-blue-900">{timeStr}</strong> · {dateStr}</span>

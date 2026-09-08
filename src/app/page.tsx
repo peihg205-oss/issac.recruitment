@@ -630,15 +630,19 @@ export default function HomePage() {
             <div className="space-y-2 text-xs text-slate-300 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[#fdc455] shrink-0" />
-                <span>VNU-IS, ĐHQGHN, Hà Nội</span>
+                <span>Tòa E5, Trường Quốc tế, ĐHQGHN, số 144 Xuân Thủy, Cầu Giấy, Hà Nội</span>
               </div>
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#fdc455] shrink-0" />
-                <span>issac@vnu.edu.vn</span>
+                <a href="mailto:ambassadors.club@vnuis.edu.vn" className="hover:text-white transition-colors">
+                  ambassadors.club@vnuis.edu.vn
+                </a>
               </div>
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <Phone className="w-3.5 h-3.5 text-[#fdc455] shrink-0" />
-                <span>+84 123 456 789</span>
+                <a href="tel:0374140705" className="hover:text-white transition-colors">
+                  0374140705 (PCN - Mr.Hiệp)
+                </a>
               </div>
             </div>
 

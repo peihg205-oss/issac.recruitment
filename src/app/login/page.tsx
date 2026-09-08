@@ -206,7 +206,7 @@ function LoginForm() {
 
             <div className="mb-6 text-left">
               <h2 className="text-2xl font-black text-gray-950 mb-1">Đăng nhập</h2>
-              <p className="text-gray-500 text-xs font-medium">Hệ thống quản lý tuyển sinh & Cổng ứng viên iSSAC</p>
+              <p className="text-gray-500 text-xs font-medium">Hệ thống quản lý tuyển quân & Cổng ứng viên iSSAC</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">

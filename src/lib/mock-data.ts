@@ -43,7 +43,7 @@ export const MOCK_DEPARTMENTS = [
     name: 'Ban Nhân sự',
     slug: 'nhan-su',
     color: '#7c3aed',
-    description: 'Quản trị nhân lực nội bộ, xây dựng văn hóa gắn kết thành viên, tổ chức tuyển sinh và vận hành hoạt động CLB.'
+    description: 'Quản trị nhân lực nội bộ, xây dựng văn hóa gắn kết thành viên, tổ chức tuyển quân và vận hành hoạt động CLB.'
   },
 ]
 

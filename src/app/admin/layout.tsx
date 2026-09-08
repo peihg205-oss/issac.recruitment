@@ -83,7 +83,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <div>
               <div className="flex items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Hệ thống Quản trị Tuyển sinh Gen 3
+                  Hệ thống Quản trị Tuyển quân Gen 3
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">

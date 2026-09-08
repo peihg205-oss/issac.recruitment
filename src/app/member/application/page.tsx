@@ -239,7 +239,7 @@ export default function ApplicationPage() {
             Đơn ứng tuyển đã được tiếp nhận
           </h2>
           <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-            Đơn ứng tuyển vào <strong className="text-[#1657c1] font-bold">{dept?.name || 'Ban ứng tuyển'}</strong> của bạn đã được chuyển đến Hội đồng tuyển sinh iSSAC để tiến hành thẩm định.
+            Đơn ứng tuyển vào <strong className="text-[#1657c1] font-bold">{dept?.name || 'Ban ứng tuyển'}</strong> của bạn đã được chuyển đến Hội đồng tuyển quân iSSAC để tiến hành thẩm định.
           </p>
           <div className="pt-2">
             <span className="inline-block px-4 py-1 rounded-md text-xs font-extrabold bg-[#fdc455] text-slate-950 border border-amber-400 shadow-2xs">
@@ -500,7 +500,7 @@ export default function ApplicationPage() {
                   Câu hỏi chuyên môn - {departments.find(d => d.id === selectedDept)?.name}
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Vui lòng trả lời chân thành và đầy đủ các câu hỏi để Hội đồng tuyển sinh hiểu rõ về bạn
+                  Vui lòng trả lời chân thành và đầy đủ các câu hỏi để Hội đồng tuyển quân hiểu rõ về bạn
                 </p>
               </div>
               <span className="px-3 py-1 rounded-full bg-blue-50 text-[#1657c1] border border-blue-200 font-bold text-xs">

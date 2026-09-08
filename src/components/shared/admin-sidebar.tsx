@@ -89,7 +89,7 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
         <div>
           <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest px-3 mb-2">
-            Tuyển sinh & Đánh giá
+            Tuyển quân & Đánh giá
           </div>
           <div className="space-y-1">
             {mainItems.map((item) => {

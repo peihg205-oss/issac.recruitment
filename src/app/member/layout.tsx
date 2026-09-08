@@ -69,7 +69,7 @@ export default async function MemberLayout({ children }: { children: React.React
             <div>
               <div className="flex items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-[#1657c1]">
-                  Cổng tuyển chọn Đại sứ Sinh viên Gen 3
+                  Cổng Tuyển quân Đại sứ Sinh viên Gen 3
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">

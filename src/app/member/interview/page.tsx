@@ -271,7 +271,7 @@ export default function MemberInterviewPage() {
           CHỌN LỊCH PHỎNG VẤN iSSAC 2026
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
-          Lựa chọn khung giờ thuận tiện nhất để tham gia phỏng vấn cùng Hội đồng tuyển sinh
+          Lựa chọn khung giờ thuận tiện nhất để tham gia phỏng vấn cùng Hội đồng tuyển quân
         </p>
       </div>
 

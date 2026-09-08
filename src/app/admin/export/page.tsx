@@ -222,7 +222,7 @@ export default function ExportPage() {
       await exportAnswers()
       toast({
         title: 'Đã xuất toàn bộ 4 tệp dữ liệu!',
-        description: 'Tất cả các báo cáo tuyển sinh iSSAC 2026 đã được tải xuống máy.',
+        description: 'Tất cả các báo cáo tuyển quân iSSAC 2026 đã được tải xuống máy.',
         variant: 'success'
       } as Parameters<typeof toast>[0])
     } finally {

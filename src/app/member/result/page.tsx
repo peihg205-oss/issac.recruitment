@@ -70,7 +70,7 @@ export default async function MemberResultPage() {
             Kết quả chưa được công bố
           </h2>
           <p className="text-slate-600 max-w-md mx-auto text-xs sm:text-sm leading-relaxed">
-            Hội đồng tuyển sinh đang hoàn tất quá trình phê duyệt danh sách chính thức. Kết quả sẽ được cập nhật tại đây ngay sau khi công bố.
+            Hội đồng tuyển quân đang hoàn tất quá trình phê duyệt danh sách chính thức. Kết quả sẽ được cập nhật tại đây ngay sau khi công bố.
           </p>
         </div>
       ) : (

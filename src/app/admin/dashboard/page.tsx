@@ -97,13 +97,13 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Dashboard Ban Tuyển Dụng</h1>
+          <h1 className="text-2xl font-black text-gray-900">Dashboard Ban Tuyển Quân</h1>
           <p className="text-gray-500 text-sm mt-1">Tổng quan tiến độ tuyển thành viên iSSAC - VNU-IS Ambassadors Club</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Đang mở cổng tuyển sinh
+            Đang mở cổng tuyển quân
           </span>
         </div>
       </div>
@@ -223,7 +223,7 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Chỉ tiêu tuyển chọn', value: `${quota} thành viên`, desc: 'Chỉ tiêu phê duyệt TOP 15' },
-              { label: 'Số ban tuyển dụng', value: '3 Ban chuyên môn', desc: 'Ban Truyền thông, Ban Tư vấn, Ban Nhân sự' },
+              { label: 'Số ban tuyển quân', value: '3 Ban chuyên môn', desc: 'Ban Truyền thông, Ban Tư vấn, Ban Nhân sự' },
               { label: 'Điểm sàn phỏng vấn', value: '8.0 / 10.0', desc: 'Ngưỡng xét vào Top 15' },
               { label: 'Hình thức phỏng vấn', value: 'Online & Offline', desc: 'Trường Quốc tế VNU-IS / Google Meet' },
             ].map((item, i) => (

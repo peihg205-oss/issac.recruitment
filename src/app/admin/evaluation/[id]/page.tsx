@@ -480,7 +480,7 @@ export default function EvaluationDetailPage() {
               Thẩm Quyền Thẩm Định & Quyết Định Của Ban Chủ Nhiệm
             </CardTitle>
             <Badge className="bg-amber-200 text-amber-900 border-amber-400 font-bold">
-              Quyết định tuyển dụng (BCN)
+              Quyết định tuyển quân (BCN)
             </Badge>
           </CardHeader>
           <CardContent className="p-5 space-y-3">

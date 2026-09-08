@@ -379,7 +379,7 @@ export default function MemberDashboardPage() {
                   Kết quả xét tuyển chính thức đã sẵn sàng!
                 </div>
                 <div className="text-xs text-blue-200 font-medium">
-                  Hội đồng tuyển sinh đã hoàn tất phê duyệt quyết định.
+                  Hội đồng tuyển quân đã hoàn tất phê duyệt quyết định.
                 </div>
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function MemberDashboardPage() {
             {/* Lời chúc mừng cá nhân hóa */}
             <div className="text-center space-y-1.5">
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                Hội đồng Tuyển sinh iSSAC trân trọng chúc mừng ứng viên
+                Hội đồng Tuyển quân iSSAC trân trọng chúc mừng ứng viên
               </p>
               <div className="text-xl sm:text-2xl font-black text-[#1657c1]">
                 {currentProfile.full_name}

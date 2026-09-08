@@ -419,7 +419,7 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
                   <span className="font-bold text-blue-900">{profile?.major || '—'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Khóa tuyển sinh</span>
+                  <span className="text-gray-500">Đợt tuyển quân</span>
                   <Badge className="bg-purple-50 text-purple-800 border-purple-200 font-bold">
                     {profile?.cohort || 'K23'}
                   </Badge>

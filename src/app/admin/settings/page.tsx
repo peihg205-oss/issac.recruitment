@@ -23,18 +23,18 @@ interface Setting {
 }
 
 const DEFAULT_SYSTEM_SETTINGS: Setting[] = [
-  // Kỳ tuyển dụng
+  // Kỳ tuyển quân
   { id: 'set-1', key: 'recruitment_start', value: '2026-09-01', label: 'Ngày mở cổng nhận đơn', description: 'Thời điểm bắt đầu mở form đăng ký cho ứng viên', value_type: 'date' },
   { id: 'set-2', key: 'recruitment_end', value: '2026-10-15', label: 'Ngày đóng cổng nhận đơn', description: 'Hạn cuối cùng tiếp nhận hồ sơ ứng tuyển', value_type: 'date' },
   { id: 'set-3', key: 'interview_start', value: '2026-10-20', label: 'Ngày bắt đầu phỏng vấn', description: 'Thời gian khởi động các ca phỏng vấn Vòng 2', value_type: 'date' },
   { id: 'set-4', key: 'interview_end', value: '2026-10-30', label: 'Ngày kết thúc phỏng vấn', description: 'Hạn chót hoàn thành các ca phỏng vấn và nhập điểm', value_type: 'date' },
-  { id: 'set-5', key: 'result_announcement', value: '2026-11-05', label: 'Ngày công bố kết quả tuyển sinh', description: 'Ngày gửi email và mở tra cứu kết quả cho ứng viên', value_type: 'date' },
+  { id: 'set-5', key: 'result_announcement', value: '2026-11-05', label: 'Ngày công bố kết quả tuyển quân', description: 'Ngày gửi email và mở tra cứu kết quả cho ứng viên', value_type: 'date' },
 
   // Chỉ tiêu & Kết quả
   { id: 'set-6', key: 'recruitment_quota', value: '15', label: 'Chỉ tiêu tuyển chọn (Top CLB)', description: 'Số lượng ứng viên chính thức trúng tuyển đợt này (Top 15)', value_type: 'number' },
   { id: 'set-7', key: 'allow_second_department', value: 'true', label: 'Cho phép đăng ký Nguyện vọng 2', description: 'Ứng viên có thể chọn thêm ban phụ trong đơn ứng tuyển', value_type: 'boolean' },
   { id: 'set-8', key: 'max_applications_per_user', value: '1', label: 'Số đơn tối đa mỗi ứng viên', description: 'Số lần ứng tuyển tối đa của một tài khoản sinh viên', value_type: 'number' },
-  { id: 'set-9', key: 'results_published', value: 'false', label: 'Công bố kết quả tuyển sinh ra ngoài', description: 'Khi Bật, ứng viên có thể tra cứu kết quả Pass/Dự bị/Trượt tại trang cá nhân', value_type: 'boolean' },
+  { id: 'set-9', key: 'results_published', value: 'false', label: 'Công bố kết quả tuyển quân ra ngoài', description: 'Khi Bật, ứng viên có thể tra cứu kết quả Pass/Dự bị/Trượt tại trang cá nhân', value_type: 'boolean' },
 
   // Chấm điểm & Quy chế
   { id: 'set-10', key: 'scoring_method', value: 'weighted', label: 'Phương pháp tính điểm phỏng vấn', description: 'Thang điểm 10 chuẩn hóa theo 4 tiêu chí cốt lõi của iSSAC', value_type: 'string' },
@@ -43,7 +43,7 @@ const DEFAULT_SYSTEM_SETTINGS: Setting[] = [
 
 const SETTING_GROUPS = {
   recruitment: {
-    label: 'Kỳ tuyển dụng',
+    label: 'Kỳ tuyển quân',
     icon: Calendar,
     keys: ['recruitment_start', 'recruitment_end', 'interview_start', 'interview_end', 'result_announcement'],
   },
@@ -227,7 +227,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>
-              Bạn đang ở tài khoản <strong>Ban Chủ nhiệm</strong>. Bạn có toàn quyền thiết lập lịch trình tuyển sinh, chỉ tiêu và quy chế hệ thống.
+              Bạn đang ở tài khoản <strong>Ban Chủ nhiệm</strong>. Bạn có toàn quyền thiết lập lịch trình tuyển quân, chỉ tiêu và quy chế hệ thống.
             </span>
           </div>
           <Badge className="bg-emerald-600 text-white font-bold text-[11px] shrink-0 hidden sm:inline-flex">

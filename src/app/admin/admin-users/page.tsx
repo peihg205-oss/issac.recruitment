@@ -11,8 +11,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/components/ui/use-toast'
 import {
   ShieldCheck, Users, Crown, Megaphone, MessageSquare,
-  Plus, Key, Lock, CheckCircle2, AlertCircle, Loader2, Edit3, Trash2
+  Plus, Key, Lock, CheckCircle2, AlertCircle, Loader2, Edit3, Trash2,
+  Clock, Check, XCircle
 } from 'lucide-react'
+import {
+  getAdminAccounts,
+  getAdminRequests,
+  approveChangeRequest,
+  rejectChangeRequest,
+  type AdminChangeRequest
+} from "@/lib/admin-account-manager"
 
 interface AdminUser {
   id: string
@@ -98,6 +106,33 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [changeRequests, setChangeRequests] = useState<AdminChangeRequest[]>([])
+
+  const loadRequests = () => {
+    setChangeRequests(getAdminRequests())
+  }
+
+  useEffect(() => {
+    loadRequests()
+  }, [])
+
+  const handleApproveReq = (id: string) => {
+    approveChangeRequest(id)
+    loadRequests()
+    toast({
+      title: "✅ Đã phê duyệt yêu cầu",
+      description: "Tên và chức vụ của Ban đã được cập nhật thành công.",
+    })
+  }
+
+  const handleRejectReq = (id: string) => {
+    rejectChangeRequest(id)
+    loadRequests()
+    toast({
+      title: "Đã từ chối yêu cầu",
+      description: "Yêu cầu thay đổi thông tin đã bị từ chối.",
+    })
+  }
 
   // New account form
   const [form, setForm] = useState({
@@ -206,6 +241,66 @@ export default function AdminUsersPage() {
           )
         })}
       </div>
+
+      {/* Pending Change Requests Section */}
+      {changeRequests.filter(r => r.status === "pending").length > 0 && (
+        <Card className="shadow-xs border-amber-200 bg-amber-50/40 overflow-hidden">
+          <CardHeader className="py-3 px-5 border-b border-amber-200/80 bg-amber-100/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-700" />
+              <CardTitle className="text-sm font-bold text-amber-950">
+                Yêu cầu đổi Tên & Chức vụ chờ Ban Chủ nhiệm duyệt ({changeRequests.filter(r => r.status === "pending").length})
+              </CardTitle>
+            </div>
+            <Badge className="bg-amber-500 text-white font-bold text-[10px]">
+              Cần xử lý
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            {changeRequests.filter(r => r.status === "pending").map(req => (
+              <div
+                key={req.id}
+                className="bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-gray-900">{req.departmentName}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-[11px] text-gray-500">
+                      Yêu cầu lúc: {new Date(req.requestedAt).toLocaleDateString("vi-VN")} {new Date(req.requestedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Đổi từ: <span className="text-gray-500 font-medium">{req.currentName} ({req.currentTitle})</span>
+                    {" ➔ "}
+                    Đổi thành: <strong className="text-blue-900 font-bold">{req.requestedName}</strong> - <span className="font-semibold text-blue-700">{req.requestedTitle}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRejectReq(req.id)}
+                    className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <XCircle className="w-3.5 h-3.5 mr-1" />
+                    Từ chối
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApproveReq(req.id)}
+                    className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Check className="w-3.5 h-3.5 mr-1" />
+                    Phê duyệt
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Account List Table */}
       <Card className="shadow-sm overflow-hidden">

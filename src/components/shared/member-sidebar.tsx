@@ -35,14 +35,14 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
   }
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col bg-white border-r border-blue-50 shadow-sm">
-      {/* Logo */}
-      <div className="p-5 border-b border-blue-50">
+    <aside className="w-64 min-h-screen flex flex-col bg-white border-r border-slate-200 shrink-0">
+      {/* Logo - Matching exact h-16 height and border with top header */}
+      <div className="h-16 px-5 border-b border-slate-200 flex items-center shrink-0">
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/issac-logo.png" alt="iSSAC" width={38} height={40} className="object-contain drop-shadow-sm" />
+          <Image src="/issac-logo.png" alt="iSSAC" width={34} height={36} className="object-contain drop-shadow-sm shrink-0" />
           <div>
-            <div className="font-black text-blue-900 text-sm">iSSAC Portal</div>
-            <div className="text-xs text-blue-400">Member Dashboard</div>
+            <div className="font-black text-blue-900 text-sm leading-tight">iSSAC Portal</div>
+            <div className="text-[11px] text-blue-400 font-medium">Member Dashboard</div>
           </div>
         </Link>
       </div>
@@ -73,7 +73,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-blue-50 space-y-1">
+      <div className="px-3 py-4 border-t border-slate-200 space-y-1">
         <Link href="/member/notifications"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-all">
           <Bell size={18} className="text-gray-400" />

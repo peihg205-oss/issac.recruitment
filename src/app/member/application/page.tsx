@@ -126,7 +126,7 @@ export default function ApplicationPage() {
         setSubmitting(false)
         toast({
           title: 'Nộp đơn thành công!',
-          description: 'Hồ sơ của bạn đã được chuyển đến Ban tuyển dụng iSSAC.',
+          description: 'Hồ sơ của bạn đã được chuyển đến Ban tuyển quân iSSAC.',
         })
         router.push('/member/dashboard')
       }, 800)

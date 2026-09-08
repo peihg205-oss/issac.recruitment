@@ -430,7 +430,7 @@ export default function HomePage() {
               </div>
               <h4 className="text-sm font-bold text-slate-900">Đánh giá</h4>
               <p className="text-xs text-slate-500 max-w-[170px] leading-relaxed">
-                Ban tuyển dụng chấm điểm dựa trên tiêu chí
+                Ban tuyển quân chấm điểm dựa trên tiêu chí
               </p>
               {/* Arrow */}
               <div className="hidden sm:block absolute -right-4 top-4 text-[#1657c1]">

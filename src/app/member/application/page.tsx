@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -11,7 +10,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, ChevronRight, ChevronLeft, Send, CheckCircle } from 'lucide-react'
+import { 
+  Loader2, ChevronRight, ChevronLeft, Send, CheckCircle2, 
+  Check, Building2, FileText, AlertCircle, Sparkles, Star
+} from 'lucide-react'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
@@ -59,6 +61,7 @@ export default function ApplicationPage() {
 
     if (app) {
       setSelectedDept(app.department_id)
+      setSelectedDept2(app.second_department_id || '')
       const { data: existingAnswers } = await supabase.from('application_answers').select('question_id, answer_text, answer_options').eq('application_id', app.id)
       const ansMap: Record<string, string> = {}
       const cbMap: Record<string, string[]> = {}
@@ -128,10 +131,9 @@ export default function ApplicationPage() {
       setTimeout(() => {
         setSubmitting(false)
         toast({
-          title: 'Nộp đơn thành công!',
+          title: '🎉 Nộp đơn thành công!',
           description: 'Hồ sơ của bạn đã được chuyển đến Ban tuyển dụng iSSAC.',
-          variant: 'success'
-        } as Parameters<typeof toast>[0])
+        })
         router.push('/member/dashboard')
       }, 800)
       return
@@ -149,7 +151,11 @@ export default function ApplicationPage() {
         submitted_at: new Date().toISOString(),
       }).select().single()
 
-      if (error) { toast({ title: 'Lỗi', description: error.message, variant: 'destructive' }); setSubmitting(false); return }
+      if (error) { 
+        toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+        setSubmitting(false)
+        return 
+      }
       appId = newApp!.id
     } else {
       await supabase.from('applications').update({ status: 'submitted', submitted_at: new Date().toISOString() }).eq('id', appId)
@@ -178,154 +184,317 @@ export default function ApplicationPage() {
     // Audit log
     await supabase.from('audit_logs').insert({ user_id: user.id, action: 'SUBMIT_APPLICATION', target_type: 'application', target_id: appId, description: 'Submitted application' })
 
-    toast({ title: '🎉 Nộp đơn thành công!', description: 'Đơn ứng tuyển đã được gửi. Chúng tôi sẽ xem xét sớm nhất.' } as Parameters<typeof toast>[0])
+    toast({ title: '🎉 Nộp đơn thành công!', description: 'Đơn ứng tuyển đã được gửi. Chúng tôi sẽ xem xét sớm nhất.' })
     setSubmitting(false)
     router.push('/member/dashboard')
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
-
-  // Already submitted
-  if (existingApp && existingApp.status !== 'draft') {
-    const dept = (existingApp as any).departments
+  if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <h1 className="text-2xl font-black text-gray-900">Đơn ứng tuyển</h1>
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="py-8 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-black text-gray-900 mb-2">Đã nộp đơn thành công!</h2>
-            <p className="text-gray-600 mb-4">
-              Đơn ứng tuyển vào <strong>{dept?.name || 'ban đã chọn'}</strong> của bạn đã được ghi nhận.
-            </p>
-            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${APPLICATION_STATUS_COLORS[existingApp.status as ApplicationStatus] || 'bg-gray-100 text-gray-700'}`}>
-              Trạng thái: {APPLICATION_STATUS_LABELS[existingApp.status as ApplicationStatus] || existingApp.status}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1657c1]" />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Ứng tuyển iSSAC 2026</h1>
-        <p className="text-gray-500 text-sm">Điền đầy đủ thông tin để hoàn thành đơn ứng tuyển</p>
-      </div>
+  // Already submitted confirmation view
+  if (existingApp && existingApp.status !== 'draft') {
+    const dept = (existingApp as any).departments
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto animate-fade-in pb-12 font-sans">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            ĐƠN ỨNG TUYỂN iSSAC 2026
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">
+            Hồ sơ của bạn đã được ghi nhận trong hệ thống tuyển quân Gen 10
+          </p>
+        </div>
 
-      {/* Progress */}
-      <div className="flex items-center gap-2">
-        {[{ n: 1, l: 'Chọn ban' }, { n: 2, l: 'Câu hỏi' }, { n: 3, l: 'Xác nhận' }].map((s, i) => (
-          <div key={s.n} className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= s.n ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{s.n}</div>
-            <span className={`text-sm font-medium ${step >= s.n ? 'text-blue-700' : 'text-gray-400'}`}>{s.l}</span>
-            {i < 2 && <ChevronRight className="w-4 h-4 text-gray-300" />}
+        <div className="bg-white border-2 border-blue-200 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-400" />
+          
+          <div className="text-center space-y-3 py-4 max-w-md mx-auto">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 border border-blue-200 text-[#1657c1] flex items-center justify-center shadow-xs">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Đã nộp đơn thành công!
+            </h2>
+            <p className="text-slate-600 text-sm leading-relaxed">
+              Đơn ứng tuyển vào <strong className="text-[#1657c1] font-bold">{dept?.name || 'Ban ứng tuyển'}</strong> của bạn đã được chuyển đến Hội đồng tuyển chọn iSSAC.
+            </p>
+
+            <div className="pt-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                Trạng thái: {APPLICATION_STATUS_LABELS[existingApp.status as ApplicationStatus] || existingApp.status}
+              </span>
+            </div>
+
+            <div className="pt-4 flex justify-center gap-3">
+              <Link href="/member/dashboard">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-bold text-sm shadow-sm transition-all"
+                >
+                  Về trang Tổng quan
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
           </div>
-        ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Application Steps Flow
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in pb-12 font-sans">
+      {/* 1. Header: Chuẩn font chữ và đồng bộ tông màu Xanh & Vàng */}
+      <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+          ỨNG TUYỂN iSSAC 2026
+        </h1>
+        <p className="text-slate-500 text-sm font-medium">
+          Điền đầy đủ thông tin để hoàn thành đơn ứng tuyển Đại sứ Sinh viên Gen 10
+        </p>
       </div>
 
-      {/* Step 1: Select department */}
+      {/* 2. Progress Stepper: Tone Xanh & Vàng iSSAC */}
+      <div className="bg-white border-2 border-blue-100 rounded-2xl p-4 shadow-xs">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          {[
+            { n: 1, l: 'Chọn ban' },
+            { n: 2, l: 'Câu hỏi chuyên môn' },
+            { n: 3, l: 'Xác nhận & Nộp' }
+          ].map((s, i) => {
+            const isDone = step > s.n
+            const isActive = step === s.n
+
+            return (
+              <div key={s.n} className="flex items-center gap-2 sm:gap-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all ${
+                  isDone 
+                    ? 'bg-[#1657c1] text-white shadow-xs' 
+                    : isActive 
+                    ? 'bg-[#fdc455] text-slate-950 ring-4 ring-amber-100 shadow-xs' 
+                    : 'bg-slate-100 text-slate-400'
+                }`}>
+                  {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : s.n}
+                </div>
+
+                <span className={`text-xs sm:text-sm font-bold ${
+                  isActive ? 'text-[#1657c1]' : isDone ? 'text-slate-800' : 'text-slate-400'
+                }`}>
+                  {s.l}
+                </span>
+
+                {i < 2 && (
+                  <ChevronRight className="w-4 h-4 text-slate-300 ml-2 hidden sm:block" />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* STEP 1: CHỌN BAN */}
       {step === 1 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {!profileComplete && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-              ⚠️ <strong>Hồ sơ chưa đầy đủ.</strong> Vui lòng điền đầy đủ thông tin cá nhân trước khi ứng tuyển.
-              <a href="/member/profile" className="underline ml-1">Cập nhật ngay</a>
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-sm text-amber-900 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Hồ sơ cá nhân của bạn chưa đầy đủ. Vui lòng bổ sung để tiếp tục đơn ứng tuyển.</span>
+              </div>
+              <Link href="/member/profile" className="font-bold underline text-amber-950 text-xs shrink-0">
+                Cập nhật ngay
+              </Link>
             </div>
           )}
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Nguyện vọng 1 — Ban muốn ứng tuyển</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                {departments.map(dept => (
+          {/* Nguyện vọng 1: 3 Ban chuyên môn */}
+          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
+                Nguyện vọng 1 — Ban muốn ứng tuyển chính thức
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Lựa chọn Ban chuyên môn phù hợp nhất với thế mạnh và định hướng của bạn
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {departments.map(dept => {
+                const isSelected = selectedDept === dept.id
+
+                return (
                   <button
                     key={dept.id}
+                    type="button"
                     onClick={() => setSelectedDept(dept.id)}
-                    className={`p-5 rounded-xl border-2 text-left transition-all ${
-                      selectedDept === dept.id
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50'
+                    className={`p-5 rounded-2xl border-2 text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-[#1657c1] bg-gradient-to-b from-blue-50/70 to-white shadow-sm ring-2 ring-blue-100'
+                        : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50/60'
                     }`}
                   >
-                    <div className={`font-bold text-sm mb-1 ${selectedDept === dept.id ? 'text-blue-700' : 'text-gray-900'}`}>{dept.name}</div>
-                    <div className="text-xs text-gray-500">{dept.description}</div>
-                    {selectedDept === dept.id && <CheckCircle className="w-4 h-4 text-blue-600 mt-2" />}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                    {isSelected && (
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#1657c1]" />
+                    )}
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Nguyện vọng 2 (không bắt buộc)</CardTitle></CardHeader>
-            <CardContent>
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className={`font-bold text-base ${isSelected ? 'text-[#1657c1]' : 'text-slate-900'}`}>
+                          {dept.name}
+                        </div>
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-[#1657c1] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-slate-500 leading-relaxed">
+                        {dept.description}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-2">
+                      {isSelected ? (
+                        <span className="inline-flex items-center text-[11px] font-extrabold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-md">
+                          Đã chọn làm NV1
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          Nhấn để chọn ban này
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Nguyện vọng 2 (Không bắt buộc) */}
+          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-3">
+            <div className="border-b border-slate-100 pb-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Nguyện vọng 2 (Không bắt buộc)
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Bạn có thể đăng ký thêm một ban phụ nếu muốn mở rộng cơ hội tham gia CLB
+              </p>
+            </div>
+
+            <div className="max-w-md">
               <Select value={selectedDept2} onValueChange={setSelectedDept2}>
-                <SelectTrigger><SelectValue placeholder="Chọn ban nguyện vọng 2 (nếu có)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Không chọn</SelectItem>
+                <SelectTrigger className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 focus:ring-2 focus:ring-blue-200">
+                  <SelectValue placeholder="Chọn ban nguyện vọng 2 (nếu có)" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="">Không chọn ban phụ</SelectItem>
                   {departments.filter(d => d.id !== selectedDept).map(d => (
                     <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Button onClick={() => setStep(2)} disabled={!selectedDept || !profileComplete} className="gap-2">
-            Tiếp theo <ChevronRight className="w-4 h-4" />
-          </Button>
+          {/* Nút Tiếp theo màu Vàng iSSAC */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              disabled={!selectedDept || !profileComplete}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] disabled:opacity-50 text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
+            >
+              Tiếp theo bước 2
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Step 2: Questions */}
+      {/* STEP 2: TRẢ LỜI CÂU HỎI */}
       {step === 2 && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Câu hỏi ứng tuyển — {departments.find(d => d.id === selectedDept)?.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="space-y-5">
+          <div className="bg-white border-2 border-blue-100 rounded-3xl p-6 shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
+                  Câu hỏi ứng tuyển — {departments.find(d => d.id === selectedDept)?.name}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Vui lòng trả lời chân thành và đầy đủ các câu hỏi để Hội đồng tuyển sinh hiểu rõ về bạn
+                </p>
+              </div>
+              <Badge className="bg-blue-50 text-[#1657c1] border border-blue-200 font-bold text-xs">
+                {questions.length} câu hỏi
+              </Badge>
+            </div>
+
+            <div className="space-y-6">
               {questions.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">Chưa có câu hỏi nào cho ban này.</div>
+                <div className="text-center py-8 text-slate-400">Chưa có câu hỏi nào cho ban này.</div>
               ) : (
                 questions.map((q, i) => (
-                  <div key={q.id} className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-900">
-                      {i + 1}. {q.question_text}
-                      {q.is_required && <span className="text-red-500 ml-1">*</span>}
+                  <div key={q.id} className="p-4 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-2.5">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-900 block leading-snug">
+                      <span className="w-5 h-5 rounded-md bg-[#1657c1] text-white inline-flex items-center justify-center text-xs font-black mr-2">
+                        {i + 1}
+                      </span>
+                      {q.question_text}
+                      {q.is_required && <span className="text-red-500 ml-1 font-bold">*</span>}
                     </Label>
 
-                    {(q.question_type === 'short_text') && (
-                      <Input value={answers[q.id] || ''} onChange={e => handleAnswer(q.id, e.target.value)} placeholder={q.placeholder || 'Nhập câu trả lời...'} />
+                    {q.question_type === 'short_text' && (
+                      <Input 
+                        value={answers[q.id] || ''} 
+                        onChange={e => handleAnswer(q.id, e.target.value)} 
+                        placeholder={q.placeholder || 'Nhập câu trả lời...'} 
+                        className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 bg-white focus:ring-2 focus:ring-blue-200"
+                      />
                     )}
-                    {(q.question_type === 'long_text') && (
-                      <Textarea value={answers[q.id] || ''} onChange={e => handleAnswer(q.id, e.target.value)} placeholder={q.placeholder || 'Nhập câu trả lời...'} rows={4} />
+
+                    {q.question_type === 'long_text' && (
+                      <Textarea 
+                        value={answers[q.id] || ''} 
+                        onChange={e => handleAnswer(q.id, e.target.value)} 
+                        placeholder={q.placeholder || 'Nhập câu trả lời chi tiết của bạn...'} 
+                        rows={4} 
+                        className="rounded-xl border-slate-200 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-200"
+                      />
                     )}
+
                     {(q.question_type === 'multiple_choice' || q.question_type === 'dropdown') && (
                       <Select value={answers[q.id] || ''} onValueChange={v => handleAnswer(q.id, v)}>
-                        <SelectTrigger><SelectValue placeholder="Chọn một đáp án..." /></SelectTrigger>
-                        <SelectContent>
+                        <SelectTrigger className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 bg-white">
+                          <SelectValue placeholder="Chọn một đáp án..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
                           {q.question_options?.map(opt => (
                             <SelectItem key={opt.id} value={opt.option_text}>{opt.option_text}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     )}
+
                     {q.question_type === 'checkbox' && (
-                      <div className="grid gap-2">
+                      <div className="grid gap-2 pt-1">
                         {q.question_options?.map(opt => (
-                          <label key={opt.id} className="flex items-center gap-3 cursor-pointer">
+                          <label key={opt.id} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-white border border-slate-200 hover:border-blue-200">
                             <input
                               type="checkbox"
                               checked={(checkboxAnswers[q.id] || []).includes(opt.option_text)}
                               onChange={e => handleCheckbox(q.id, opt.option_text, e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                              className="w-4 h-4 text-[#1657c1] rounded border-slate-300"
                             />
-                            <span className="text-sm text-gray-700">{opt.option_text}</span>
+                            <span className="text-xs sm:text-sm text-slate-800 font-medium">{opt.option_text}</span>
                           </label>
                         ))}
                       </div>
@@ -333,56 +502,105 @@ export default function ApplicationPage() {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep(1)} className="gap-2"><ChevronLeft className="w-4 h-4" /> Quay lại</Button>
-            <Button onClick={() => setStep(3)} className="gap-2">Xem lại & Nộp <ChevronRight className="w-4 h-4" /></Button>
+          <div className="flex justify-between items-center pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" /> Quay lại chọn ban
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep(3)}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02]"
+            >
+              Xem lại & Nộp đơn
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Review */}
+      {/* STEP 3: XEM LẠI & NỘP */}
       {step === 3 && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Xem lại trước khi nộp đơn</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-50 rounded-xl p-4">
-                <div className="text-sm font-semibold text-blue-800 mb-1">Nguyện vọng 1</div>
-                <div className="font-bold text-blue-900">{departments.find(d => d.id === selectedDept)?.name}</div>
-                {selectedDept2 && (
-                  <div className="mt-2">
-                    <div className="text-sm font-semibold text-blue-800 mb-1">Nguyện vọng 2</div>
-                    <div className="font-bold text-blue-900">{departments.find(d => d.id === selectedDept2)?.name}</div>
-                  </div>
-                )}
+        <div className="space-y-5">
+          <div className="bg-white border-2 border-blue-100 rounded-3xl p-6 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
+                Xác nhận thông tin trước khi gửi đơn
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kiểm tra kỹ thông tin nguyện vọng và các câu trả lời trước khi gửi chính thức
+              </p>
+            </div>
+
+            {/* Department review box */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold text-slate-500">Nguyện vọng 1 (Chính thức):</div>
+                <div className="font-extrabold text-base text-[#1657c1]">
+                  {departments.find(d => d.id === selectedDept)?.name}
+                </div>
               </div>
 
-              <div className="space-y-4">
-                {questions.map((q, i) => (
-                  <div key={q.id} className="border-l-2 border-blue-200 pl-4">
-                    <div className="text-xs font-semibold text-gray-500 mb-1">{i + 1}. {q.question_text}</div>
-                    <div className="text-sm text-gray-900">
-                      {answers[q.id] || (checkboxAnswers[q.id]?.join(', ')) || <span className="text-gray-400 italic">Chưa trả lời</span>}
-                    </div>
+              {selectedDept2 && (
+                <div className="sm:text-right">
+                  <div className="text-xs font-bold text-slate-500">Nguyện vọng 2 (Phụ):</div>
+                  <div className="font-bold text-sm text-slate-800">
+                    {departments.find(d => d.id === selectedDept2)?.name}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              )}
+            </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-            ⚠️ Sau khi nộp đơn, bạn sẽ không thể thay đổi ban ứng tuyển và một số thông tin quan trọng.
+            {/* Questions preview */}
+            <div className="space-y-3 pt-1">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Nội dung câu trả lời của bạn:
+              </div>
+              {questions.map((q, i) => (
+                <div key={q.id} className="border-l-2 border-[#1657c1] pl-4 py-1 space-y-1">
+                  <div className="text-xs font-bold text-slate-600">
+                    {i + 1}. {q.question_text}
+                  </div>
+                  <div className="text-xs sm:text-sm text-slate-900 font-medium">
+                    {answers[q.id] || (checkboxAnswers[q.id]?.join(', ')) || <span className="text-slate-400 italic">Chưa trả lời</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep(2)} className="gap-2"><ChevronLeft className="w-4 h-4" /> Quay lại</Button>
-            <Button onClick={handleSubmit} disabled={submitting} variant="gold" className="gap-2">
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-xs sm:text-sm text-amber-950 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span>
+              <strong>Lưu ý:</strong> Sau khi nộp đơn chính thức, bạn sẽ không thể thay đổi ban ứng tuyển. Vui lòng xác nhận chắc chắn các thông tin đã điền.
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" /> Quay lại sửa câu hỏi
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer"
+            >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Nộp đơn ứng tuyển
-            </Button>
+              Nộp đơn ứng tuyển ngay
+            </button>
           </div>
         </div>
       )}

@@ -36,7 +36,7 @@ export default function HomePage() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <Image
-              src="/issac-logo-full.png"
+              src="/issac-logo-2026.png"
               alt="iSSAC - VNU-IS Ambassadors Club"
               width={200}
               height={50}
@@ -152,9 +152,9 @@ export default function HomePage() {
             <div className="relative mx-auto max-w-md lg:max-w-none">
               {/* Photo Card with White Border */}
               <div className="relative rounded-3xl p-2.5 bg-white shadow-2xl overflow-hidden border-2 border-white/80">
-                <div className="relative w-full h-[280px] sm:h-[360px] lg:h-[400px] rounded-2xl overflow-hidden">
+                <div className="relative w-full aspect-[1024/680] rounded-2xl overflow-hidden">
                   <Image
-                    src="/issac-hero-team.jpg"
+                    src="/issac-hero-team-2026.jpg"
                     alt="Tập thể gia đình iSSAC VNU-IS"
                     fill
                     className="object-cover object-center"
@@ -555,7 +555,7 @@ export default function HomePage() {
             {/* Logo */}
             <div className="shrink-0">
               <Image
-                src="/issac-logo-full.png"
+                src="/issac-logo-2026.png"
                 alt="iSSAC VNU-IS Logo"
                 width={200}
                 height={55}

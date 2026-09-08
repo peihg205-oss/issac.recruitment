@@ -232,7 +232,7 @@ export default function HomePage() {
                 <Star className="w-6 h-6 fill-[#1657c1]" />
               </div>
               <div>
-                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">10 Năm</div>
+                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">3 Năm</div>
                 <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
                   Bản lĩnh & Tự hào
                 </div>

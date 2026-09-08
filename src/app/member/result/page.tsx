@@ -50,7 +50,7 @@ export default async function MemberResultPage() {
             KẾT QUẢ ỨNG TUYỂN iSSAC 2026
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Cổng thông tin tuyển chọn Đại sứ Sinh viên Gen 10
+            Cổng thông tin tuyển chọn Đại sứ Sinh viên Gen 3
           </p>
         </div>
         <Link
@@ -119,7 +119,7 @@ export default async function MemberResultPage() {
                   </div>
                   <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 text-xs sm:text-sm">
                     <span className="text-slate-500 font-medium">Tư cách thành viên:</span>
-                    <strong className="text-slate-900 font-bold">Đại sứ Sinh viên Gen 10</strong>
+                    <strong className="text-slate-900 font-bold">Đại sứ Sinh viên Gen 3</strong>
                   </div>
                   <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 text-xs sm:text-sm">
                     <span className="text-slate-500 font-medium">Nhiệm kỳ hoạt động:</span>
@@ -134,7 +134,7 @@ export default async function MemberResultPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-5 text-center text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Cảm ơn bạn đã dành thời gian và sự quan tâm tham gia đợt tuyển chọn Đại sứ Sinh viên iSSAC Gen 10. Rất hy vọng sẽ tiếp tục được đồng hành cùng bạn trong các sự kiện và hoạt động tiếp theo của CLB.
+                  Cảm ơn bạn đã dành thời gian và sự quan tâm tham gia đợt tuyển chọn Đại sứ Sinh viên iSSAC Gen 3. Rất hy vọng sẽ tiếp tục được đồng hành cùng bạn trong các sự kiện và hoạt động tiếp theo của CLB.
                 </div>
               )}
             </div>

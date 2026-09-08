@@ -33,7 +33,7 @@ export default function MemberAboutPage() {
       <div className="rounded-2xl bg-gradient-to-br from-[#071d40] via-[#0c3577] to-[#1657c1] text-white p-7 sm:p-9 shadow-lg border-2 border-[#fdc455] space-y-5">
         <div className="space-y-2.5">
           <div className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-            VNU-IS Ambassadors Club - Khóa Tuyển quân Gen 10
+            VNU-IS Ambassadors Club - Khóa Tuyển quân Gen 3
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#fdc455]">
             Câu lạc bộ Đại sứ Sinh viên (iSSAC)
@@ -42,7 +42,7 @@ export default function MemberAboutPage() {
             Tổ chức Sinh viên trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội
           </div>
           <p className="text-sm sm:text-base text-blue-100 leading-relaxed text-justify font-normal pt-1">
-            Được thành lập từ năm 2016, iSSAC là tổ chức sinh viên nòng cốt trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội. Đội ngũ Đại sứ giữ vai trò là cầu nối thông tin chính thức giữa Nhà trường và cộng đồng sinh viên, đại diện hình ảnh sinh viên trên các diễn đàn đối ngoại, đồng thời là lực lượng chủ chốt trực tiếp sáng tạo và tổ chức các sự kiện lớn nhất năm của Trường.
+            Được thành lập qua 3 năm hoạt động, iSSAC là tổ chức sinh viên nòng cốt trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội. Đội ngũ Đại sứ giữ vai trò là cầu nối thông tin chính thức giữa Nhà trường và cộng đồng sinh viên, đại diện hình ảnh sinh viên trên các diễn đàn đối ngoại, đồng thời là lực lượng chủ chốt trực tiếp sáng tạo và tổ chức các sự kiện lớn nhất năm của Trường.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function MemberAboutPage() {
           </div>
           <div>
             <div className="text-slate-300 font-medium">Thành lập</div>
-            <div className="text-sm font-bold text-white mt-0.5">10 Năm phát triển</div>
+            <div className="text-sm font-bold text-white mt-0.5">3 Năm phát triển</div>
           </div>
           <div>
             <div className="text-slate-300 font-medium">Cơ cấu tổ chức</div>

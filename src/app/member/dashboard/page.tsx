@@ -122,7 +122,7 @@ export default function MemberDashboardPage() {
           XIN CHÀO, {currentProfile.full_name?.toUpperCase() || 'NGUYỄN HÀ PHƯƠNG'}!
         </h1>
         <p className="text-slate-500 text-sm font-medium">
-          Chào mừng bạn đến với hành trình Gen 10
+          Chào mừng bạn đến với hành trình Gen 3
         </p>
       </div>
 
@@ -363,7 +363,7 @@ export default function MemberDashboardPage() {
               Thân gửi bạn {currentProfile.full_name},
             </p>
             <p className="text-blue-100 font-normal leading-relaxed text-justify">
-              Trước tiên, Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC) xin gửi lời cảm ơn chân thành nhất đến bạn vì đã dành thời gian, sự quan tâm và nhiệt huyết tham gia đợt tuyển quân Gen 10.
+              Trước tiên, Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC) xin gửi lời cảm ơn chân thành nhất đến bạn vì đã dành thời gian, sự quan tâm và nhiệt huyết tham gia đợt tuyển quân Gen 3.
             </p>
             <p className="text-blue-100 font-normal leading-relaxed text-justify">
               Dù kết quả như thế nào thì hy vọng bạn vẫn sẽ luôn theo dõi, ủng hộ và đồng hành cùng CLB trong các hoạt động sắp tới nhé!
@@ -424,7 +424,7 @@ export default function MemberDashboardPage() {
               </div>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto pt-1">
                 Bạn đã xuất sắc vượt qua các vòng tuyển chọn và chính thức trở thành{" "}
-                <strong className="text-slate-900 font-bold">Đại sứ Sinh viên Gen 10</strong>.
+                <strong className="text-slate-900 font-bold">Đại sứ Sinh viên Gen 3</strong>.
               </p>
             </div>
 

@@ -220,7 +220,7 @@ export default function ApplicationPage() {
               ĐƠN ỨNG TUYỂN iSSAC 2026
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Hồ sơ của bạn đã được ghi nhận trong hệ thống tuyển chọn Gen 10
+              Hồ sơ của bạn đã được ghi nhận trong hệ thống tuyển chọn Gen 3
             </p>
           </div>
           <Link
@@ -269,7 +269,7 @@ export default function ApplicationPage() {
             ĐƠN ỨNG TUYỂN iSSAC 2026
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Cổng tuyển chọn Đại sứ Sinh viên Gen 10 - Trường Quốc tế, ĐHQGHN
+            Cổng tuyển chọn Đại sứ Sinh viên Gen 3 - Trường Quốc tế, ĐHQGHN
           </p>
         </div>
         <Link

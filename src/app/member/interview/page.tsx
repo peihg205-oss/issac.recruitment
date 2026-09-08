@@ -139,7 +139,7 @@ export default function MemberInterviewPage() {
             LỊCH PHỎNG VẤN iSSAC 2026
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 10
+            Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 3
           </p>
         </div>
 
@@ -178,7 +178,7 @@ export default function MemberInterviewPage() {
               LỊCH PHỎNG VẤN iSSAC 2026
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 10
+              Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 3
             </p>
           </div>
           <Link

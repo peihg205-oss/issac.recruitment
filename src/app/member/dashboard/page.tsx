@@ -116,86 +116,60 @@ export default function MemberDashboardPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in pb-12">
-      {/* 1. Header: 1 Font thống nhất, màu sắc nổi bật, không icon bàn tay */}
+      {/* 1. Header: Chữ bớt đậm, gọn gàng, bỏ iSSAC-VNU */}
       <div className="space-y-1 pt-1">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-950">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
           XIN CHÀO, {currentProfile.full_name?.toUpperCase() || 'NGUYỄN HÀ PHƯƠNG'}!
         </h1>
-        <p className="text-slate-600 text-sm font-semibold flex items-center gap-2">
-          <span>Chào mừng bạn đến với hành trình Gen 10</span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold shadow-xs">
-            <Sparkles className="w-3 h-3 text-amber-600" />
-            iSSAC VNU-IS
-          </span>
+        <p className="text-slate-500 text-sm font-medium">
+          Chào mừng bạn đến với hành trình Gen 10
         </p>
       </div>
 
-      {/* 2. Bộ 3 thẻ thống kê trên cùng (Tone Xanh - Vàng sắc sảo, có điểm nhấn) */}
+      {/* 2. Bộ 3 thẻ thống kê trên cùng: Tinh gọn, bỏ hoàn toàn icon to */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Thẻ 1: Ban ứng tuyển (Xanh dương hoàng gia) */}
-        <div className="bg-white border-2 border-blue-200 hover:border-blue-400 shadow-sm hover:shadow-md transition-all rounded-2xl p-5 relative overflow-hidden group">
+        {/* Thẻ 1: Ban ứng tuyển */}
+        <div className="bg-white border-2 border-blue-200 hover:border-blue-300 shadow-xs transition-all rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600" />
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-200 group-hover:scale-105 transition-transform">
-              <Building2 className="w-6 h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Ban ứng tuyển</div>
-              <div className="text-lg font-black text-slate-900 mt-0.5 truncate">
-                {deptName}
-              </div>
-              <div className="mt-1">
-                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md">
-                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                  Nguyện vọng 1 (NV1)
-                </span>
-              </div>
-            </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Ban ứng tuyển</div>
+          <div className="text-xl font-bold text-slate-900 mt-1 truncate">
+            {deptName}
+          </div>
+          <div className="mt-2.5">
+            <span className="inline-flex items-center text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-md">
+              Nguyện vọng 1 (NV1)
+            </span>
           </div>
         </div>
 
-        {/* Thẻ 2: Vòng hiện tại (Vàng rực rỡ) */}
-        <div className="bg-white border-2 border-amber-200 hover:border-amber-400 shadow-sm hover:shadow-md transition-all rounded-2xl p-5 relative overflow-hidden group">
+        {/* Thẻ 2: Vòng hiện tại */}
+        <div className="bg-white border-2 border-amber-200 hover:border-amber-300 shadow-xs transition-all rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 to-amber-500" />
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
-              <Layers className="w-6 h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Vòng hiện tại</div>
-              <div className="text-xl font-black text-blue-700 mt-0.5 flex items-center gap-2">
-                <span>Vòng 5 / 5</span>
-              </div>
-              <div className="mt-1">
-                <span className="inline-flex items-center text-[11px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                  Công bố kết quả chính thức
-                </span>
-              </div>
-            </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Vòng hiện tại</div>
+          <div className="text-xl font-bold text-blue-700 mt-1">
+            Vòng 5 / 5
+          </div>
+          <div className="mt-2.5">
+            <span className="inline-flex items-center text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
+              Công bố kết quả chính thức
+            </span>
           </div>
         </div>
 
-        {/* Thẻ 3: Trạng thái (Xanh lá & Xanh dương uy tín) */}
-        <div className="bg-white border-2 border-emerald-200 hover:border-emerald-400 shadow-sm hover:shadow-md transition-all rounded-2xl p-5 relative overflow-hidden group">
+        {/* Thẻ 3: Trạng thái */}
+        <div className="bg-white border-2 border-emerald-200 hover:border-emerald-300 shadow-xs transition-all rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Trạng thái hồ sơ</div>
-              <div className="text-lg font-black text-emerald-800 mt-0.5 flex items-center gap-1.5">
-                <span>Đã phỏng vấn</span>
-                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                  ✓
-                </span>
-              </div>
-              <div className="mt-1">
-                <span className="inline-flex items-center text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  Hội đồng đã hoàn tất chấm
-                </span>
-              </div>
-            </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Trạng thái hồ sơ</div>
+          <div className="text-xl font-bold text-emerald-800 mt-1 flex items-center gap-1.5">
+            <span>Đã phỏng vấn</span>
+            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
+              ✓
+            </span>
+          </div>
+          <div className="mt-2.5">
+            <span className="inline-flex items-center text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
+              Hội đồng đã hoàn tất chấm
+            </span>
           </div>
         </div>
       </div>
@@ -205,10 +179,7 @@ export default function MemberDashboardPage() {
         {/* Header băng rôn Xanh Navy sang trọng */}
         <div className="py-4 px-6 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white flex flex-row items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-amber-300">
-              <Clock className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-black uppercase tracking-wider text-white">
+            <span className="text-sm font-bold uppercase tracking-wider text-white">
               HÀNH TRÌNH GIA NHẬP iSSAC
             </span>
           </div>
@@ -287,11 +258,9 @@ export default function MemberDashboardPage() {
         <div className="bg-white border-2 border-blue-100 shadow-sm hover:shadow-md transition-all rounded-3xl overflow-hidden flex flex-col justify-between">
           <div>
             <div className="py-3.5 px-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between">
-              <div className="text-xs font-black uppercase tracking-wider text-blue-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
+              <div className="text-xs font-bold uppercase tracking-wider text-blue-900">
                 THÔNG TIN ỨNG TUYỂN
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
             </div>
 
             <div className="p-5 space-y-3.5 text-xs sm:text-sm">
@@ -301,8 +270,7 @@ export default function MemberDashboardPage() {
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">Nguyện vọng:</span>
-                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
-                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <span className="inline-flex items-center bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs px-2.5 py-0.5 rounded-md">
                   NV1 Chính thức
                 </span>
               </div>
@@ -334,11 +302,9 @@ export default function MemberDashboardPage() {
         <div className="bg-white border-2 border-amber-100 shadow-sm hover:shadow-md transition-all rounded-3xl overflow-hidden flex flex-col justify-between">
           <div>
             <div className="py-3.5 px-5 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 flex items-center justify-between">
-              <div className="text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-amber-600" />
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-950">
                 LỊCH PHỎNG VẤN
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             </div>
 
             <div className="p-5 space-y-3.5 text-xs sm:text-sm">
@@ -384,8 +350,7 @@ export default function MemberDashboardPage() {
 
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between border-b border-white/20 pb-3">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-300">
-              <Mail className="w-4 h-4 text-amber-400" />
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-300">
               THÔNG BÁO TỪ BAN CHỦ NHIỆM CLB iSSAC
             </div>
             <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[11px] font-black px-3 py-0.5 rounded-full shadow-sm">

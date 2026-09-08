@@ -47,18 +47,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
         </Link>
       </div>
 
-      {/* User info */}
-      <div className="px-4 py-4 border-b border-blue-50">
-        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-gray-900 text-sm truncate">{user?.full_name || 'Ứng viên'}</div>
-            <div className="text-xs text-gray-500 truncate">{user?.email}</div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">

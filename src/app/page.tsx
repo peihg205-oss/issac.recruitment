@@ -303,7 +303,7 @@ export default function HomePage() {
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-slate-900">Ban Tư vấn</h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
-                  Học kiến thức tổ chức sự kiện, trực tiếp làm Ban Tổ chức (BTC) chạy các đại sự kiện lớn tại VNU-IS như: <strong>ISTART CAMP</strong>, <strong>JOBLINK WEEK</strong>, <strong>ENROLLMENT DAY</strong>,... đồng thời trực tiếp tham gia các chuyến công tác tư vấn tuyển sinh và hướng nghiệp thực địa tại các tỉnh, thành phố trực thuộc Trung ương như <strong>TP. Hà Nội, TP. Hải Phòng, Quảng Ninh</strong>,...
+                  Học kiến thức tổ chức sự kiện, trực tiếp làm Ban Tổ chức (BTC) chạy các đại sự kiện lớn tại VNU-IS như: <strong>ISTART CAMP</strong>, <strong>JOBLINK WEEK</strong>, <strong>ENROLLMENT DAY</strong>,... đồng thời trực tiếp tham gia chuyến đi tư vấn tuyển sinh dài vài ngày tại các tỉnh, thành phố trực thuộc Trung ương như <strong>TP. Hà Nội, TP. Hải Phòng, Quảng Ninh</strong>,...
                 </p>
               </div>
             </div>

@@ -142,3 +142,27 @@ export function canManageQuestion(adminRole: string | undefined, questionDeptSlu
   if (!questionDeptSlug) return false
   return adminRole === questionDeptSlug
 }
+
+export function getActiveRoleConfig(role: AdminRoleType, cookieString?: string): AdminRoleConfig {
+  const base = ADMIN_ROLE_CONFIGS[role] || ADMIN_ROLE_CONFIGS["chu-nhiem"]
+  let cookieVal = cookieString
+  if (!cookieVal && typeof document !== "undefined") {
+    cookieVal = document.cookie
+  }
+  if (cookieVal) {
+    const match = cookieVal.match(/issac_admin_accounts=([^;]+)/)
+    if (match) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(match[1]))
+        if (parsed[role]) {
+          return {
+            ...base,
+            label: parsed[role].name || base.label,
+            shortLabel: parsed[role].title || base.shortLabel,
+          }
+        }
+      } catch {}
+    }
+  }
+  return base
+}

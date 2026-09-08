@@ -142,21 +142,29 @@ export default function AdminUsersPage() {
     admin_role: 'truyen-thong' as 'chu-nhiem' | 'truyen-thong' | 'tu-van' | 'nhan-su',
   })
 
-  const fetchData = useCallback(async () => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, admin_role, created_at, is_active')
-        .in('role', ['admin', 'super_admin'])
-        .order('created_at')
-
-      if (data && data.length > 0) {
-        setAdmins(data as unknown as AdminUser[])
+  const loadAllAdmins = useCallback(() => {
+    let list = [...INITIAL_ACCOUNTS]
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("issac_created_admins")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) {
+            // merge unique by id
+            const existingIds = new Set(list.map(a => a.id))
+            parsed.forEach(p => {
+              if (!existingIds.has(p.id)) {
+                list.push(p)
+              }
+            })
+          }
+        } catch {}
       }
-    } catch {}
-  }, [supabase])
+    }
+    setAdmins(list)
+  }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { loadAllAdmins() }, [loadAllAdmins])
 
   const handleCreateAccount = async () => {
     if (!form.full_name || !form.email || !form.password) {
@@ -177,7 +185,14 @@ export default function AdminUsersPage() {
       created_at: new Date().toISOString().slice(0, 10),
     }
 
-    setAdmins(prev => [...prev, newAdmin])
+    setAdmins(prev => {
+      const updated = [...prev, newAdmin]
+      if (typeof window !== "undefined") {
+        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+      }
+      return updated
+    })
     setSaving(false)
     setShowCreateModal(false)
     setForm({ full_name: '', email: '', password: '', admin_role: 'truyen-thong' })
@@ -190,8 +205,29 @@ export default function AdminUsersPage() {
   }
 
   const handleToggleStatus = (id: string) => {
-    setAdmins(prev => prev.map(a => a.id === id ? { ...a, is_active: !a.is_active } : a))
+    setAdmins(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, is_active: !a.is_active } : a)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+      }
+      return updated
+    })
     toast({ title: 'Đã cập nhật trạng thái tài khoản' } as Parameters<typeof toast>[0])
+  }
+
+  const handleDeleteAccount = (id: string) => {
+    if (confirm("Bạn có chắc muốn xóa tài khoản này khỏi danh sách?")) {
+      setAdmins(prev => {
+        const updated = prev.filter(a => a.id !== id)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+          document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+        }
+        return updated
+      })
+      toast({ title: "Đã xóa tài khoản" } as Parameters<typeof toast>[0])
+    }
   }
 
   return (
@@ -215,6 +251,21 @@ export default function AdminUsersPage() {
           <Plus className="w-4 h-4" />
           Cấp tài khoản mới cho Ban
         </Button>
+      </div>
+
+      {/* BCN Unlimited Account Creation & Strict Scoping Guarantee Notice */}
+      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/90 text-emerald-950 flex items-start gap-3 shadow-2xs">
+        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="space-y-1 text-xs sm:text-sm">
+          <div className="font-black text-emerald-900">
+            Quy định phân quyền & Cấp tài khoản không giới hạn của Ban Chủ nhiệm
+          </div>
+          <p className="text-emerald-800 leading-relaxed text-xs">
+            • <strong>Không giới hạn số lượng</strong>: Ban Chủ nhiệm có toàn quyền tạo thêm tài khoản cho bất kỳ thành viên nào của Ban Truyền thông, Ban Tư vấn, Ban Nhân sự tham gia đợt tuyển quân.
+            <br />
+            • <strong>Phân quyền độc lập & bảo mật</strong>: Mỗi tài khoản được tạo cho Ban nào thì <strong>chỉ có quyền hạn thao tác (chấm điểm phỏng vấn, tạo câu hỏi, đề xuất kết quả) trong phạm vi ứng viên của Ban đó</strong>. Thành viên ban này hoàn toàn không thể chấm điểm hay can thiệp vào ban khác.
+          </p>
+        </div>
       </div>
 
       {/* Department Account Summary Cards */}
@@ -366,14 +417,27 @@ export default function AdminUsersPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(admin.id)}
-                          className="h-8 text-xs text-gray-600 hover:bg-gray-100"
-                        >
-                          {admin.is_active ? 'Khóa tạm thời' : 'Mở khóa'}
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(admin.id)}
+                            className="h-8 text-xs text-gray-600 hover:bg-gray-100"
+                          >
+                            {admin.is_active ? 'Khóa' : 'Mở khóa'}
+                          </Button>
+                          {admin.id.startsWith("adm-") && admin.id.length > 8 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAccount(admin.id)}
+                              className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                              title="Xóa tài khoản này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

@@ -74,6 +74,30 @@ function LoginForm() {
   const onSubmit = async (values: FormData) => {
     setLoading(true)
 
+    // Check newly created accounts from BCN
+    if (typeof window !== "undefined") {
+      const createdRaw = localStorage.getItem("issac_created_admins")
+      if (createdRaw) {
+        try {
+          const createdList = JSON.parse(createdRaw)
+          if (Array.isArray(createdList)) {
+            const found = createdList.find((a: any) => a.email.toLowerCase() === values.email.toLowerCase())
+            if (found && found.is_active) {
+              document.cookie = "issac_admin_role=" + found.admin_role + "; path=/; max-age=2592000"
+              toast({
+                title: "Đăng nhập thành công",
+                description: "Chào mừng " + found.full_name + "! Đang chuyển vào cổng quản lý...",
+                variant: "success"
+              } as Parameters<typeof toast>[0])
+              router.push("/admin/dashboard")
+              router.refresh()
+              return
+            }
+          }
+        } catch {}
+      }
+    }
+
     // Demo admin email quick bypass
     const matchedRole = DEMO_ADMIN_ACCOUNTS.find(a => a.email === values.email)?.role
     if (matchedRole) {

@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   ClipboardList, CheckCircle, Clock, BarChart3, Eye,
-  UserCheck, Trophy
+  UserCheck, Trophy, Crown, Megaphone, MessageSquare, Users
 } from 'lucide-react'
 import Link from 'next/link'
-import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { ADMIN_ROLE_CONFIGS, getActiveRoleConfig, type AdminRoleType } from '@/lib/permissions'
 import { MOCK_CANDIDATES } from '@/lib/mock-data'
 
 export default async function EvaluationListPage() {
@@ -18,7 +18,7 @@ export default async function EvaluationListPage() {
     ? activeRoleFromCookie
     : 'chu-nhiem'
 
-  const roleConfig = ADMIN_ROLE_CONFIGS[activeRole]
+  const roleConfig = getActiveRoleConfig(activeRole, cookieStore.toString())
   const isSuperAdmin = roleConfig.isSuperAdmin
 
   const supabase = await createClient()
@@ -60,8 +60,13 @@ export default async function EvaluationListPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="px-3.5 py-1.5 text-xs font-bold bg-[#fff7e8] text-amber-950 border border-amber-300 rounded-full shadow-sm">
-            {roleConfig.label}
+          <span className="px-3.5 py-1.5 text-xs font-bold bg-[#fff7e8] text-amber-950 border border-amber-300 rounded-full shadow-sm flex items-center gap-1.5">
+            {activeRole === "chu-nhiem" && <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+            {activeRole === "truyen-thong" && <Megaphone className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+            {activeRole === "tu-van" && <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+            {activeRole === "nhan-su" && <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+            <span>{roleConfig.label}</span>
+            <span className="text-amber-700 font-medium">({roleConfig.shortLabel})</span>
           </span>
           <Link href="/admin/ranking">
             <Button variant="outline" size="sm" className="h-9 text-xs font-bold text-[#1559c5] border-[#1559c5]/30 hover:bg-blue-50 rounded-full px-4 shadow-sm">

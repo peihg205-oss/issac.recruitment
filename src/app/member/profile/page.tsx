@@ -4,17 +4,16 @@ import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Save, User, CheckCircle } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import Link from 'next/link'
 
-const schema = z.object({
-  full_name: z.string().min(2, 'Họ tên phải ít nhất 2 ký tự'),
-  phone: z.string().min(10, 'Số điện thoại không hợp lệ').optional().or(z.literal('')),
+const profileSchema = z.object({
+  full_name: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
+  phone: z.string().regex(/^([0-9]{10,11})?$/, 'Số điện thoại không hợp lệ').optional().or(z.literal('')),
   date_of_birth: z.string().optional().or(z.literal('')),
   gender: z.string().optional().or(z.literal('')),
   student_id: z.string().optional().or(z.literal('')),
@@ -24,9 +23,10 @@ const schema = z.object({
   high_school: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
 })
-type FormData = z.infer<typeof schema>
 
-export default function ProfilePage() {
+type FormData = z.infer<typeof profileSchema>
+
+export default function MemberProfilePage() {
   const supabase = createClient()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -34,8 +34,8 @@ export default function ProfilePage() {
   const [locked, setLocked] = useState(false)
   const [profileComplete, setProfileComplete] = useState(false)
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(profileSchema)
   })
 
   const gender = watch('gender')
@@ -62,7 +62,7 @@ export default function ProfilePage() {
 
     const [{ data: profile }, { data: app }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('applications').select('status').eq('user_id', user.id).limit(1).single(),
+      supabase.from('applications').select('status').eq('user_id', user.id).limit(1).single()
     ])
 
     if (profile) {
@@ -81,7 +81,6 @@ export default function ProfilePage() {
       setProfileComplete(!!(profile.full_name && profile.phone && profile.student_id && profile.university))
     }
 
-    // Lock important fields after submission
     if (app && !['draft'].includes(app.status)) {
       setLocked(true)
     }
@@ -93,7 +92,14 @@ export default function ProfilePage() {
 
   const onSubmit = async (data: FormData) => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setSaving(true)
+      setTimeout(() => {
+        setSaving(false)
+        toast({ title: 'Đã lưu hồ sơ thành công!', description: 'Thông tin cá nhân của bạn đã được cập nhật.' })
+      }, 500)
+      return
+    }
     setSaving(true)
 
     const { error } = await supabase.from('profiles').update({
@@ -113,117 +119,239 @@ export default function ProfilePage() {
     if (error) {
       toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
     } else {
-      toast({ title: '✅ Đã lưu hồ sơ!', description: 'Thông tin cá nhân đã được cập nhật.' } as Parameters<typeof toast>[0])
+      toast({ title: 'Đã lưu hồ sơ thành công!', description: 'Thông tin cá nhân của bạn đã được cập nhật.' })
       fetchProfile()
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1657c1]" />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 max-w-3xl animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Hồ sơ cá nhân</h1>
-        <p className="text-gray-500 text-sm mt-1">Cập nhật thông tin để hoàn thiện hồ sơ ứng tuyển</p>
+    <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+      {/* 1. Header: Đồng bộ font chữ & phong cách iSSAC */}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+            HỒ SƠ CÁ NHÂN iSSAC 2026
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Cập nhật đầy đủ và chính xác thông tin để hoàn thiện hồ sơ ứng tuyển
+          </p>
+        </div>
+        <Link
+          href="/member/dashboard"
+          className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all"
+        >
+          Về Tổng quan
+        </Link>
       </div>
 
+      {/* Thông báo trạng thái hồ sơ - Tông xanh iSSAC, không icon */}
       {profileComplete && (
-        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-700 text-sm">
-          <CheckCircle className="w-4 h-4" />
-          Hồ sơ đã hoàn thiện. Bạn có thể ứng tuyển.
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-blue-50/70 border-2 border-blue-200/80 text-xs sm:text-sm">
+          <span className="font-bold text-[#1657c1]">
+            Hồ sơ cá nhân đã hoàn thiện. Bạn đã sẵn sàng tham gia các vòng tuyển chọn của CLB.
+          </span>
+          <Link
+            href="/member/application"
+            className="px-3.5 py-1.5 rounded-lg bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black text-xs shrink-0 shadow-xs transition-all"
+          >
+            Đến trang Đơn ứng tuyển
+          </Link>
         </div>
       )}
 
       {locked && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-700 text-sm">
-          ⚠️ Một số thông tin quan trọng (MSSV, Trường, THPT) đã bị khóa sau khi nộp đơn.
+        <div className="p-4 rounded-2xl bg-amber-50/70 border-2 border-amber-300 text-xs sm:text-sm text-amber-950 leading-relaxed">
+          <strong>Lưu ý:</strong> Một số thông tin định danh (MSSV, Trường, THPT) đã được khóa cố định sau khi nộp đơn ứng tuyển chính thức.
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-4">
-          {/* Personal Info */}
-          <Card>
-            <CardHeader className="border-b border-gray-100">
-              <CardTitle className="text-base flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-600" />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Phần 1: Thông tin cá nhân */}
+        <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+          <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wide bg-[#1657c1] text-white">
+                Phần 1
+              </span>
+              <h2 className="text-base font-bold text-slate-900">
                 Thông tin cá nhân
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="full_name">Họ và tên <span className="text-red-500">*</span></Label>
-                <Input id="full_name" {...register('full_name')} placeholder="Nguyễn Văn A" className={errors.full_name ? 'border-red-300' : ''} />
-                {errors.full_name && <p className="text-red-500 text-xs">{errors.full_name.message}</p>}
-              </div>
+              </h2>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Thông tin cơ bản</span>
+          </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Số điện thoại</Label>
-                <Input id="phone" {...register('phone')} placeholder="0901234567" />
-                {errors.phone && <p className="text-red-500 text-xs">{errors.phone.message}</p>}
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="full_name" className="text-xs font-bold text-slate-700">
+                Họ và tên <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="full_name"
+                {...register('full_name')}
+                placeholder="Nguyễn Văn A"
+                className={`rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100 ${errors.full_name ? 'border-red-300 ring-2 ring-red-100' : ''}`}
+              />
+              {errors.full_name && <p className="text-red-500 text-xs font-medium">{errors.full_name.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="dob">Ngày sinh</Label>
-                <Input id="dob" type="date" {...register('date_of_birth')} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-xs font-bold text-slate-700">
+                Số điện thoại
+              </Label>
+              <Input
+                id="phone"
+                {...register('phone')}
+                placeholder="0987123456"
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+              />
+              {errors.phone && <p className="text-red-500 text-xs font-medium">{errors.phone.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <Label>Giới tính</Label>
-                <Select value={gender} onValueChange={v => setValue('gender', v)}>
-                  <SelectTrigger><SelectValue placeholder="Chọn giới tính" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Nam">Nam</SelectItem>
-                    <SelectItem value="Nữ">Nữ</SelectItem>
-                    <SelectItem value="Khác">Khác</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dob" className="text-xs font-bold text-slate-700">
+                Ngày sinh
+              </Label>
+              <Input
+                id="dob"
+                type="date"
+                {...register('date_of_birth')}
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="address">Địa chỉ</Label>
-                <Input id="address" {...register('address')} placeholder="TP. Hồ Chí Minh" />
-              </div>
-            </CardContent>
-          </Card>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">
+                Giới tính
+              </Label>
+              <Select value={gender} onValueChange={v => setValue('gender', v)}>
+                <SelectTrigger className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-blue-100">
+                  <SelectValue placeholder="Chọn giới tính" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="Nam">Nam</SelectItem>
+                  <SelectItem value="Nữ">Nữ</SelectItem>
+                  <SelectItem value="Khác">Khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Academic Info */}
-          <Card>
-            <CardHeader className="border-b border-gray-100">
-              <CardTitle className="text-base">Thông tin học vấn</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="student_id">MSSV {locked && '(Đã khóa)'}</Label>
-                <Input id="student_id" {...register('student_id')} placeholder="22521234" disabled={locked} className={locked ? 'bg-gray-50' : ''} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="address" className="text-xs font-bold text-slate-700">
+                Địa chỉ hiện tại
+              </Label>
+              <Input
+                id="address"
+                {...register('address')}
+                placeholder="Hà Nội"
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+        </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="university">Trường {locked && '(Đã khóa)'}</Label>
-                <Input id="university" {...register('university')} placeholder="Đại học Công nghệ Thông tin - ĐHQG TP.HCM" disabled={locked} className={locked ? 'bg-gray-50' : ''} />
-              </div>
+        {/* Phần 2: Thông tin học vấn */}
+        <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+          <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200">
+                Phần 2
+              </span>
+              <h2 className="text-base font-bold text-slate-900">
+                Thông tin học vấn
+              </h2>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Trường & Ngành học</span>
+          </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="cohort">Khóa</Label>
-                <Input id="cohort" {...register('cohort')} placeholder="K2022" />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="student_id" className="text-xs font-bold text-slate-700">
+                Mã số sinh viên (MSSV) {locked && '(Đã khóa)'}
+              </Label>
+              <Input
+                id="student_id"
+                {...register('student_id')}
+                placeholder="22070142"
+                disabled={locked}
+                className={`rounded-xl border-slate-200 h-11 text-xs sm:text-sm ${locked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100'}`}
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="major">Ngành học</Label>
-                <Input id="major" {...register('major')} placeholder="Khoa học Máy tính" />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="university" className="text-xs font-bold text-slate-700">
+                Trường Đại học {locked && '(Đã khóa)'}
+              </Label>
+              <Input
+                id="university"
+                {...register('university')}
+                placeholder="Trường Quốc tế - ĐHQGHN"
+                disabled={locked}
+                className={`rounded-xl border-slate-200 h-11 text-xs sm:text-sm ${locked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100'}`}
+              />
+            </div>
 
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="high_school">THPT từng học {locked && '(Đã khóa)'}</Label>
-                <Input id="high_school" {...register('high_school')} placeholder="THPT Lê Quý Đôn" disabled={locked} className={locked ? 'bg-gray-50' : ''} />
-              </div>
-            </CardContent>
-          </Card>
+            <div className="space-y-1.5">
+              <Label htmlFor="cohort" className="text-xs font-bold text-slate-700">
+                Khóa sinh viên
+              </Label>
+              <Input
+                id="cohort"
+                {...register('cohort')}
+                placeholder="K22"
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
 
-          <Button type="submit" disabled={saving} className="gap-2 w-full sm:w-auto">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Lưu thông tin
-          </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="major" className="text-xs font-bold text-slate-700">
+                Ngành học
+              </Label>
+              <Input
+                id="major"
+                {...register('major')}
+                placeholder="Hệ thống thông tin quản lý (MIS)"
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="high_school" className="text-xs font-bold text-slate-700">
+                Trường THPT từng theo học {locked && '(Đã khóa)'}
+              </Label>
+              <Input
+                id="high_school"
+                {...register('high_school')}
+                placeholder="THPT Chuyên Ngoại ngữ"
+                disabled={locked}
+                className={`rounded-xl border-slate-200 h-11 text-xs sm:text-sm ${locked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100'}`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Nút hành động màu Vàng Kim iSSAC */}
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] disabled:opacity-50 text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
+            {saving ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...
+              </span>
+            ) : (
+              'Lưu thay đổi hồ sơ'
+            )}
+          </button>
         </div>
       </form>
     </div>

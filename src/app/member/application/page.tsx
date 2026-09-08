@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { 
-  Loader2, ChevronRight, ChevronLeft, Send, CheckCircle2, Megaphone, MessagesSquare, Users, 
-  Check, Building2, FileText, AlertCircle, Sparkles, Star
-} from 'lucide-react'
+  Loader2, ChevronRight, ChevronLeft, Send, CheckCircle2, 
+  Check, AlertCircle 
+} from "lucide-react"
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
@@ -189,16 +189,31 @@ export default function ApplicationPage() {
     router.push('/member/dashboard')
   }
 
-    const getDeptIcon = (dept: Department) => {
+    const getDeptTag = (dept: Department) => {
     const slug = (dept.slug || "").toLowerCase()
     const name = (dept.name || "").toLowerCase()
     if (slug.includes("truyen-thong") || name.includes("truyền thông")) {
-      return <Megaphone className="w-5 h-5" />
+      return {
+        tag: "Truyền thông & Sáng tạo",
+        badgeClass: "bg-blue-100 text-[#1657c1] border border-blue-200",
+        activeCardClass: "border-[#1657c1] bg-gradient-to-b from-blue-50/80 via-white to-blue-50/20 shadow-md ring-2 ring-blue-500/20",
+        hoverCardClass: "hover:border-blue-300 hover:bg-blue-50/30",
+      }
     }
     if (slug.includes("tu-van") || name.includes("tư vấn")) {
-      return <MessagesSquare className="w-5 h-5" />
+      return {
+        tag: "Tư vấn & Hỗ trợ sinh viên",
+        badgeClass: "bg-amber-100 text-amber-900 border border-amber-300",
+        activeCardClass: "border-[#1657c1] bg-gradient-to-b from-blue-50/80 via-white to-amber-50/20 shadow-md ring-2 ring-blue-500/20",
+        hoverCardClass: "hover:border-blue-300 hover:bg-amber-50/30",
+      }
     }
-    return <Users className="w-5 h-5" />
+    return {
+      tag: "Quản trị & Văn hóa nội bộ",
+      badgeClass: "bg-indigo-100 text-indigo-900 border border-indigo-200",
+      activeCardClass: "border-[#1657c1] bg-gradient-to-b from-blue-50/80 via-white to-indigo-50/20 shadow-md ring-2 ring-blue-500/20",
+      hoverCardClass: "hover:border-blue-300 hover:bg-indigo-50/30",
+    }
   }
 
   if (loading) {
@@ -327,27 +342,31 @@ export default function ApplicationPage() {
             </div>
           )}
 
-          {/* Nguyện vọng 1: 3 Ban chuyên môn */}
-          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
-                    Nguyện vọng 1 - Ban muốn ứng tuyển chính thức
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Lựa chọn Ban chuyên môn phù hợp nhất với thế mạnh và định hướng của bạn
-                  </p>
+          {/* Nguyện vọng 1: 3 Ban chuyên môn - Màu sắc rõ nét, bỏ icon, full viền */}
+          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wide bg-[#1657c1] text-white">
+                    Nguyện vọng 1
+                  </span>
+                  <span className="text-sm font-bold text-slate-800">
+                    - Ban muốn ứng tuyển chính thức
+                  </span>
                 </div>
-                <span className="text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
-                  Bắt buộc
-                </span>
+                <p className="text-xs text-slate-500">
+                  Lựa chọn Ban chuyên môn phù hợp nhất với thế mạnh và định hướng của bạn
+                </p>
               </div>
+              <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full shrink-0">
+                Bắt buộc
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {departments.map(dept => {
                 const isSelected = selectedDept === dept.id
+                const deptInfo = getDeptTag(dept)
 
                 return (
                   <button
@@ -356,27 +375,23 @@ export default function ApplicationPage() {
                     onClick={() => setSelectedDept(dept.id)}
                     className={`group p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                       isSelected
-                        ? "border-[#1657c1] bg-gradient-to-b from-blue-50/60 via-white to-amber-50/15 shadow-md ring-2 ring-[#1657c1]/20 -translate-y-0.5"
-                        : "border-slate-200 bg-white hover:border-blue-400 hover:bg-slate-50/50 hover:shadow-xs hover:-translate-y-0.5"
+                        ? deptInfo.activeCardClass + " -translate-y-0.5"
+                        : "border-slate-200/90 bg-white " + deptInfo.hoverCardClass + " hover:shadow-xs hover:-translate-y-0.5"
                     }`}
                   >
                     <div>
-                      {/* Top icon and radio check */}
+                      {/* Top tag and radio check - Không dùng icon */}
                       <div className="flex items-center justify-between gap-2 mb-3.5">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${
-                          isSelected 
-                            ? "bg-blue-100/80 border-blue-300 text-[#1657c1] shadow-xs" 
-                            : "bg-slate-100 border-slate-200 text-slate-500 group-hover:border-blue-200 group-hover:text-[#1657c1]"
-                        }`}>
-                          {getDeptIcon(dept)}
-                        </div>
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md ${deptInfo.badgeClass}`}>
+                          {deptInfo.tag}
+                        </span>
 
                         {isSelected ? (
                           <div className="w-5 h-5 rounded-full bg-[#1657c1] text-white flex items-center justify-center text-xs font-bold shadow-xs">
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         ) : (
-                          <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-blue-300" />
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-blue-400 transition-colors" />
                         )}
                       </div>
 
@@ -384,20 +399,19 @@ export default function ApplicationPage() {
                         {dept.name}
                       </div>
 
-                      <div className="text-xs text-slate-500 leading-relaxed">
+                      <div className="text-xs text-slate-600 leading-relaxed font-normal">
                         {dept.description}
                       </div>
                     </div>
 
                     <div className="mt-5 pt-2">
                       {isSelected ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-lg shadow-xs">
-                          <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span className="inline-flex items-center text-xs font-black text-slate-950 bg-[#fdc455] border border-amber-400 px-3.5 py-1.5 rounded-lg shadow-xs">
                           Đã chọn làm NV1
                         </span>
                       ) : (
-                        <span className="text-[11px] font-semibold text-slate-400 group-hover:text-blue-600 transition-colors">
-                          Nhấn để chọn ban này
+                        <span className="inline-flex items-center text-xs font-bold text-blue-600 bg-blue-50/80 border border-blue-200/80 px-3 py-1 rounded-lg group-hover:bg-[#1657c1] group-hover:text-white group-hover:border-[#1657c1] transition-all">
+                          Chọn ban này
                         </span>
                       )}
                     </div>
@@ -408,19 +422,29 @@ export default function ApplicationPage() {
           </div>
 
           {/* Nguyện vọng 2 (Không bắt buộc) */}
-          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-3">
-            <div className="border-b border-slate-100 pb-3">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Nguyện vọng 2 (Không bắt buộc)
+          <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200">
+                    Nguyện vọng 2
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    (Không bắt buộc)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Bạn có thể đăng ký thêm một ban phụ nếu muốn mở rộng cơ hội tham gia CLB
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Bạn có thể đăng ký thêm một ban phụ nếu muốn mở rộng cơ hội tham gia CLB
-              </p>
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full shrink-0">
+                Tùy chọn
+              </span>
             </div>
 
             <div className="max-w-md">
               <Select value={selectedDept2} onValueChange={setSelectedDept2}>
-                <SelectTrigger className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 focus:ring-2 focus:ring-blue-200">
+                <SelectTrigger className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 focus:ring-2 focus:ring-blue-200 bg-white">
                   <SelectValue placeholder="Chọn ban nguyện vọng 2 (nếu có)" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -439,7 +463,7 @@ export default function ApplicationPage() {
               type="button"
               onClick={() => setStep(2)}
               disabled={!selectedDept || !profileComplete}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] disabled:opacity-50 text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] disabled:opacity-50 text-slate-950 font-black text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
             >
               Tiếp theo bước 2
               <ChevronRight className="w-4 h-4" />

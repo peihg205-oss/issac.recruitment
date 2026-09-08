@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export const metadata = {
   title: "Giới thiệu CLB & Quyền lợi Đại sứ Sinh viên - iSSAC",
   description: "Thông tin chính thức về Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN, chính sách chi trả kinh phí và cơ cấu 3 ban chuyên môn.",
@@ -6,24 +8,32 @@ export const metadata = {
 export default function MemberAboutPage() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto animate-fade-in pb-16 font-sans text-slate-800">
-      {/* 1. Header Trang: Căn chỉnh chuẩn mực, gọn gàng, không nút CTA thừa thãi */}
-      <div className="border-b border-slate-200 pb-5">
-        <div className="text-xs font-semibold tracking-wider text-[#1657c1] uppercase">
-          Trường Quốc tế - Đại học Quốc gia Hà Nội
+      {/* 1. Header Trang: Căn chỉnh đẹp mắt, chuẩn mực, có nút Đăng ký ngay */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="space-y-1">
+          <div className="text-xs font-semibold tracking-wider text-[#1657c1] uppercase">
+            Trường Quốc tế - Đại học Quốc gia Hà Nội
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-1">
+            Giới thiệu Câu lạc bộ & Các Ban Chuyên môn
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+            Hồ sơ giới thiệu chính thức về sứ mệnh hoạt động, chính sách chi trả kinh phí và cơ cấu tổ chức Đại sứ iSSAC
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-1.5">
-          Giới thiệu Câu lạc bộ & Các Ban Chuyên môn
-        </h1>
-        <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
-          Hồ sơ giới thiệu chính thức về sứ mệnh hoạt động, chính sách chi trả kinh phí và cơ cấu tổ chức Đại sứ iSSAC
-        </p>
+        <Link
+          href="/member/application"
+          className="self-start sm:self-center px-6 py-2.5 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-bold text-xs tracking-wider uppercase shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap text-center"
+        >
+          Đăng ký ngay
+        </Link>
       </div>
 
-      {/* 2. Tổng quan Câu lạc bộ: Khung Royal Navy trang nhã, typography rõ ràng, không badge vụn vặt */}
-      <div className="rounded-2xl bg-[#0c3577] text-white p-7 sm:p-9 shadow-sm border border-[#1657c1]">
-        <div className="space-y-4">
+      {/* 2. Tổng quan Câu lạc bộ: Khung Royal Navy trang nhã, dấu nối ngắn gọn - không dấu chấm giữa */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#081f44] via-[#0c3577] to-[#1657c1] text-white p-7 sm:p-9 shadow-md border border-[#1657c1]/60 space-y-5">
+        <div className="space-y-3">
           <div className="text-xs font-semibold text-amber-300 uppercase tracking-wider">
-            VNU-IS Ambassadors Club • Khóa Tuyển quân Gen 10
+            VNU-IS Ambassadors Club - Khóa Tuyển quân Gen 10
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             Câu lạc bộ Đại sứ Sinh viên (iSSAC)
@@ -31,24 +41,24 @@ export default function MemberAboutPage() {
           <p className="text-sm sm:text-base text-blue-100 leading-relaxed text-justify font-normal">
             Được thành lập từ năm 2016, iSSAC là tổ chức sinh viên nòng cốt trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội. Đội ngũ Đại sứ giữ vai trò là cầu nối thông tin chính thức giữa Nhà trường và cộng đồng sinh viên, đại diện hình ảnh sinh viên trên các diễn đàn đối ngoại, đồng thời là lực lượng chủ chốt trực tiếp sáng tạo và tổ chức các sự kiện lớn nhất năm của Trường.
           </p>
+        </div>
 
-          <div className="pt-4 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-blue-100">
-            <div>
-              <div className="text-slate-300 font-medium">Nhiệm kỳ</div>
-              <div className="text-sm font-bold text-white mt-0.5">2026 - 2027</div>
-            </div>
-            <div>
-              <div className="text-slate-300 font-medium">Thành lập</div>
-              <div className="text-sm font-bold text-white mt-0.5">10 Năm phát triển</div>
-            </div>
-            <div>
-              <div className="text-slate-300 font-medium">Cơ cấu tổ chức</div>
-              <div className="text-sm font-bold text-white mt-0.5">3 Ban chuyên môn</div>
-            </div>
-            <div>
-              <div className="text-slate-300 font-medium">Chính sách hỗ trợ</div>
-              <div className="text-sm font-bold text-amber-300 mt-0.5">100% có kinh phí</div>
-            </div>
+        <div className="pt-4 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-blue-100">
+          <div>
+            <div className="text-slate-300 font-medium">Nhiệm kỳ</div>
+            <div className="text-sm font-bold text-white mt-0.5">2026 - 2027</div>
+          </div>
+          <div>
+            <div className="text-slate-300 font-medium">Thành lập</div>
+            <div className="text-sm font-bold text-white mt-0.5">10 Năm phát triển</div>
+          </div>
+          <div>
+            <div className="text-slate-300 font-medium">Cơ cấu tổ chức</div>
+            <div className="text-sm font-bold text-white mt-0.5">3 Ban chuyên môn</div>
+          </div>
+          <div>
+            <div className="text-slate-300 font-medium">Chính sách hỗ trợ</div>
+            <div className="text-sm font-bold text-amber-300 mt-0.5">100% có kinh phí</div>
           </div>
         </div>
       </div>
@@ -151,7 +161,7 @@ export default function MemberAboutPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">
-                  Khối Cốt lõi • Sự kiện & Cố vấn sinh viên
+                  Khối Cốt lõi - Sự kiện & Cố vấn sinh viên
                 </span>
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                   Ban Tư vấn (Advising & Support)

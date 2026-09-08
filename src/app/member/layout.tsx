@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { MemberSidebar } from "@/components/shared/member-sidebar"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Home } from "lucide-react"
 
 function formatStudentInfo(major?: string, studentId?: string): string {
   let majorCode = 'MIS'
@@ -67,12 +67,9 @@ export default async function MemberLayout({ children }: { children: React.React
               <Sparkles className="w-4.5 h-4.5 text-[#1657c1]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-[#1657c1]">
                   Cổng tuyển chọn Đại sứ Sinh viên Gen 3
-                </span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100/80 text-[#1657c1] border border-blue-200/80">
-                  PORTAL
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">
@@ -81,7 +78,16 @@ export default async function MemberLayout({ children }: { children: React.React
             </div>
           </div>
 
-          {/* User Card in the Top Right Corner */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-[#1657c1] text-slate-600 border border-slate-200/80 transition-all"
+              title="Về Trang chủ"
+            >
+              <Home className="w-4.5 h-4.5" />
+            </Link>
+
+            {/* User Card in the Top Right Corner */}
           <Link
             href="/member/profile"
             className="flex items-center gap-3 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 transition-all group"
@@ -99,6 +105,7 @@ export default async function MemberLayout({ children }: { children: React.React
               </div>
             </div>
           </Link>
+          </div>
         </header>
 
         {/* Main Content Area */}

@@ -3,7 +3,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { AdminSidebar } from "@/components/shared/admin-sidebar"
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from "@/lib/permissions"
-import { Crown, Megaphone, MessageSquare, Users, ShieldCheck, Sparkles } from "lucide-react"
+import { Crown, Megaphone, MessageSquare, Users, ShieldCheck, Sparkles, Home } from "lucide-react"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -81,12 +81,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <ShieldCheck className="w-4.5 h-4.5 text-amber-600" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
                   Hệ thống Quản trị Tuyển sinh Gen 3
-                </span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200/80">
-                  ADMIN
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">
@@ -98,9 +95,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="hidden lg:inline-flex items-center text-xs text-slate-500 hover:text-[#1657c1] font-medium transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all"
+              title="Về Trang chủ"
             >
-              Về Trang chủ →
+              <Home className="w-4.5 h-4.5" />
             </Link>
 
             {/* Admin Profile Card in Top Right Corner */}

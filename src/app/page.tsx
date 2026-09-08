@@ -193,7 +193,7 @@ export default function HomePage() {
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">03+</div>
+                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">03</div>
                 <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
                   Ban tuyển thành viên
                 </div>
@@ -232,9 +232,9 @@ export default function HomePage() {
                 <Star className="w-6 h-6 fill-[#1657c1]" />
               </div>
               <div>
-                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">15+</div>
+                <div className="text-3xl sm:text-4xl font-black text-[#1657c1] tracking-tight">10 Năm</div>
                 <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
-                  Thành viên mới dự kiến
+                  Bản lĩnh & Tự hào
                 </div>
               </div>
             </div>
@@ -300,20 +300,23 @@ export default function HomePage() {
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Tư vấn</h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2">
-                  Đồng hành cùng thí sinh và phụ huynh trong hành trình chọn trường.
+                  Lên ý tưởng, học kiến thức tổ chức sự kiện và trực tiếp tham gia với vai trò Ban Tổ chức (BTC) chạy các sự kiện lớn tại VNU-IS như: <strong>ISTART CAMP</strong>, <strong>JOBLINK WEEK</strong>, <strong>ENROLLMENT DAY</strong>,... cùng công tác cố vấn, hỗ trợ sinh viên.
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 pt-6 mt-4 border-t border-slate-100">
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Tư vấn
+                #Tổ chức sự kiện
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Kỹ năng mềm
+                #ISTART CAMP
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Giao tiếp
+                #JOBLINK WEEK
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
+                #ENROLLMENT DAY
               </span>
             </div>
           </div>

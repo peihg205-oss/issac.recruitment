@@ -3,7 +3,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { AdminSidebar } from "@/components/shared/admin-sidebar"
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from "@/lib/permissions"
-import { Crown, Megaphone, MessageSquare, Users } from "lucide-react"
+import { Crown, Megaphone, MessageSquare, Users, ShieldCheck, Sparkles } from "lucide-react"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -57,15 +57,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const getRoleIcon = () => {
     switch (activeRole) {
       case "chu-nhiem":
-        return <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        return <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
       case "truyen-thong":
-        return <Megaphone className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+        return <Megaphone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
       case "tu-van":
-        return <MessageSquare className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+        return <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
       case "nhan-su":
-        return <Users className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+        return <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
       default:
-        return <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        return <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
     }
   }
 
@@ -75,15 +75,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header - Aligned h-16 and border with Sidebar */}
         <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-amber-500" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Hệ thống Quản trị Tuyển sinh Gen 3
-            </span>
-            <span className="hidden md:inline-block text-xs text-slate-300">|</span>
-            <span className="hidden md:inline-block text-xs text-slate-500 font-medium">
-              CLB Đại sứ Sinh viên VNU-IS (iSSAC)
-            </span>
+          {/* Header Title with Modern Icon Badge (Replaced plain dot) */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-600 shadow-2xs">
+              <ShieldCheck className="w-4.5 h-4.5 text-amber-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Hệ thống Quản trị Tuyển sinh Gen 3
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200/80">
+                  ADMIN
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium hidden md:block">
+                CLB Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC)
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -96,9 +105,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
             {/* Admin Profile Card in Top Right Corner */}
             <div
-              className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-amber-50/70 border border-amber-200/80 transition-all shadow-2xs"
+              className="flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-50/90 to-amber-100/60 border border-amber-200/90 shadow-2xs"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1657c1] to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1657c1] to-blue-800 flex items-center justify-center text-white font-black text-xs shadow-xs shrink-0">
                 {profile.avatarInitial || acc.avatarInitial}
               </div>
               <div className="text-left min-w-0 pr-1">

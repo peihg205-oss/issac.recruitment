@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { MemberSidebar } from "@/components/shared/member-sidebar"
+import { Sparkles } from "lucide-react"
 
 function formatStudentInfo(major?: string, studentId?: string): string {
   let majorCode = 'MIS'
@@ -61,11 +62,23 @@ export default async function MemberLayout({ children }: { children: React.React
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header with User Info in Top Right Corner */}
         <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#1657c1]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
-              Cổng tuyển chọn Đại sứ Sinh viên Gen 3
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-[#1657c1] shadow-2xs">
+              <Sparkles className="w-4.5 h-4.5 text-[#1657c1]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#1657c1]">
+                  Cổng tuyển chọn Đại sứ Sinh viên Gen 3
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100/80 text-[#1657c1] border border-blue-200/80">
+                  PORTAL
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium hidden md:block">
+                CLB Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC)
+              </div>
+            </div>
           </div>
 
           {/* User Card in the Top Right Corner */}

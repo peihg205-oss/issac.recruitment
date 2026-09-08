@@ -370,12 +370,10 @@ export default function MemberDashboardPage() {
             </p>
           </div>
 
-          {/* Hộp nút mở kết quả màu vàng iSSAC */}
+          {/* Hộp nút mở kết quả màu vàng iSSAC - Bố cục sang trọng, không dùng icon */}
           <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md shadow-inner">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-300 text-slate-950 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/30">
-                <Trophy className="w-6 h-6" />
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
               <div>
                 <div className="text-sm font-black text-white">
                   Kết quả xét tuyển chính thức đã sẵn sàng!
@@ -389,81 +387,94 @@ export default function MemberDashboardPage() {
             <button
               type="button"
               onClick={handleOpenResult}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/30 hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-7 py-3 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0"
             >
-              <Eye className="w-4 h-4 stroke-[2.5]" />
               Ấn để xem kết quả
             </button>
           </div>
         </div>
       </div>
 
-      {/* 6. MODAL BẤT NGỜ: THƯ CHÚC MỪNG KẾT QUẢ XÉT TUYỂN */}
+      {/* 6. MODAL BẤT NGỜ: THƯ CHÚC MỪNG KẾT QUẢ XÉT TUYỂN (SANG TRỌNG, BỐ CỤC RÕ RÀNG, KHÔNG DÙNG ICON) */}
       <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
-        <DialogContent className="max-w-md p-6 sm:p-7 bg-white rounded-3xl border-2 border-amber-200 shadow-2xl">
-          <DialogHeader className="text-center space-y-3 pb-1">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-300 border-2 border-amber-300 text-slate-950 flex items-center justify-center shadow-lg shadow-amber-400/30 animate-bounce">
-              <Trophy className="w-9 h-9" />
+        <DialogContent className="max-w-lg p-0 bg-white rounded-3xl border-2 border-[#1657c1]/20 shadow-2xl overflow-hidden font-sans">
+          {/* Header Banner trang trọng */}
+          <div className="bg-gradient-to-br from-[#0d3b82] via-[#1657c1] to-[#0a2550] p-6 text-white text-center space-y-2 relative">
+            <div className="text-[11px] uppercase tracking-widest text-blue-200 font-bold">
+              Câu lạc bộ Đại sứ Sinh viên - Trường Quốc tế, ĐHQGHN
             </div>
-
-            <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-widest text-blue-700 font-black">
-                Trường Quốc tế - ĐHQGHN
-              </div>
-              <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 text-center">
-                🎉 XIN CHÚC MỪNG BẠN!
-              </DialogTitle>
+            <DialogTitle className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              THƯ CHÚC MỪNG TRÚNG TUYỂN
+            </DialogTitle>
+            <div className="pt-1">
+              <span className="inline-block px-4 py-1 rounded-full text-xs font-black bg-[#fdc455] text-slate-950 uppercase tracking-wider shadow-sm">
+                Chính thức trúng tuyển
+              </span>
             </div>
-          </DialogHeader>
-
-          <div className="space-y-4 py-3 text-center text-xs sm:text-sm text-slate-700 leading-relaxed">
-            <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-100 text-amber-950 font-black text-xs border border-amber-300 shadow-xs">
-              <CheckCircle2 className="w-4 h-4 text-amber-600" />
-              KẾT QUẢ: TRÚNG TUYỂN (PASS)
-            </div>
-
-            <p className="font-semibold text-slate-800 text-sm">
-              Chúc mừng bạn <strong className="text-blue-700 font-black">{currentProfile.full_name}</strong> đã xuất sắc vượt qua các vòng đánh giá và chính thức trở thành{' '}
-              <strong className="text-slate-900">Thành viên CLB Đại sứ Sinh viên VNU-IS (iSSAC)</strong>!
-            </p>
-
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 text-left space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-bold">Ban trúng tuyển:</span>
-                <strong className="text-blue-900 font-black">{deptName}</strong>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-bold">Tư cách thành viên:</span>
-                <strong className="text-slate-900 font-black">Đại sứ Sinh viên Gen 10</strong>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-bold">Nhiệm kỳ hoạt động:</span>
-                <span className="text-amber-800 font-black">2026 - 2027</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 italic">
-              "Chào mừng bạn gia nhập gia đình iSSAC. Hẹn gặp bạn tại buổi First Meeting & Lễ ra mắt Ban để cùng nhau bắt đầu một nhiệm kỳ rực rỡ!"
-            </p>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-100">
-            <Link href="/member/result" className="w-full sm:flex-1">
+          <div className="p-6 sm:p-7 space-y-5 text-slate-800">
+            {/* Lời chúc mừng cá nhân hóa */}
+            <div className="text-center space-y-1.5">
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                Hội đồng Tuyển sinh iSSAC trân trọng chúc mừng ứng viên
+              </p>
+              <div className="text-xl sm:text-2xl font-black text-[#1657c1]">
+                {currentProfile.full_name}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto pt-1">
+                Bạn đã xuất sắc vượt qua các vòng tuyển chọn và chính thức trở thành{" "}
+                <strong className="text-slate-900 font-bold">Đại sứ Sinh viên Gen 10</strong>.
+              </p>
+            </div>
+
+            {/* Bảng thông tin phân bổ ban chuyên môn - Rõ ràng, sang trọng */}
+            <div className="rounded-2xl border-2 border-slate-200/90 bg-slate-50/70 p-4 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2 text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Ban trúng tuyển</span>
+                <strong className="text-[#1657c1] font-bold text-sm sm:text-base">{deptName}</strong>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2 text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Tư cách thành viên</span>
+                <strong className="text-slate-900 font-bold">Đại sứ Sinh viên chính thức</strong>
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Nhiệm kỳ hoạt động</span>
+                <span className="text-amber-950 font-black bg-amber-100 border border-amber-300 px-3 py-0.5 rounded-md text-xs">
+                  2026 - 2027
+                </span>
+              </div>
+            </div>
+
+            {/* Thông điệp từ BCN */}
+            <div className="rounded-xl border-l-4 border-[#1657c1] bg-blue-50/60 p-3.5 text-xs text-slate-700 leading-relaxed">
+              <p className="italic">
+                "Chào mừng bạn chính thức gia nhập đại gia đình iSSAC. Hẹn gặp bạn tại buổi First Meeting & Lễ ra mắt Ban để cùng nhau khởi đầu một nhiệm kỳ rực rỡ và bứt phá!"
+              </p>
+              <div className="text-right font-bold text-[#1657c1] text-[11px] mt-1.5 not-italic">
+                - Ban Chủ nhiệm iSSAC
+              </div>
+            </div>
+
+            {/* Hàng nút hành động - Không dùng icon */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Link href="/member/result" className="flex-1">
+                <button
+                  type="button"
+                  className="w-full py-3 px-5 rounded-xl bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
+                >
+                  Xem chi tiết thư kết quả
+                </button>
+              </Link>
               <button
                 type="button"
-                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md transition-all"
+                onClick={() => setShowResultModal(false)}
+                className="py-3 px-6 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-all cursor-pointer"
               >
-                <Trophy className="w-3.5 h-3.5" /> Xem chi tiết thư kết quả
+                Đóng
               </button>
-            </Link>
-            <Button
-              variant="outline"
-              onClick={() => setShowResultModal(false)}
-              className="w-full sm:w-auto text-xs font-bold"
-            >
-              Đóng
-            </Button>
-          </DialogFooter>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

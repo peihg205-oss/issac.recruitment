@@ -11,12 +11,12 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'iSSAC — VNU-IS Ambassadors Club | Câu lạc bộ Đại sứ Sinh viên',
-  description: 'iSSAC — Kết nối, lan tỏa và truyền cảm hứng. Cổng thông tin và tuyển chọn thành viên chính thức Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN.',
+  title: 'iSSAC - VNU-IS Ambassadors Club | Câu lạc bộ Đại sứ Sinh viên',
+  description: 'iSSAC - Kết nối, lan tỏa và truyền cảm hứng. Cổng thông tin và tuyển chọn thành viên chính thức Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN.',
   keywords: ['iSSAC', 'VNU-IS', 'Ambassadors Club', 'CLB Đại sứ Sinh viên', 'tuyển thành viên', 'Trường Quốc tế ĐHQGHN'],
   openGraph: {
-    title: 'iSSAC — Câu lạc bộ Đại sứ Sinh viên VNU-IS',
-    description: 'Bridge to Success — Kết nối, lan tỏa và truyền cảm hứng',
+    title: 'iSSAC - Câu lạc bộ Đại sứ Sinh viên VNU-IS',
+    description: 'Bridge to Success - Kết nối, lan tỏa và truyền cảm hứng',
     type: 'website',
   },
 }

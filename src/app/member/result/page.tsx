@@ -87,7 +87,7 @@ export default async function MemberResultPage() {
                 CHÚC MỪNG TRÚNG TUYỂN!
               </h2>
               <p className="text-emerald-100 text-xs font-semibold">
-                Thành viên chính thức — Câu lạc bộ Đại sứ Sinh viên (iSSAC)
+                Thành viên chính thức - Câu lạc bộ Đại sứ Sinh viên (iSSAC)
               </p>
               <div className="inline-flex items-center gap-2 bg-white text-emerald-900 rounded-full px-5 py-1.5 mt-4 shadow-md font-black text-sm">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />

@@ -172,7 +172,7 @@ export default function MemberInterviewPage() {
                 <Clock className="w-5 h-5 text-blue-600" />
                 <div>
                   <div className="text-xs text-gray-500">Giờ</div>
-                  <div className="font-bold">{slot?.start_time?.slice(0,5)} — {slot?.end_time?.slice(0,5)}</div>
+                  <div className="font-bold">{slot?.start_time?.slice(0,5)} - {slot?.end_time?.slice(0,5)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export default function MemberInterviewPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-gray-900">{formatDate(slot.interview_date)}</span>
-                      <span className="text-blue-700 font-semibold">{slot.start_time?.slice(0,5)} — {slot.end_time?.slice(0,5)}</span>
+                      <span className="text-blue-700 font-semibold">{slot.start_time?.slice(0,5)} - {slot.end_time?.slice(0,5)}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-500">
                       <Badge variant={slot.format === 'online' ? 'secondary' : 'outline'} className="text-xs">

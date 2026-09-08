@@ -200,7 +200,7 @@ export default function ProfilePage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="university">Trường {locked && '(Đã khóa)'}</Label>
-                <Input id="university" {...register('university')} placeholder="Đại học Công nghệ Thông tin — ĐHQG TP.HCM" disabled={locked} className={locked ? 'bg-gray-50' : ''} />
+                <Input id="university" {...register('university')} placeholder="Đại học Công nghệ Thông tin - ĐHQG TP.HCM" disabled={locked} className={locked ? 'bg-gray-50' : ''} />
               </div>
 
               <div className="space-y-1.5">

@@ -358,15 +358,15 @@ export default function MemberDashboardPage() {
             </span>
           </div>
 
-          <div className="space-y-2.5 text-xs sm:text-sm text-blue-50 leading-relaxed max-w-3xl">
-            <p className="font-black text-white text-base">
+          <div className="space-y-3 text-xs sm:text-sm text-blue-50 leading-relaxed w-full">
+            <p className="font-bold text-white text-base">
               Thân gửi bạn {currentProfile.full_name},
             </p>
-            <p className="text-blue-100 font-medium">
-              Trước tiên, Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế — ĐHQGHN (iSSAC) xin gửi lời cảm ơn chân thành nhất đến bạn vì đã dành thời gian, sự quan tâm và nhiệt huyết tham gia đợt tuyển quân Gen 10.
+            <p className="text-blue-100 font-normal leading-relaxed text-justify">
+              Trước tiên, Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC) xin gửi lời cảm ơn chân thành nhất đến bạn vì đã dành thời gian, sự quan tâm và nhiệt huyết tham gia đợt tuyển quân Gen 10.
             </p>
-            <p className="text-blue-100 font-medium">
-              Dù kết quả như thế nào thì hy vọng bạn vẫn sẽ luôn theo dõi, ủng hộ và đồng hành cùng CLB trong các hoạt động sắp tới nhé! ✨
+            <p className="text-blue-100 font-normal leading-relaxed text-justify">
+              Dù kết quả như thế nào thì hy vọng bạn vẫn sẽ luôn theo dõi, ủng hộ và đồng hành cùng CLB trong các hoạt động sắp tới nhé!
             </p>
           </div>
 
@@ -408,7 +408,7 @@ export default function MemberDashboardPage() {
 
             <div className="space-y-1">
               <div className="text-[11px] uppercase tracking-widest text-blue-700 font-black">
-                Trường Quốc tế — ĐHQGHN
+                Trường Quốc tế - ĐHQGHN
               </div>
               <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 text-center">
                 🎉 XIN CHÚC MỪNG BẠN!

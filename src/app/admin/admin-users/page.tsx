@@ -253,20 +253,7 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      {/* BCN Unlimited Account Creation & Strict Scoping Guarantee Notice */}
-      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/90 text-emerald-950 flex items-start gap-3 shadow-2xs">
-        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-        <div className="space-y-1 text-xs sm:text-sm">
-          <div className="font-black text-emerald-900">
-            Quy định phân quyền & Cấp tài khoản không giới hạn của Ban Chủ nhiệm
-          </div>
-          <p className="text-emerald-800 leading-relaxed text-xs">
-            • <strong>Không giới hạn số lượng</strong>: Ban Chủ nhiệm có toàn quyền tạo thêm tài khoản cho bất kỳ thành viên nào của Ban Truyền thông, Ban Tư vấn, Ban Nhân sự tham gia đợt tuyển quân.
-            <br />
-            • <strong>Phân quyền độc lập & bảo mật</strong>: Mỗi tài khoản được tạo cho Ban nào thì <strong>chỉ có quyền hạn thao tác (chấm điểm phỏng vấn, tạo câu hỏi, đề xuất kết quả) trong phạm vi ứng viên của Ban đó</strong>. Thành viên ban này hoàn toàn không thể chấm điểm hay can thiệp vào ban khác.
-          </p>
-        </div>
-      </div>
+      
 
       {/* Department Account Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

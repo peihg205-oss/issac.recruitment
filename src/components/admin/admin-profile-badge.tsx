@@ -352,24 +352,11 @@ export function AdminProfileBadge({
             {activeTab === "self" && (
               <div className="space-y-4">
                 {/* Role Permission Badge Alert */}
-                {isBCN ? (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
-                    <Crown className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-xs text-emerald-900 leading-relaxed">
-                      <strong className="text-emerald-950 font-bold block mb-0.5">
-                        Tài khoản Ban Chủ nhiệm (Toàn quyền)
-                      </strong>
-                      Bạn có quyền thay đổi tên và chức vụ của mình <strong>ngay lập tức không cần xét duyệt</strong>.
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+                {!isBCN && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
                     <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div className="text-xs text-amber-900 leading-relaxed">
-                      <strong className="text-amber-950 font-bold block mb-0.5">
-                        Tài khoản Ban chuyên môn ({EVALUATOR_ACCOUNTS[role]?.departmentName})
-                      </strong>
-                      Thay đổi tên và chức vụ sẽ được chuyển đến <strong>Ban Chủ nhiệm phê duyệt</strong> trước khi áp dụng chính thức vào hệ thống.
+                      Thay đổi tên và chức vụ sẽ được gửi đến <strong>Ban Chủ nhiệm phê duyệt</strong> trước khi áp dụng.
                     </div>
                   </div>
                 )}
@@ -530,9 +517,7 @@ export function AdminProfileBadge({
             {/* TAB 3: BCN MANAGE ALL DEPARTMENTS DIRECTLY */}
             {isBCN && activeTab === "all" && (
               <div className="space-y-4">
-                <div className="text-xs text-slate-600 bg-blue-50/70 p-3 rounded-xl border border-blue-200/70 leading-relaxed">
-                  Là Ban Chủ nhiệm, bạn có thể <strong>chỉnh sửa trực tiếp</strong> tên và chức vụ của bất kỳ Ban nào mà không cần gửi yêu cầu phê duyệt.
-                </div>
+                
 
                 <div>
                   <Label className="text-xs font-bold text-slate-700 block mb-1.5">

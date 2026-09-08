@@ -29,16 +29,19 @@ export default function MemberAboutPage() {
         </Link>
       </div>
 
-      {/* 2. Tổng quan Câu lạc bộ: Khung Royal Navy trang nhã, dấu nối ngắn gọn - không dấu chấm giữa */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#081f44] via-[#0c3577] to-[#1657c1] text-white p-7 sm:p-9 shadow-md border border-[#1657c1]/60 space-y-5">
-        <div className="space-y-3">
-          <div className="text-xs font-semibold text-amber-300 uppercase tracking-wider">
+      {/* 2. Tổng quan Câu lạc bộ: Viền vàng kim nổi bật, tiêu đề highlight ấn tượng */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#071d40] via-[#0c3577] to-[#1657c1] text-white p-7 sm:p-9 shadow-lg border-2 border-[#fdc455] space-y-5">
+        <div className="space-y-2.5">
+          <div className="text-xs font-bold text-amber-300 uppercase tracking-wider">
             VNU-IS Ambassadors Club - Khóa Tuyển quân Gen 10
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#fdc455]">
             Câu lạc bộ Đại sứ Sinh viên (iSSAC)
           </h2>
-          <p className="text-sm sm:text-base text-blue-100 leading-relaxed text-justify font-normal">
+          <div className="text-xs sm:text-sm font-semibold text-blue-200">
+            Tổ chức Sinh viên trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội
+          </div>
+          <p className="text-sm sm:text-base text-blue-100 leading-relaxed text-justify font-normal pt-1">
             Được thành lập từ năm 2016, iSSAC là tổ chức sinh viên nòng cốt trực thuộc Trường Quốc tế - Đại học Quốc gia Hà Nội. Đội ngũ Đại sứ giữ vai trò là cầu nối thông tin chính thức giữa Nhà trường và cộng đồng sinh viên, đại diện hình ảnh sinh viên trên các diễn đàn đối ngoại, đồng thời là lực lượng chủ chốt trực tiếp sáng tạo và tổ chức các sự kiện lớn nhất năm của Trường.
           </p>
         </div>

@@ -2,12 +2,10 @@
 import { MOCK_INTERVIEW_SLOTS } from '@/lib/mock-data'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { Calendar, Clock, MapPin, Video, CheckCircle, Loader2, Users } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import Link from 'next/link'
 
 export default function MemberInterviewPage() {
   const supabase = createClient()
@@ -58,7 +56,6 @@ export default function MemberInterviewPage() {
         .single()
       setMyInterview(iv)
 
-      // Load available slots for their department
       const { data: availableSlots } = await supabase
         .from('interview_slots')
         .select('*')
@@ -83,21 +80,19 @@ export default function MemberInterviewPage() {
         toast({
           title: 'Đã đặt ca phỏng vấn thành công (Demo)!',
           description: 'Hệ thống đã ghi nhận lịch phỏng vấn của bạn.',
-          variant: 'success'
-        } as Parameters<typeof toast>[0])
+        })
       }, 600)
       return
     }
     setBooking(slotId)
 
-    // Check if slot still available
     const { data: slot } = await supabase.from('interview_slots').select('current_candidates, max_candidates').eq('id', slotId).single()
     if (!slot || slot.current_candidates >= slot.max_candidates) {
-      toast({ title: 'Slot đã đầy', description: 'Vui lòng chọn slot khác.', variant: 'destructive' })
-      setBooking(null); return
+      toast({ title: 'Slot đã đầy', description: 'Vui lòng chọn khung giờ khác.', variant: 'destructive' })
+      setBooking(null)
+      return
     }
 
-    // Create interview
     const { error } = await supabase.from('interviews').insert({
       application_id: application.id,
       slot_id: slotId,
@@ -108,154 +103,248 @@ export default function MemberInterviewPage() {
 
     if (error) {
       toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
-      setBooking(null); return
+      setBooking(null)
+      return
     }
 
-    // Update slot count
     await supabase.from('interview_slots').update({ current_candidates: slot.current_candidates + 1 }).eq('id', slotId)
-
-    // Update application status
     await supabase.from('applications').update({ status: 'interview_scheduled' }).eq('id', application.id)
 
-    // Send notification
     await supabase.from('notifications').insert({
       user_id: user.id,
-      title: '📅 Đã đặt lịch phỏng vấn',
+      title: 'Đã đặt lịch phỏng vấn',
       message: 'Bạn đã đặt lịch phỏng vấn thành công. Vui lòng đến đúng giờ!',
       type: 'success',
     })
 
-    toast({ title: '✅ Đặt lịch thành công!', description: 'Lịch phỏng vấn đã được xác nhận.' } as Parameters<typeof toast>[0])
+    toast({ title: 'Đặt lịch thành công!', description: 'Lịch phỏng vấn của bạn đã được xác nhận.' })
     setBooking(null)
     fetchData()
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
-
-  if (!application || application.status === 'draft' || application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-black text-gray-900">Lịch phỏng vấn</h1>
-        <Card className="text-center py-12">
-          <CardContent>
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-700 mb-2">Chưa đến vòng phỏng vấn</h2>
-            <p className="text-gray-500 text-sm">Hồ sơ của bạn đang được xem xét. Sau khi được duyệt, bạn sẽ có thể chọn lịch phỏng vấn tại đây.</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1657c1]" />
       </div>
     )
   }
 
+  // Trường hợp chưa mở vòng phỏng vấn
+  if (!application || application.status === 'draft' || application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+        <div className="space-y-1 border-b border-slate-200 pb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+            LỊCH PHỎNG VẤN iSSAC 2026
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 10
+          </p>
+        </div>
+
+        <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 sm:p-12 text-center shadow-xs space-y-4">
+          <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-[#1657c1] uppercase tracking-wider border border-blue-200">
+            Trạng thái vòng tuyển quân
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">
+            Chưa mở đặt lịch phỏng vấn
+          </h2>
+          <p className="text-slate-600 max-w-md mx-auto text-xs sm:text-sm leading-relaxed">
+            Hồ sơ đơn ứng tuyển của bạn hiện đang trong giai đoạn chấm duyệt. Sau khi có thông báo vượt qua vòng đơn, cổng đặt lịch phỏng vấn sẽ tự động mở tại trang này.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/member/dashboard"
+              className="inline-block px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all"
+            >
+              Về trang Tổng quan
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Trường hợp ĐÃ ĐẶT LỊCH THÀNH CÔNG
   if (myInterview) {
     const slot = myInterview.interview_slots
     return (
-      <div className="space-y-6 animate-fade-in">
-        <h1 className="text-2xl font-black text-gray-900">Lịch phỏng vấn</h1>
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Đã đặt lịch phỏng vấn
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <div>
-                  <div className="text-xs text-gray-500">Ngày</div>
-                  <div className="font-bold">{formatDate(slot?.interview_date)}</div>
-                </div>
+      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+        {/* Header đồng bộ font chữ & phong cách */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              LỊCH PHỎNG VẤN iSSAC 2026
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 10
+            </p>
+          </div>
+          <Link
+            href="/member/dashboard"
+            className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all"
+          >
+            Về Tổng quan
+          </Link>
+        </div>
+
+        {/* Thẻ Lịch phỏng vấn: Viền full, phong cách Hoàng gia Xanh Navy & Vàng kim, không dùng icon */}
+        <div className="bg-white border-2 border-[#1657c1]/20 rounded-3xl shadow-md overflow-hidden">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-[#0d3b82] to-[#1657c1] p-5 sm:p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-blue-200 font-bold">
+                Trạng thái lịch hẹn
               </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <div>
-                  <div className="text-xs text-gray-500">Giờ</div>
-                  <div className="font-bold">{slot?.start_time?.slice(0,5)} - {slot?.end_time?.slice(0,5)}</div>
-                </div>
+              <div className="text-lg sm:text-xl font-black text-white">
+                Đã xác nhận lịch phỏng vấn
               </div>
-              <div className="flex items-center gap-3">
-                {slot?.format === 'online' ? <Video className="w-5 h-5 text-purple-600" /> : <MapPin className="w-5 h-5 text-red-500" />}
-                <div>
-                  <div className="text-xs text-gray-500">Hình thức</div>
-                  <div className="font-bold">{slot?.format === 'online' ? 'Online' : 'Offline'}</div>
-                </div>
-              </div>
-              {slot?.format === 'offline' && slot?.location && (
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <div className="text-xs text-gray-500">Địa điểm</div>
-                    <div className="font-bold">{slot.location}</div>
-                  </div>
-                </div>
-              )}
             </div>
+            <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black bg-[#fdc455] text-slate-950 uppercase tracking-wider shadow-sm self-start sm:self-auto">
+              Đã đặt lịch thành công
+            </span>
+          </div>
+
+          {/* Bảng chi tiết thông tin phỏng vấn - Rõ ràng, sạch sẽ, không icon */}
+          <div className="p-6 sm:p-7 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50/80 border-2 border-slate-200/80 space-y-1">
+                <div className="text-xs font-semibold text-slate-500">Ngày phỏng vấn</div>
+                <div className="text-base font-bold text-slate-900">{formatDate(slot?.interview_date)}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50/80 border-2 border-slate-200/80 space-y-1">
+                <div className="text-xs font-semibold text-slate-500">Khung giờ</div>
+                <div className="text-base font-black text-[#1657c1]">{slot?.start_time?.slice(0,5)} - {slot?.end_time?.slice(0,5)}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50/80 border-2 border-slate-200/80 space-y-1">
+                <div className="text-xs font-semibold text-slate-500">Hình thức phỏng vấn</div>
+                <div className="text-base font-bold text-slate-900">
+                  {slot?.format === 'online' ? 'Trực tuyến (Online)' : 'Trực tiếp (Offline)'}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50/80 border-2 border-slate-200/80 space-y-1">
+                <div className="text-xs font-semibold text-slate-500">Địa điểm tập trung</div>
+                <div className="text-sm font-bold text-slate-900 leading-snug">
+                  {slot?.location || (slot?.format === 'online' ? 'Phòng họp trực tuyến' : 'Thông báo sau')}
+                </div>
+              </div>
+            </div>
+
             {slot?.meeting_url && (
-              <div className="mt-4 p-3 bg-purple-50 border border-purple-100 rounded-xl">
-                <div className="text-xs text-purple-600 font-semibold mb-1">Link tham gia phỏng vấn</div>
-                <a href={slot.meeting_url} target="_blank" rel="noopener noreferrer" className="text-sm text-purple-700 hover:underline break-all">
+              <div className="p-4 rounded-2xl bg-blue-50/70 border-2 border-blue-200 space-y-1.5">
+                <div className="text-xs font-bold text-[#1657c1] uppercase tracking-wide">
+                  Đường dẫn phòng phỏng vấn trực tuyến
+                </div>
+                <a
+                  href={slot.meeting_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs sm:text-sm text-blue-700 hover:underline font-semibold break-all block"
+                >
                   {slot.meeting_url}
                 </a>
               </div>
             )}
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-800 text-sm">
-              ⏰ Vui lòng tham gia đúng giờ. Nếu có vấn đề, hãy liên hệ Ban Nhân sự.
+
+            {/* Khối nhắc nhở từ Ban Nhân sự - Không emoji ⏰ */}
+            <div className="rounded-2xl border-l-4 border-amber-400 bg-amber-50/70 p-4 text-xs sm:text-sm text-amber-950 space-y-1">
+              <div className="font-bold text-amber-950">Lưu ý quan trọng từ Ban Nhân sự:</div>
+              <p className="text-amber-900 leading-relaxed font-medium">
+                Vui lòng có mặt trước giờ phỏng vấn ít nhất 10 phút và chuẩn bị trang phục lịch sự. Nếu phát sinh sự cố đột xuất cần hỗ trợ dời lịch, hãy liên hệ ngay với Ban Nhân sự CLB iSSAC.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
+  // Trường hợp ĐƯỢC MỜI VÀ ĐANG CHỌN KHUNG GIỜ
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Chọn lịch phỏng vấn</h1>
-        <p className="text-gray-500 text-sm">Chọn một khung giờ phù hợp để tham gia phỏng vấn</p>
+    <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+      <div className="space-y-1 border-b border-slate-200 pb-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+          CHỌN LỊCH PHỎNG VẤN iSSAC 2026
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 font-medium">
+          Lựa chọn khung giờ thuận tiện nhất để tham gia phỏng vấn cùng Hội đồng tuyển sinh
+        </p>
       </div>
 
       {slots.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">Chưa có lịch phỏng vấn nào được tạo. Vui lòng liên hệ Ban Nhân sự.</p>
-          </CardContent>
-        </Card>
+        <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 sm:p-12 text-center shadow-xs space-y-3">
+          <div className="text-base font-bold text-slate-800">
+            Chưa có lịch phỏng vấn khả dụng
+          </div>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+            Các ca phỏng vấn cho Ban của bạn đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ Ban Nhân sự.
+          </p>
+        </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3.5">
           {slots.map(slot => {
             const isFull = slot.current_candidates >= slot.max_candidates
             return (
-              <Card key={slot.id} className={`transition-all ${isFull ? 'opacity-60' : 'hover:shadow-md border-blue-100'}`}>
-                <CardContent className="py-4 flex items-center gap-4">
-                  <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    {slot.format === 'online' ? <Video className="w-6 h-6 text-blue-600" /> : <MapPin className="w-6 h-6 text-blue-600" />}
+              <div
+                key={slot.id}
+                className={`p-5 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isFull 
+                    ? 'bg-slate-50/60 border-slate-200 opacity-60' 
+                    : 'bg-white border-slate-200/90 hover:border-blue-400 hover:shadow-xs'
+                }`}
+              >
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="font-bold text-slate-900 text-base">
+                      {formatDate(slot.interview_date)}
+                    </span>
+                    <span className="text-[#1657c1] font-black text-base">
+                      {slot.start_time?.slice(0,5)} - {slot.end_time?.slice(0,5)}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
+                      slot.format === 'online'
+                        ? 'bg-blue-100 text-[#1657c1]'
+                        : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {slot.format === 'online' ? 'Trực tuyến (Online)' : 'Trực tiếp (Offline)'}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-gray-900">{formatDate(slot.interview_date)}</span>
-                      <span className="text-blue-700 font-semibold">{slot.start_time?.slice(0,5)} - {slot.end_time?.slice(0,5)}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <Badge variant={slot.format === 'online' ? 'secondary' : 'outline'} className="text-xs">
-                        {slot.format === 'online' ? 'Online' : 'Offline'}
-                      </Badge>
-                      {slot.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{slot.location}</span>}
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{slot.current_candidates}/{slot.max_candidates} người</span>
-                    </div>
+
+                  <div className="text-xs text-slate-500 flex items-center gap-4 flex-wrap">
+                    {slot.location && (
+                      <span>Địa điểm: <strong className="text-slate-700">{slot.location}</strong></span>
+                    )}
+                    <span>Số lượng: <strong className="text-slate-700">{slot.current_candidates}/{slot.max_candidates} người</strong></span>
                   </div>
-                  <Button
+                </div>
+
+                <div className="shrink-0">
+                  <button
+                    type="button"
                     onClick={() => bookSlot(slot.id)}
                     disabled={isFull || booking === slot.id}
-                    variant={isFull ? 'outline' : 'default'}
-                    size="sm"
+                    className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                      isFull
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 shadow-sm hover:scale-[1.02] active:scale-[0.98]'
+                    }`}
                   >
-                    {booking === slot.id ? <Loader2 className="w-4 h-4 animate-spin" /> : isFull ? 'Đã đầy' : 'Đặt lịch'}
-                  </Button>
-                </CardContent>
-              </Card>
+                    {booking === slot.id ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang xử lý...
+                      </span>
+                    ) : isFull ? (
+                      'Đã kín chỗ'
+                    ) : (
+                      'Đặt lịch này'
+                    )}
+                  </button>
+                </div>
+              </div>
             )
           })}
         </div>

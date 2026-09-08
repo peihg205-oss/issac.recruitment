@@ -354,11 +354,26 @@ export default function ApplicationPage() {
                 </span>
               </div>
 
-              {/* 3 Thẻ Ban Chuyên môn: Màu sắc Xanh Navy & Vàng kim đồng nhất */}
+              {/* Link tham khảo trang thông tin riêng về CLB & các ban */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs text-[#1657c1]">
+                <span>Bạn muốn tìm hiểu chi tiết chức năng, nhiệm vụ và quyền lợi từng ban?</span>
+                <Link href="/member/about" className="font-bold underline hover:text-[#0d3b82] shrink-0">
+                  Xem trang Giới thiệu CLB & Các ban →
+                </Link>
+              </div>
+
+              {/* 3 Thẻ Ban Chuyên môn: Ngắn gọn, súc tích, chuẩn nhận diện */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {departments.map(dept => {
                   const isSelected = selectedDept === dept.id
-                  const details = getDeptDetails(dept)
+
+                  const shortDescMap: Record<string, string> = {
+                    "Ban Truyền thông": "Sáng tạo nội dung, thiết kế đồ họa & sản xuất media.",
+                    "Ban Tư vấn": "Tư vấn hướng nghiệp, học bổng & hỗ trợ sinh viên.",
+                    "Ban Nhân sự": "Quản trị nhân lực, tổ chức sự kiện & văn hóa CLB.",
+                  }
+
+                  const shortDesc = shortDescMap[dept.name] || dept.description || ""
 
                   return (
                     <div
@@ -366,20 +381,15 @@ export default function ApplicationPage() {
                       onClick={() => setSelectedDept(dept.id)}
                       className={`group p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                         isSelected
-                          ? 'border-[#1657c1] bg-gradient-to-b from-blue-50/80 via-white to-blue-50/20 shadow-md ring-2 ring-blue-500/20 -translate-y-0.5'
-                          : 'border-slate-200/90 bg-white hover:border-[#1657c1]/60 hover:bg-slate-50/50 hover:shadow-xs hover:-translate-y-0.5'
+                          ? "border-[#1657c1] bg-gradient-to-b from-blue-50/80 via-white to-blue-50/20 shadow-md ring-2 ring-blue-500/20 -translate-y-0.5"
+                          : "border-slate-200/90 bg-white hover:border-[#1657c1]/60 hover:bg-slate-50/50 hover:shadow-xs hover:-translate-y-0.5"
                       }`}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {/* Header Thẻ: Tên ban & Trạng thái NV1 */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className={`font-black text-lg ${isSelected ? 'text-[#1657c1]' : 'text-slate-900 group-hover:text-[#1657c1] transition-colors'}`}>
-                              {dept.name}
-                            </div>
-                            <div className="text-[11px] font-bold text-slate-400 mt-0.5">
-                              {details.tag}
-                            </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className={`font-black text-lg ${isSelected ? "text-[#1657c1]" : "text-slate-900 group-hover:text-[#1657c1] transition-colors"}`}>
+                            {dept.name}
                           </div>
 
                           {isSelected ? (
@@ -387,37 +397,21 @@ export default function ApplicationPage() {
                               NV1
                             </span>
                           ) : (
-                            <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-[#1657c1] shrink-0 mt-0.5 transition-colors" />
+                            <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-[#1657c1] shrink-0 transition-colors" />
                           )}
                         </div>
 
-                        {/* Mô tả nhiệm vụ */}
-                        <div className="text-xs text-slate-600 leading-relaxed font-normal">
-                          {dept.description}
-                        </div>
-
-                        {/* Nhãn kỹ năng / mảng công việc */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {details.keywords.map((kw, i) => (
-                            <span
-                              key={i}
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                                isSelected
-                                  ? 'bg-blue-100 text-[#1657c1] font-bold'
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}
-                            >
-                              {kw}
-                            </span>
-                          ))}
-                        </div>
+                        {/* Mô tả 1 dòng ngắn gọn */}
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {shortDesc}
+                        </p>
                       </div>
 
                       {/* Footer Thẻ */}
-                      <div className="mt-5 pt-3 border-t border-slate-100/80">
+                      <div className="mt-4 pt-3 border-t border-slate-100/80">
                         {isSelected ? (
                           <div className="text-xs font-black text-[#1657c1] flex items-center justify-between">
-                            <span>Đã chọn làm Nguyện vọng 1</span>
+                            <span>Đã chọn làm NV1</span>
                             <span className="w-2 h-2 rounded-full bg-[#1657c1]" />
                           </div>
                         ) : (

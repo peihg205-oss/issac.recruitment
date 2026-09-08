@@ -7,11 +7,12 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, User, FileText, HelpCircle,
-  Calendar, Trophy, LogOut, Bell, ChevronRight
+  Calendar, Trophy, LogOut, Bell, ChevronRight, Info
 } from 'lucide-react'
 
 const navItems = [
   { href: '/member/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+  { href: '/member/about', icon: Info, label: 'Giới thiệu CLB' },
   { href: '/member/profile', icon: User, label: 'Hồ sơ cá nhân' },
   { href: '/member/application', icon: FileText, label: 'Ứng tuyển' },
   { href: '/member/interview', icon: Calendar, label: 'Lịch phỏng vấn' },

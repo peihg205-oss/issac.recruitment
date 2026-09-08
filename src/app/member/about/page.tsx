@@ -237,7 +237,7 @@ export default function MemberAboutPage() {
                   Chức năng chính
                 </div>
                 <p className="text-slate-600 leading-relaxed text-justify">
-                  Tư vấn lộ trình học tập, giải đáp thông tin học bổng, định hướng ngành nghề cho sinh viên và chủ trì tổ chức các sự kiện học thuật, hướng nghiệp của Nhà trường.
+                  Cố vấn học thuật, định hướng ngành nghề, trực tiếp đại diện hình ảnh Nhà trường trong các tour tư vấn tuyển sinh tại các tỉnh, thành phố trực thuộc Trung ương (Hà Nội, Hải Phòng, Quảng Ninh,...) và chủ trì tổ chức các đại sự kiện quy mô lớn.
                 </p>
               </div>
 
@@ -245,11 +245,11 @@ export default function MemberAboutPage() {
                 <div className="font-bold text-[#1657c1] text-xs uppercase tracking-wide">
                   Nhiệm vụ cụ thể
                 </div>
-                <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
-                  <li>Lên ý tưởng, xây dựng kịch bản và trực tiếp điều phối sự kiện (Event Coordinator).</li>
-                  <li>Tư vấn tuyển sinh, giải đáp thắc mắc chương trình đào tạo liên kết quốc tế.</li>
-                  <li>Kết nối các nguồn học bổng doanh nghiệp và chương trình trao đổi sinh viên.</li>
-                  <li>Tổ chức các buổi tọa đàm, workshop rèn luyện kỹ năng học tập và thích ứng.</li>
+                <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed text-justify">
+                  <li>Trực tiếp tham gia các chuyến công tác tư vấn tuyển sinh, ngày hội hướng nghiệp tại các tỉnh thành trực thuộc Trung ương (TP. Hà Nội, TP. Hải Phòng, tỉnh Quảng Ninh,...).</li>
+                  <li>Lên ý tưởng, xây dựng kịch bản và trực tiếp điều phối các đại sự kiện của Trường (Event Coordinator).</li>
+                  <li>Tư vấn ngành học, giải đáp thông tin chương trình đào tạo liên kết quốc tế và học bổng.</li>
+                  <li>Tổ chức các buổi tọa đàm, workshop rèn luyện kỹ năng học tập và thích ứng cho sinh viên.</li>
                 </ul>
               </div>
             </div>

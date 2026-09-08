@@ -253,9 +253,9 @@ export default function HomePage() {
         </div>
 
         {/* 3 Department Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 items-stretch">
           {/* Card 1: Truyền thông */}
-          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden">
+          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden h-full">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-full bg-[#1657c1] text-white flex items-center justify-center shadow-xs">
@@ -265,29 +265,32 @@ export default function HomePage() {
                   01
                 </span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Truyền thông</h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2">
-                  Sáng tạo nội dung, lan tỏa hình ảnh và giá trị của Trường Quốc tế.
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Ban Truyền thông</h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+                  Chịu trách nhiệm toàn diện về diện mạo thương hiệu số của iSSAC và Trường Quốc tế; xây dựng kế hoạch nội dung sáng tạo (Content Planning), thiết kế bộ nhận diện & ấn phẩm đồ họa chuyên nghiệp, sản xuất video ngắn dẫn đầu xu hướng (TikTok, Reels, Recap), và tác nghiệp nhiếp ảnh trực tiếp tại các sự kiện lớn.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-6 mt-4 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-2 pt-5 mt-5 border-t border-slate-100">
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Content
+                #Sáng tạo nội dung
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Thiết kế
+                #Thiết kế đồ họa
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Social Media
+                #Video ngắn xu hướng
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
+                #Nhiếp ảnh sự kiện
               </span>
             </div>
           </div>
 
           {/* Card 2: Tư vấn */}
-          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden">
+          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden h-full">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-full bg-[#1657c1] text-white flex items-center justify-center shadow-xs">
@@ -297,15 +300,15 @@ export default function HomePage() {
                   02
                 </span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Tư vấn</h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2">
-                  Lên ý tưởng, học kiến thức tổ chức sự kiện và trực tiếp tham gia với vai trò Ban Tổ chức (BTC) chạy các sự kiện lớn tại VNU-IS như: <strong>ISTART CAMP</strong>, <strong>JOBLINK WEEK</strong>, <strong>ENROLLMENT DAY</strong>,... cùng công tác cố vấn, hỗ trợ sinh viên.
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Ban Tư vấn</h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+                  Học kiến thức tổ chức sự kiện, trực tiếp làm Ban Tổ chức (BTC) chạy các đại sự kiện lớn tại VNU-IS như: <strong>ISTART CAMP</strong>, <strong>JOBLINK WEEK</strong>, <strong>ENROLLMENT DAY</strong>,... đồng thời trực tiếp tham gia các chuyến công tác tư vấn tuyển sinh và hướng nghiệp thực địa tại các tỉnh, thành phố trực thuộc Trung ương như <strong>TP. Hà Nội, TP. Hải Phòng, Quảng Ninh</strong>,...
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-6 mt-4 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-2 pt-5 mt-5 border-t border-slate-100">
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
                 #Tổ chức sự kiện
               </span>
@@ -316,13 +319,13 @@ export default function HomePage() {
                 #JOBLINK WEEK
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #ENROLLMENT DAY
+                #Tư vấn tuyển sinh tỉnh thành
               </span>
             </div>
           </div>
 
           {/* Card 3: Nhân sự */}
-          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden">
+          <div className="relative bg-white rounded-2xl p-7 border-2 border-slate-200/80 shadow-xs hover:shadow-md hover:border-[#1657c1]/50 transition-all flex flex-col justify-between overflow-hidden h-full">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-full bg-[#1657c1] text-white flex items-center justify-center shadow-xs">
@@ -332,23 +335,26 @@ export default function HomePage() {
                   03
                 </span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Nhân sự</h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2">
-                  Tổ chức và tham gia các sự kiện học thuật, trải nghiệm và cộng đồng.
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Ban Nhân sự</h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
+                  Giữ vai trò là bộ máy vận hành và sợi dây gắn kết của tổ chức; chịu trách nhiệm tuyển quân thường niên, quản trị nhân sự, theo dõi tiến độ & đánh giá KPI, bảo đảm công tác hậu cần - dự trù ngân sách, cùng sứ mệnh kiến tạo văn hóa gia đình iSSAC qua các chương trình Team Building, Trại dã ngoại và Gala tổng kết.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-6 mt-4 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-2 pt-5 mt-5 border-t border-slate-100">
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Con người
+                #Quản trị nhân lực
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Văn hóa
+                #Tuyển quân & KPI
               </span>
               <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
-                #Vận hành
+                #Hậu cần & Ngân sách
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-[#1657c1] text-xs font-semibold">
+                #Gala & Team Building
               </span>
             </div>
           </div>

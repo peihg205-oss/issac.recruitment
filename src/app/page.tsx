@@ -40,7 +40,7 @@ export default function HomePage() {
               alt="iSSAC - VNU-IS Ambassadors Club"
               width={200}
               height={50}
-              className="h-9 sm:h-10 w-auto object-contain brightness-0 invert"
+              className="h-9 sm:h-11 w-auto object-contain"
               priority
             />
           </Link>
@@ -559,7 +559,7 @@ export default function HomePage() {
                 alt="iSSAC VNU-IS Logo"
                 width={200}
                 height={55}
-                className="h-11 w-auto object-contain brightness-0 invert"
+                className="h-11 sm:h-12 w-auto object-contain"
               />
             </div>
 

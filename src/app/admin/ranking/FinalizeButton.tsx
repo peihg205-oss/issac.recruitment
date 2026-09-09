@@ -33,7 +33,7 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
           setShowDialog(false)
           setPublished(true)
           toast({
-            title: '✅ Đã công bố kết quả TOP 15 (Demo)!',
+            title: '✅ Đã công bố kết quả TOP 15!',
             description: `Hệ thống đã tự động duyệt TOP ${quota} ứng viên điểm cao nhất thành Pass và gửi thông báo.`,
             variant: 'success'
           } as Parameters<typeof toast>[0])

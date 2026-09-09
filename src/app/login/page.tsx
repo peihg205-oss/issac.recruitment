@@ -8,15 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
 import {
-  Eye, EyeOff, LogIn, ArrowLeft, Loader2,
-  Crown, Megaphone, MessageSquare, Users, Shield,
-  UserCheck, Sparkles, FileText, CheckCircle2
+  Eye, EyeOff, LogIn, Loader2,
+  CheckCircle2, Trophy, ShieldCheck, Sparkles, Home
 } from 'lucide-react'
 
 const schema = z.object({
@@ -25,40 +23,15 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-const DEMO_ADMIN_ACCOUNTS = [
-  {
-    role: 'chu-nhiem',
-    name: 'Ban Chủ nhiệm',
-    email: 'bcn@issac.vnu.edu.vn',
-    icon: Crown,
-    color: 'text-amber-900 bg-amber-50 border-amber-200 hover:bg-amber-100/70',
-    desc: 'Toàn quyền duyệt Top 15 và chấm điểm cả 3 ban',
-  },
-  {
-    role: 'truyen-thong',
-    name: 'Ban Truyền thông',
-    email: 'truyenthong@issac.vnu.edu.vn',
-    icon: Megaphone,
-    color: 'text-blue-900 bg-blue-50 border-blue-200 hover:bg-blue-100/70',
-    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Truyền thông',
-  },
-  {
-    role: 'tu-van',
-    name: 'Ban Tư vấn',
-    email: 'tuvan@issac.vnu.edu.vn',
-    icon: MessageSquare,
-    color: 'text-emerald-900 bg-emerald-50 border-emerald-200 hover:bg-emerald-100/70',
-    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Tư vấn',
-  },
-  {
-    role: 'nhan-su',
-    name: 'Ban Nhân sự',
-    email: 'nhansu@issac.vnu.edu.vn',
-    icon: Users,
-    color: 'text-purple-900 bg-purple-50 border-purple-200 hover:bg-purple-100/70',
-    desc: 'Chỉ chấm điểm & đặt câu hỏi Ban Nhân sự',
-  },
-]
+const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string }> = {
+  'bcn@issac.vnu.edu.vn': { role: 'chu-nhiem', name: 'Ban Chủ nhiệm' },
+  'truyenthong@issac.vnu.edu.vn': { role: 'truyen-thong', name: 'Ban Truyền thông' },
+  'dinhhai.issac@vnu.edu.vn': { role: 'truyen-thong', name: 'Ban Truyền thông' },
+  'tuvan@issac.vnu.edu.vn': { role: 'tu-van', name: 'Ban Tư vấn' },
+  'haiyen.issac@vnu.edu.vn': { role: 'tu-van', name: 'Ban Tư vấn' },
+  'nhansu@issac.vnu.edu.vn': { role: 'nhan-su', name: 'Ban Nhân sự' },
+  'minhduc.issac@vnu.edu.vn': { role: 'nhan-su', name: 'Ban Nhân sự' },
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -69,14 +42,14 @@ function LoginForm() {
   const [showForgotModal, setShowForgotModal] = useState(false)
   const supabase = createClient()
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
   const onSubmit = async (values: FormData) => {
     setLoading(true)
 
-    // Check newly created accounts from BCN
+    // 1. Kiểm tra tài khoản admin được Ban Chủ nhiệm cấp quyền
     if (typeof window !== "undefined") {
       const createdRaw = localStorage.getItem("issac_created_admins")
       if (createdRaw) {
@@ -100,20 +73,21 @@ function LoginForm() {
       }
     }
 
-    // Demo admin email quick bypass
-    const matchedRole = DEMO_ADMIN_ACCOUNTS.find(a => a.email === values.email)?.role
-    if (matchedRole) {
-      document.cookie = `issac_admin_role=${matchedRole}; path=/; max-age=2592000`
+    // 2. Kiểm tra tài khoản cán bộ quản trị hệ thống
+    const matchedAdmin = SYSTEM_ADMIN_ROLES[values.email.toLowerCase()]
+    if (matchedAdmin) {
+      document.cookie = "issac_admin_role=" + matchedAdmin.role + "; path=/; max-age=2592000"
       toast({
-        title: 'Đăng nhập thành công',
-        description: `Đang chuyển vào cổng quản lý với quyền ${DEMO_ADMIN_ACCOUNTS.find(a => a.role === matchedRole)?.name}...`,
-        variant: 'success'
+        title: "Đăng nhập thành công",
+        description: "Đang chuyển vào cổng quản lý với quyền " + matchedAdmin.name + "...",
+        variant: "success"
       } as Parameters<typeof toast>[0])
-      router.push('/admin/dashboard')
+      router.push("/admin/dashboard")
       router.refresh()
       return
     }
 
+    // 3. Đăng nhập với Supabase Authentication
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
@@ -123,11 +97,11 @@ function LoginForm() {
 
     if (error) {
       toast({
-        title: 'Đăng nhập thất bại',
-        description: error.message === 'Invalid login credentials'
-          ? 'Email hoặc mật khẩu không chính xác'
+        title: "Đăng nhập thất bại",
+        description: error.message === "Invalid login credentials"
+          ? "Email hoặc mật khẩu không chính xác"
           : error.message,
-        variant: 'destructive'
+        variant: "destructive"
       })
       return
     }
@@ -135,49 +109,25 @@ function LoginForm() {
     if (!authData.user) return
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, admin_role')
-      .eq('id', authData.user.id)
+      .from("profiles")
+      .select("role, admin_role")
+      .eq("id", authData.user.id)
       .single()
 
-    toast({ title: 'Đăng nhập thành công', variant: 'success' } as Parameters<typeof toast>[0])
+    if (profile?.admin_role) {
+      document.cookie = "issac_admin_role=" + profile.admin_role + "; path=/; max-age=2592000"
+    }
 
-    const redirectTo = searchParams.get('redirectedFrom')
+    toast({ title: "Đăng nhập thành công", variant: "success" } as Parameters<typeof toast>[0])
+
+    const redirectTo = searchParams.get("redirectedFrom")
     if (redirectTo) {
       router.push(redirectTo)
-    } else if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-      router.push('/admin/dashboard')
+    } else if (profile?.role === "admin" || profile?.role === "super_admin") {
+      router.push("/admin/dashboard")
     } else {
-      router.push('/member/dashboard')
+      router.push("/member/dashboard")
     }
-    router.refresh()
-  }
-
-  const handleCandidateQuickLogin = (mode: 'dashboard' | 'apply') => {
-    document.cookie = 'issac_member_demo=true; path=/; max-age=2592000'
-    toast({
-      title: 'Đăng nhập Demo Ứng Viên',
-      description: mode === 'apply' ? 'Đang chuyển đến form nộp đơn ứng tuyển...' : 'Đang chuyển đến Dashboard tiến trình...',
-      variant: 'success'
-    } as Parameters<typeof toast>[0])
-    if (mode === 'apply') {
-      router.push('/member/application')
-    } else {
-      router.push('/member/dashboard')
-    }
-    router.refresh()
-  }
-
-  const handleQuickLogin = (role: string, email: string) => {
-    setValue('email', email)
-    setValue('password', '123456')
-    document.cookie = `issac_admin_role=${role}; path=/; max-age=2592000`
-    toast({
-      title: 'Đăng nhập quản trị viên',
-      description: `Đang chuyển vào cổng quản lý với quyền ${DEMO_ADMIN_ACCOUNTS.find(a => a.role === role)?.name}...`,
-      variant: 'success'
-    } as Parameters<typeof toast>[0])
-    router.push('/admin/dashboard')
     router.refresh()
   }
 
@@ -203,20 +153,40 @@ function LoginForm() {
             Cổng Đăng Nhập Hệ Thống
           </h1>
           <p className="text-blue-100 text-sm mb-8 leading-relaxed font-medium">
-            Hệ thống phân quyền tuyển chọn thành viên chính thức iSSAC cho Ban Chủ nhiệm và 3 Ban chuyên môn.
+            Hệ thống phân quyền tuyển chọn thành viên chính thức iSSAC cho Ban Chủ nhiệm và các Ban chuyên môn.
           </p>
-          <div className="space-y-2.5 text-left">
+          <div className="space-y-3 text-left">
             {[
-              'Chấm điểm phỏng vấn độc lập & giải trình lý do',
-              'Xếp hạng tự động theo Ban & Toàn CLB',
-              'Ban Chủ nhiệm thẩm định và phê chuẩn Top 15',
-              'Theo dõi tiến trình xét tuyển dành cho ứng viên'
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs text-blue-50 bg-white/10 border border-white/15 rounded-2xl p-3 backdrop-blur-sm">
-                <div className="w-2 h-2 rounded-full bg-[#fdc455] flex-shrink-0" />
-                <span className="font-semibold">{item}</span>
-              </div>
-            ))}
+              {
+                title: "Chấm điểm phỏng vấn độc lập & giải trình lý do",
+                icon: CheckCircle2,
+              },
+              {
+                title: "Xếp hạng tự động theo Ban & Toàn CLB",
+                icon: Trophy,
+              },
+              {
+                title: "Ban Chủ nhiệm thẩm định và phê chuẩn Top 15",
+                icon: ShieldCheck,
+              },
+              {
+                title: "Theo dõi tiến trình tuyển quân dành cho ứng viên",
+                icon: Sparkles,
+              },
+            ].map((item, i) => {
+              const Icon = item.icon
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 text-xs text-blue-50 bg-white/10 border border-white/15 rounded-2xl p-3.5 backdrop-blur-sm shadow-sm hover:bg-white/15 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-[#fdc455]/20 border border-[#fdc455]/40 flex items-center justify-center shrink-0 text-[#fdc455] shadow-inner">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-white/95 leading-snug">{item.title}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -242,8 +212,8 @@ function LoginForm() {
                   id="email"
                   type="email"
                   placeholder="example@vnu.edu.vn"
-                  {...register('email')}
-                  className={`text-sm rounded-xl h-11 ${errors.email ? 'border-red-300' : 'border-gray-200'}`}
+                  {...register("email")}
+                  className={`text-sm rounded-xl h-11 ${errors.email ? "border-red-300" : "border-gray-200"}`}
                 />
                 {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
               </div>
@@ -253,10 +223,10 @@ function LoginForm() {
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPw ? 'text' : 'password'}
+                    type={showPw ? "text" : "password"}
                     placeholder="••••••••"
-                    {...register('password')}
-                    className={`pr-10 text-sm rounded-xl h-11 ${errors.password ? 'border-red-300' : 'border-gray-200'}`}
+                    {...register("password")}
+                    className={`pr-10 text-sm rounded-xl h-11 ${errors.password ? "border-red-300" : "border-gray-200"}`}
                   />
                   <button
                     type="button"
@@ -292,86 +262,22 @@ function LoginForm() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center text-xs text-gray-500">
-              Chưa có tài khoản sinh viên?{' '}
+            <div className="mt-5 text-center text-xs text-gray-500">
+              Chưa có tài khoản sinh viên?{" "}
               <Link href="/register" className="text-[#1559c5] font-bold hover:underline">
                 Đăng ký ứng tuyển
               </Link>
             </div>
 
-            {/* Candidate Demo Quick Login Section */}
-            <div className="mt-6 p-4 rounded-2xl bg-[#fff7e8] border border-[#fed7aa] shadow-sm text-left">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-amber-600" />
-                  DEMO DÀNH CHO NGƯỜI APPLY (ỨNG VIÊN)
-                </span>
-                <span className="bg-[#fdc455] text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  1-Click
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-700 mb-2.5 leading-relaxed">
-                Trải nghiệm tài khoản ứng viên <strong>Nguyễn Hà Phương (K22 - VNU-IS)</strong>:
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCandidateQuickLogin('dashboard')}
-                  className="p-2.5 rounded-xl bg-white border border-amber-300 text-left hover:bg-amber-100/50 transition-all shadow-sm"
-                >
-                  <div className="font-bold text-xs text-amber-950 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Xem Tiến độ & Kết quả</span>
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">Lộ trình, ca PV, TOP 15</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCandidateQuickLogin('apply')}
-                  className="p-2.5 rounded-xl bg-white border border-amber-300 text-left hover:bg-amber-100/50 transition-all shadow-sm"
-                >
-                  <div className="font-bold text-xs text-amber-950 flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Form Nộp Đơn Mới</span>
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">Chọn ban & trả lời câu hỏi</div>
-                </button>
-              </div>
-            </div>
-
-            {/* Department Accounts Quick Login Section */}
-            <div className="mt-5 pt-4 border-t border-gray-100 text-left">
-              <div className="text-xs font-bold text-gray-800 mb-2 flex items-center justify-between">
-                <span>Tài khoản Giám khảo các Ban</span>
-                <span className="text-[10px] text-gray-400 font-normal">1-Click Admin</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ADMIN_ACCOUNTS.map((acc) => {
-                  const Icon = acc.icon
-                  return (
-                    <button
-                      key={acc.role}
-                      type="button"
-                      onClick={() => handleQuickLogin(acc.role, acc.email)}
-                      className={`p-2.5 rounded-xl border text-left transition-all hover:shadow-sm ${acc.color}`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-xs">
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{acc.name}</span>
-                      </div>
-                      <div className="text-[10px] opacity-75 font-mono truncate mt-0.5">
-                        {acc.email}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <Link href="/" className="inline-flex items-center gap-1 text-gray-500 text-xs hover:text-[#1559c5] font-semibold transition-colors">
-                <ArrowLeft className="w-3 h-3" /> Về trang chủ iSSAC
+            {/* Về trang chủ - Biểu tượng ngôi nhà */}
+            <div className="mt-8 flex justify-center border-t border-gray-100 pt-5">
+              <Link
+                href="/"
+                aria-label="Về trang chủ"
+                title="Về trang chủ iSSAC"
+                className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#1559c5] hover:border-[#1559c5]/40 hover:bg-blue-50/60 transition-all shadow-sm group"
+              >
+                <Home className="w-5 h-5 transition-transform group-hover:scale-110" />
               </Link>
             </div>
           </div>

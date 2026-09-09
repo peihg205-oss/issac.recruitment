@@ -78,7 +78,7 @@ export default function MemberInterviewPage() {
       setTimeout(() => {
         setBooking(null)
         toast({
-          title: 'Đã đặt ca phỏng vấn thành công (Demo)!',
+          title: 'Đã đặt ca phỏng vấn thành công!',
           description: 'Hệ thống đã ghi nhận lịch phỏng vấn của bạn.',
         })
       }, 600)

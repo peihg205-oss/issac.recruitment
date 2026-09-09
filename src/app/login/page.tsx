@@ -216,8 +216,8 @@ function LoginForm() {
             <span>iSSAC đang tuyển thành viên Gen 3</span>
           </div>
 
-          {/* Khung Lịch Trình Tuyển Quân Gen 3 */}
-          <div className="bg-white/10 border border-white/15 rounded-3xl p-5 xl:p-6 backdrop-blur-md text-left shadow-xl space-y-4">
+          {/* Lịch trình Tuyển quân Gen 3 - Đơn giản ngày tháng */}
+          <div className="bg-white/10 border border-white/15 rounded-3xl p-5 xl:p-6 backdrop-blur-md text-left shadow-xl space-y-3.5">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <span className="text-xs font-black text-[#fdc455] uppercase tracking-wider flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Lịch Trình Tuyển Quân Gen 3
@@ -227,53 +227,44 @@ function LoginForm() {
               </span>
             </div>
 
-            <div className="space-y-3.5">
-              {/* Giai đoạn 1 */}
-              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
-                <div className="w-8 h-8 rounded-xl bg-[#fdc455]/20 border border-[#fdc455]/40 text-[#fdc455] font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
-                  <FileEdit className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-black text-white flex items-center justify-between">
-                    <span>Vòng 1: Mở Đơn Đăng Ký & Bài Luận</span>
-                    <span className="text-[10px] text-amber-300 font-mono">Đang diễn ra</span>
+            <div className="space-y-2.5">
+              {/* Mốc 1 */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-[#fdc455]/20 text-[#fdc455] font-black text-xs flex items-center justify-center shrink-0">
+                    01
                   </div>
-                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
-                    Tạo tài khoản sinh viên, chọn Ban nguyện vọng và nộp bài luận trực tuyến.
-                  </div>
+                  <span className="font-bold text-white text-xs">Vòng 1: Mở đơn đăng ký</span>
                 </div>
+                <span className="font-mono text-xs font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  10/09 - 20/09
+                </span>
               </div>
 
-              {/* Giai đoạn 2 */}
-              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
-                <div className="w-8 h-8 rounded-xl bg-blue-400/20 border border-blue-400/40 text-blue-200 font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-black text-white flex items-center justify-between">
-                    <span>Vòng 2: Phỏng Vấn Trực Tiếp</span>
-                    <span className="text-[10px] text-blue-200 font-mono">Chặng kế tiếp</span>
+              {/* Mốc 2 */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-400/20 text-blue-200 font-black text-xs flex items-center justify-center shrink-0">
+                    02
                   </div>
-                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
-                    Tự chọn ca phỏng vấn độc lập cùng Hội đồng Giám khảo chuyên môn & Ban Chủ nhiệm.
-                  </div>
+                  <span className="font-bold text-white text-xs">Vòng 2: Phỏng vấn tuyển chọn</span>
                 </div>
+                <span className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  22/09 - 25/09
+                </span>
               </div>
 
-              {/* Giai đoạn 3 */}
-              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
-                <div className="w-8 h-8 rounded-xl bg-emerald-400/20 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
-                  <Award className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-black text-white flex items-center justify-between">
-                    <span>Vòng 3: Thẩm Định & Công Bố Top 15</span>
-                    <span className="text-[10px] text-emerald-300 font-mono">Chung cuộc</span>
+              {/* Mốc 3 */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-400/20 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0">
+                    03
                   </div>
-                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
-                    Phê chuẩn danh sách chính thức gia nhập ngôi nhà chung CLB Đại sứ Sinh viên iSSAC.
-                  </div>
+                  <span className="font-bold text-white text-xs">Vòng 3: Công bố kết quả Top 15</span>
                 </div>
+                <span className="font-mono text-xs font-bold text-emerald-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  28/09
+                </span>
               </div>
             </div>
           </div>

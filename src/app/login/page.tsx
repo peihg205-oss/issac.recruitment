@@ -1,37 +1,38 @@
-'use client'
-import { useState, Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
+"use client"
+import { useState, Suspense, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/components/ui/use-toast"
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
 import { isCandidateDeleted } from "@/lib/candidate-account-manager"
 import {
   Eye, EyeOff, LogIn, Loader2, Home,
-  GraduationCap, ShieldCheck, UserCheck
-} from 'lucide-react'
+  GraduationCap, ShieldCheck, UserCheck, Calendar,
+  FileEdit, Users, Award
+} from "lucide-react"
 
 const schema = z.object({
-  email: z.string().email('Email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu phải ít nhất 6 ký tự'),
+  email: z.string().email("Email không hợp lệ"),
+  password: z.string().min(6, "Mật khẩu phải ít nhất 6 ký tự"),
 })
 type FormData = z.infer<typeof schema>
 
 const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string }> = {
-  'bcn@issac.vnu.edu.vn': { role: 'chu-nhiem', name: 'Ban Chủ nhiệm' },
-  'truyenthong@issac.vnu.edu.vn': { role: 'truyen-thong', name: 'Ban Truyền thông' },
-  'dinhhai.issac@vnu.edu.vn': { role: 'truyen-thong', name: 'Ban Truyền thông' },
-  'tuvan@issac.vnu.edu.vn': { role: 'tu-van', name: 'Ban Tư vấn' },
-  'haiyen.issac@vnu.edu.vn': { role: 'tu-van', name: 'Ban Tư vấn' },
-  'nhansu@issac.vnu.edu.vn': { role: 'nhan-su', name: 'Ban Nhân sự' },
-  'minhduc.issac@vnu.edu.vn': { role: 'nhan-su', name: 'Ban Nhân sự' },
+  "bcn@issac.vnu.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm" },
+  "truyenthong@issac.vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
+  "dinhhai.issac@vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
+  "tuvan@issac.vnu.edu.vn": { role: "tu-van", name: "Ban Tư vấn" },
+  "haiyen.issac@vnu.edu.vn": { role: "tu-van", name: "Ban Tư vấn" },
+  "nhansu@issac.vnu.edu.vn": { role: "nhan-su", name: "Ban Nhân sự" },
+  "minhduc.issac@vnu.edu.vn": { role: "nhan-su", name: "Ban Nhân sự" },
 }
 
 function LoginForm() {
@@ -44,6 +45,10 @@ function LoginForm() {
   const [showForgotModal, setShowForgotModal] = useState(false)
   const supabase = createClient()
 
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  })
+
   useEffect(() => {
     const redirectedFrom = searchParams.get("redirectedFrom")
     const roleParam = searchParams.get("role") || searchParams.get("tab")
@@ -53,10 +58,6 @@ function LoginForm() {
       setLoginType("candidate")
     }
   }, [searchParams])
-
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  })
 
   const handleTabChange = (type: "candidate" | "admin") => {
     setLoginType(type)
@@ -188,32 +189,93 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex bg-[#1559c5]">
-      {/* Left side - Clean branding */}
-      <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-12 text-white">
-        <div className="max-w-md text-center">
-          <div className="flex justify-center mb-6">
+      {/* Left side - Lịch trình Tuyển quân Gen 3 */}
+      <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-8 xl:p-12 text-white">
+        <div className="max-w-md xl:max-w-lg text-center w-full">
+          <div className="flex justify-center mb-4">
             <Image
               src="/issac-logo.png"
               alt="iSSAC - Bridge to Success"
-              width={110}
-              height={116}
+              width={90}
+              height={96}
               className="object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               priority
             />
           </div>
+
           <div className="text-xs font-black text-[#fdc455] uppercase tracking-widest mb-1.5">
             CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN
           </div>
-          <h1 className="text-3xl font-black mb-3 text-white tracking-tight">
-            Cổng Đăng Nhập Tuyển Quân
-          </h1>
-          <p className="text-blue-100 text-sm mb-6 leading-relaxed font-normal">
-            Hệ thống xét tuyển, đánh giá năng lực và quản lý hồ sơ ứng viên chính thức của CLB iSSAC - Viện Quốc tế Pháp ngữ & Trường Quốc tế - ĐHQGHN.
-          </p>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 text-xs text-blue-100 backdrop-blur-sm shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#fdc455] animate-pulse" />
-            <span className="font-semibold text-white/90">iSSAC • Bridge to Success 2026</span>
+          <h1 className="text-2xl xl:text-3xl font-black mb-2 text-white tracking-tight uppercase leading-snug">
+            Hệ Thống Tuyển Quân Câu Lạc Bộ Đại Sứ Sinh Viên
+          </h1>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-amber-200 mb-6 backdrop-blur-sm shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-[#fdc455] animate-ping" />
+            <span>iSSAC đang tuyển thành viên Gen 3</span>
+          </div>
+
+          {/* Khung Lịch Trình Tuyển Quân Gen 3 */}
+          <div className="bg-white/10 border border-white/15 rounded-3xl p-5 xl:p-6 backdrop-blur-md text-left shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <span className="text-xs font-black text-[#fdc455] uppercase tracking-wider flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Lịch Trình Tuyển Quân Gen 3
+              </span>
+              <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                Khóa 2026
+              </span>
+            </div>
+
+            <div className="space-y-3.5">
+              {/* Giai đoạn 1 */}
+              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-[#fdc455]/20 border border-[#fdc455]/40 text-[#fdc455] font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
+                  <FileEdit className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-white flex items-center justify-between">
+                    <span>Vòng 1: Mở Đơn Đăng Ký & Bài Luận</span>
+                    <span className="text-[10px] text-amber-300 font-mono">Đang diễn ra</span>
+                  </div>
+                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
+                    Tạo tài khoản sinh viên, chọn Ban nguyện vọng và nộp bài luận trực tuyến.
+                  </div>
+                </div>
+              </div>
+
+              {/* Giai đoạn 2 */}
+              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-blue-400/20 border border-blue-400/40 text-blue-200 font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-white flex items-center justify-between">
+                    <span>Vòng 2: Phỏng Vấn Trực Tiếp</span>
+                    <span className="text-[10px] text-blue-200 font-mono">Chặng kế tiếp</span>
+                  </div>
+                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
+                    Tự chọn ca phỏng vấn độc lập cùng Hội đồng Giám khảo chuyên môn & Ban Chủ nhiệm.
+                  </div>
+                </div>
+              </div>
+
+              {/* Giai đoạn 3 */}
+              <div className="flex items-start gap-3 text-xs bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-2xl border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-emerald-400/20 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 shadow-inner">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-white flex items-center justify-between">
+                    <span>Vòng 3: Thẩm Định & Công Bố Top 15</span>
+                    <span className="text-[10px] text-emerald-300 font-mono">Chung cuộc</span>
+                  </div>
+                  <div className="text-[11px] text-blue-100/80 mt-0.5 leading-relaxed">
+                    Phê chuẩn danh sách chính thức gia nhập ngôi nhà chung CLB Đại sứ Sinh viên iSSAC.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -310,7 +372,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -341,17 +403,13 @@ function LoginForm() {
               </Button>
             </form>
 
-            {/* Bottom info: Register for candidate vs BCN notice for Admin */}
-            {loginType === "candidate" ? (
+            {/* Bottom: Only show register link for candidate; Admin note is removed */}
+            {loginType === "candidate" && (
               <div className="mt-5 text-center text-xs text-gray-500">
                 Chưa có tài khoản sinh viên?{" "}
                 <Link href="/register" className="text-[#1559c5] font-bold hover:underline">
                   Đăng ký ứng tuyển
                 </Link>
-              </div>
-            ) : (
-              <div className="mt-5 text-center text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-2.5">
-                Tài khoản quản trị viên được phân quyền và cấp bởi <strong>Ban Chủ nhiệm CLB iSSAC</strong>.
               </div>
             )}
 
@@ -369,7 +427,15 @@ function LoginForm() {
           </div>
         </div>
       </div>
-      <ForgotPasswordModal open={showForgotModal} onOpenChange={setShowForgotModal} />
+
+      <ForgotPasswordModal
+        open={showForgotModal}
+        onOpenChange={setShowForgotModal}
+        defaultEmail=""
+        onPasswordResetSuccess={(resetEmail) => {
+          setValue("email", resetEmail)
+        }}
+      />
     </div>
   )
 }

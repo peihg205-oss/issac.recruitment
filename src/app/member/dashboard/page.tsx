@@ -275,8 +275,12 @@ export default function MemberDashboardPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-semibold">Mã đơn ứng tuyển:</span>
-                <span className="font-bold text-slate-800">#app-01 · 01/09/2026</span>
+                <span className="text-slate-500 font-semibold">Thời gian gửi hồ sơ:</span>
+                <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm">
+                  {currentApp.submitted_at || currentApp.created_at
+                    ? `${formatFullTimestamp(currentApp.submitted_at || currentApp.created_at).timeStr} · ${formatDate(currentApp.submitted_at || currentApp.created_at)}`
+                    : "08:30 · 01/09/2026"} (VN)
+                </span>
               </div>
               <div className="flex items-center justify-between py-1">
                 <span className="text-slate-500 font-semibold">Hồ sơ đính kèm:</span>

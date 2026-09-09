@@ -49,7 +49,7 @@ export default function ExportPage() {
         'Điểm phỏng vấn': (a.candidate_rankings as any)?.final_score != null ? Number((a.candidate_rankings as any).final_score).toFixed(1) : 'Chưa chấm',
         'Xếp hạng': (a.candidate_rankings as any)?.rank_number ?? '-',
         'Kết quả BCN': (a.candidate_rankings as any)?.result === 'pass' ? 'Pass' : (a.candidate_rankings as any)?.result === 'waitlist' ? 'Dự bị' : 'Trượt',
-        'Ngày nộp đơn': formatDate(a.submitted_at || a.created_at),
+        'Thời gian nộp đơn (Giờ VN)': formatDateTime(a.submitted_at || a.created_at),
       }))
 
       exportToCSV(rows, `danh_sach_ung_vien_issac_${new Date().toISOString().slice(0, 10)}`)

@@ -114,7 +114,7 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
           <CandidateDetailAccountBtn candidate={appData} />
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold shadow-2xs">
             <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Giờ gửi hồ sơ: <strong className="font-mono font-black text-blue-900">{timeStr}</strong> · {dateStr}</span>
+            <span>Giờ gửi hồ sơ (Giờ VN): <strong className="font-mono font-black text-blue-900">{timeStr}</strong> · {dateStr}</span>
           </div>
 
           {finalRanking && (

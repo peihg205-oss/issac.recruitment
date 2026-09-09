@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
+import { isCandidateDeleted } from "@/lib/candidate-account-manager"
 import {
-  Eye, EyeOff, LogIn, Loader2,
-  CheckCircle2, Trophy, ShieldCheck, Sparkles, Home
+  Eye, EyeOff, LogIn, Loader2, Home,
+  GraduationCap, ShieldCheck, UserCheck
 } from 'lucide-react'
 
 const schema = z.object({
@@ -37,57 +38,99 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  const [loginType, setLoginType] = useState<"candidate" | "admin">("candidate")
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showForgotModal, setShowForgotModal] = useState(false)
   const supabase = createClient()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  useEffect(() => {
+    const redirectedFrom = searchParams.get("redirectedFrom")
+    const roleParam = searchParams.get("role") || searchParams.get("tab")
+    if (roleParam === "admin" || (redirectedFrom && redirectedFrom.startsWith("/admin"))) {
+      setLoginType("admin")
+    } else {
+      setLoginType("candidate")
+    }
+  }, [searchParams])
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
+
+  const handleTabChange = (type: "candidate" | "admin") => {
+    setLoginType(type)
+    reset()
+  }
 
   const onSubmit = async (values: FormData) => {
     setLoading(true)
 
-    // 1. Kiểm tra tài khoản admin được Ban Chủ nhiệm cấp quyền
-    if (typeof window !== "undefined") {
-      const createdRaw = localStorage.getItem("issac_created_admins")
-      if (createdRaw) {
-        try {
-          const createdList = JSON.parse(createdRaw)
-          if (Array.isArray(createdList)) {
-            const found = createdList.find((a: any) => a.email.toLowerCase() === values.email.toLowerCase())
-            if (found && found.is_active) {
-              document.cookie = "issac_admin_role=" + found.admin_role + "; path=/; max-age=2592000"
-              toast({
-                title: "Đăng nhập thành công",
-                description: "Chào mừng " + found.full_name + "! Đang chuyển vào cổng quản lý...",
-                variant: "success"
-              } as Parameters<typeof toast>[0])
-              router.push("/admin/dashboard")
-              router.refresh()
-              return
+    // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
+    if (loginType === "admin") {
+      // 1. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
+      if (typeof window !== "undefined") {
+        const createdRaw = localStorage.getItem("issac_created_admins")
+        if (createdRaw) {
+          try {
+            const createdList = JSON.parse(createdRaw)
+            if (Array.isArray(createdList)) {
+              const found = createdList.find((a: any) => a.email.toLowerCase() === values.email.toLowerCase())
+              if (found) {
+                if (!found.is_active) {
+                  setLoading(false)
+                  toast({
+                    title: "Tài khoản bị tạm khoá",
+                    description: "Tài khoản của bạn đã bị vô hiệu hoá. Vui lòng liên hệ Ban Chủ nhiệm CLB.",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                document.cookie = "issac_admin_role=" + found.admin_role + "; path=/; max-age=2592000"
+                toast({
+                  title: "Đăng nhập thành công",
+                  description: "Chào mừng " + found.full_name + "! Đang chuyển vào cổng quản trị...",
+                  variant: "success"
+                } as Parameters<typeof toast>[0])
+                router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
+                router.refresh()
+                return
+              }
             }
-          }
-        } catch {}
+          } catch {}
+        }
+      }
+
+      // 2. Kiểm tra tài khoản cán bộ quản trị hệ thống mặc định
+      const matchedAdmin = SYSTEM_ADMIN_ROLES[values.email.toLowerCase()]
+      if (matchedAdmin) {
+        document.cookie = "issac_admin_role=" + matchedAdmin.role + "; path=/; max-age=2592000"
+        toast({
+          title: "Đăng nhập thành công",
+          description: "Đang chuyển vào cổng quản lý với quyền " + matchedAdmin.name + "...",
+          variant: "success"
+        } as Parameters<typeof toast>[0])
+        router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
+        router.refresh()
+        return
       }
     }
 
-    // 2. Kiểm tra tài khoản cán bộ quản trị hệ thống
-    const matchedAdmin = SYSTEM_ADMIN_ROLES[values.email.toLowerCase()]
-    if (matchedAdmin) {
-      document.cookie = "issac_admin_role=" + matchedAdmin.role + "; path=/; max-age=2592000"
-      toast({
-        title: "Đăng nhập thành công",
-        description: "Đang chuyển vào cổng quản lý với quyền " + matchedAdmin.name + "...",
-        variant: "success"
-      } as Parameters<typeof toast>[0])
-      router.push("/admin/dashboard")
-      router.refresh()
-      return
+    // XỬ LÝ ĐĂNG NHẬP ỨNG VIÊN
+    if (loginType === "candidate") {
+      const isDeleted = isCandidateDeleted("", values.email)
+      if (isDeleted) {
+        setLoading(false)
+        toast({
+          title: "Tài khoản không tồn tại",
+          description: "Hồ sơ ứng viên này đã bị xoá khỏi hệ thống.",
+          variant: "destructive"
+        })
+        return
+      }
     }
 
-    // 3. Đăng nhập với Supabase Authentication
+    // ĐĂNG NHẬP VỚI SUPABASE AUTH
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
@@ -114,6 +157,18 @@ function LoginForm() {
       .eq("id", authData.user.id)
       .single()
 
+    const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
+
+    // Kiểm tra đúng tab
+    if (loginType === "admin" && !isAdmin) {
+      toast({
+        title: "Không có quyền quản trị",
+        description: "Tài khoản của bạn là Ứng viên. Vui lòng chuyển sang tab Đăng nhập Ứng viên.",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (profile?.admin_role) {
       document.cookie = "issac_admin_role=" + profile.admin_role + "; path=/; max-age=2592000"
     }
@@ -123,7 +178,7 @@ function LoginForm() {
     const redirectTo = searchParams.get("redirectedFrom")
     if (redirectTo) {
       router.push(redirectTo)
-    } else if (profile?.role === "admin" || profile?.role === "super_admin") {
+    } else if (isAdmin) {
       router.push("/admin/dashboard")
     } else {
       router.push("/member/dashboard")
@@ -133,85 +188,109 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex bg-[#1559c5]">
-      {/* Left side */}
+      {/* Left side - Clean branding */}
       <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md text-center">
           <div className="flex justify-center mb-6">
             <Image
               src="/issac-logo.png"
               alt="iSSAC - Bridge to Success"
-              width={100}
-              height={106}
-              className="object-contain drop-shadow-2xl"
+              width={110}
+              height={116}
+              className="object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               priority
             />
           </div>
-          <div className="text-xs font-black text-[#fdc455] uppercase tracking-widest mb-1">
+          <div className="text-xs font-black text-[#fdc455] uppercase tracking-widest mb-1.5">
             CÂU LẠC BỘ ĐẠI SỨ SINH VIÊN
           </div>
-          <h1 className="text-3xl font-black mb-3">
-            Cổng Đăng Nhập Hệ Thống
+          <h1 className="text-3xl font-black mb-3 text-white tracking-tight">
+            Cổng Đăng Nhập Tuyển Quân
           </h1>
-          <p className="text-blue-100 text-sm mb-8 leading-relaxed font-medium">
-            Hệ thống phân quyền tuyển chọn thành viên chính thức iSSAC cho Ban Chủ nhiệm và các Ban chuyên môn.
+          <p className="text-blue-100 text-sm mb-6 leading-relaxed font-normal">
+            Hệ thống xét tuyển, đánh giá năng lực và quản lý hồ sơ ứng viên chính thức của CLB iSSAC - Viện Quốc tế Pháp ngữ & Trường Quốc tế - ĐHQGHN.
           </p>
-          <div className="space-y-3 text-left">
-            {[
-              {
-                title: "Chấm điểm phỏng vấn độc lập & giải trình lý do",
-                icon: CheckCircle2,
-              },
-              {
-                title: "Xếp hạng tự động theo Ban & Toàn CLB",
-                icon: Trophy,
-              },
-              {
-                title: "Ban Chủ nhiệm thẩm định và phê chuẩn Top 15",
-                icon: ShieldCheck,
-              },
-              {
-                title: "Theo dõi tiến trình tuyển quân dành cho ứng viên",
-                icon: Sparkles,
-              },
-            ].map((item, i) => {
-              const Icon = item.icon
-              return (
-                <div
-                  key={i}
-                  className="flex items-center gap-3.5 text-xs text-blue-50 bg-white/10 border border-white/15 rounded-2xl p-3.5 backdrop-blur-sm shadow-sm hover:bg-white/15 transition-all"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-[#fdc455]/20 border border-[#fdc455]/40 flex items-center justify-center shrink-0 text-[#fdc455] shadow-inner">
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="font-semibold text-white/95 leading-snug">{item.title}</span>
-                </div>
-              )
-            })}
+
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 text-xs text-blue-100 backdrop-blur-sm shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-[#fdc455] animate-pulse" />
+            <span className="font-semibold text-white/90">iSSAC • Bridge to Success 2026</span>
           </div>
         </div>
       </div>
 
-      {/* Right side - Login form */}
+      {/* Right side - Login form with Role Tabs */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div className="w-full max-w-md py-6">
-          <div className="bg-white rounded-[2rem] shadow-2xl p-8 sm:p-10 border border-blue-100">
+          <div className="bg-white rounded-[2rem] shadow-2xl p-7 sm:p-9 border border-blue-100">
             {/* Mobile logo */}
             <div className="flex lg:hidden justify-center mb-4">
               <Image src="/issac-logo.png" alt="iSSAC" width={56} height={60} className="object-contain" />
             </div>
 
+            {/* Role Tabs Switcher: Ứng viên vs Ban Tuyển quân */}
+            <div className="grid grid-cols-2 p-1 bg-gray-100 rounded-2xl mb-6">
+              <button
+                type="button"
+                onClick={() => handleTabChange("candidate")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  loginType === "candidate"
+                    ? "bg-white text-[#1559c5] shadow-sm font-black"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Ứng viên</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange("admin")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  loginType === "admin"
+                    ? "bg-[#1559c5] text-white shadow-sm font-black"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Ban Tuyển quân</span>
+              </button>
+            </div>
+
+            {/* Header info based on selected role */}
             <div className="mb-6 text-left">
-              <h2 className="text-2xl font-black text-gray-950 mb-1">Đăng nhập</h2>
-              <p className="text-gray-500 text-xs font-medium">Hệ thống quản lý tuyển quân & Cổng ứng viên iSSAC</p>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold mb-2.5 shadow-sm transition-all bg-blue-50 text-[#1559c5] border border-blue-100">
+                {loginType === "candidate" ? (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5 text-[#1559c5]" />
+                    <span>CỔNG DÀNH CHO ỨNG VIÊN</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#1559c5]" />
+                    <span>DÀNH CHO BAN CHỦ NHIỆM & GIÁM KHẢO</span>
+                  </>
+                )}
+              </div>
+
+              <h2 className="text-2xl font-black text-gray-950 mb-1">
+                {loginType === "candidate" ? "Đăng nhập Ứng viên" : "Cổng Quản trị Tuyển quân"}
+              </h2>
+              <p className="text-gray-500 text-xs font-medium leading-relaxed">
+                {loginType === "candidate"
+                  ? "Tra cứu tiến trình xét duyệt hồ sơ, lịch phỏng vấn & kết quả chính thức."
+                  : "Dành cho Ban Chủ nhiệm và Ban Giám khảo chấm điểm, xét duyệt hồ sơ."}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-bold text-gray-700">Email đăng nhập</Label>
+                <Label htmlFor="email" className="text-xs font-bold text-gray-700">
+                  {loginType === "candidate" ? "Email sinh viên / cá nhân" : "Email cán bộ tuyển quân"}
+                </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="example@vnu.edu.vn"
+                  placeholder={loginType === "candidate" ? "ungvien@vnu.edu.vn" : "canbo@issac.vnu.edu.vn"}
                   {...register("email")}
                   className={`text-sm rounded-xl h-11 ${errors.email ? "border-red-300" : "border-gray-200"}`}
                 />
@@ -251,26 +330,33 @@ function LoginForm() {
 
               <Button
                 type="submit"
-                className="w-full font-black bg-[#1559c5] hover:bg-[#0f449e] text-white rounded-full h-11 text-sm shadow-md"
+                className="w-full font-black bg-[#1559c5] hover:bg-[#0f449e] text-white rounded-full h-11 text-sm shadow-md cursor-pointer transition-all"
                 disabled={loading}
               >
                 {loading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang đăng nhập...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang xác thực...</>
                 ) : (
-                  <><LogIn className="w-4 h-4 mr-2" /> Đăng nhập</>
+                  <><LogIn className="w-4 h-4 mr-2" /> {loginType === "candidate" ? "Đăng nhập Ứng viên" : "Đăng nhập Ban Tuyển quân"}</>
                 )}
               </Button>
             </form>
 
-            <div className="mt-5 text-center text-xs text-gray-500">
-              Chưa có tài khoản sinh viên?{" "}
-              <Link href="/register" className="text-[#1559c5] font-bold hover:underline">
-                Đăng ký ứng tuyển
-              </Link>
-            </div>
+            {/* Bottom info: Register for candidate vs BCN notice for Admin */}
+            {loginType === "candidate" ? (
+              <div className="mt-5 text-center text-xs text-gray-500">
+                Chưa có tài khoản sinh viên?{" "}
+                <Link href="/register" className="text-[#1559c5] font-bold hover:underline">
+                  Đăng ký ứng tuyển
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-5 text-center text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-2.5">
+                Tài khoản quản trị viên được phân quyền và cấp bởi <strong>Ban Chủ nhiệm CLB iSSAC</strong>.
+              </div>
+            )}
 
             {/* Về trang chủ - Biểu tượng ngôi nhà */}
-            <div className="mt-8 flex justify-center border-t border-gray-100 pt-5">
+            <div className="mt-7 flex justify-center border-t border-gray-100 pt-4">
               <Link
                 href="/"
                 aria-label="Về trang chủ"

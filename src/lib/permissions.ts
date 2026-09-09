@@ -14,7 +14,7 @@ export const EVALUATOR_ACCOUNTS: Record<AdminRoleType, EvaluatorAccountInfo> = {
   'chu-nhiem': {
     id: 'adm-bcn',
     name: 'Trần Phương Linh',
-    email: 'bcn@issac.vnu.edu.vn',
+    email: 'ambassadors.club@vnuis.edu.vn',
     title: 'Chủ nhiệm CLB iSSAC',
     departmentName: 'Ban Chủ nhiệm',
     role: 'chu-nhiem',

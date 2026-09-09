@@ -26,8 +26,9 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string }> = {
-  "bcn@issac.vnu.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm" },
+const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string; password?: string }> = {
+  "ambassadors.club@vnuis.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm CLB iSSAC", password: "ISSAC2026@tuyenquan" },
+  "bcn@issac.vnu.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm (Dự phòng)", password: "ISSAC2026@tuyenquan" },
   "truyenthong@issac.vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
   "dinhhai.issac@vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
   "tuvan@issac.vnu.edu.vn": { role: "tu-van", name: "Ban Tư vấn" },
@@ -71,20 +72,53 @@ function LoginForm() {
 
     // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
     if (loginType === "admin") {
-      // 1. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
+      const emailLower = values.email.toLowerCase().trim()
+
+      // 1. Tài khoản cố định Ban Chủ nhiệm CLB iSSAC
+      if (emailLower === "ambassadors.club@vnuis.edu.vn") {
+        if (values.password !== "ISSAC2026@tuyenquan") {
+          setLoading(false)
+          toast({
+            title: "Mật khẩu không chính xác",
+            description: "Mật khẩu tài khoản cố định Ban Chủ nhiệm không đúng.",
+            variant: "destructive",
+          })
+          return
+        }
+        document.cookie = "issac_admin_role=chu-nhiem; path=/; max-age=2592000"
+        toast({
+          title: "Đăng nhập thành công",
+          description: "Chào mừng Ban Chủ nhiệm CLB iSSAC! Đang chuyển vào cổng quản trị...",
+          variant: "success",
+        } as Parameters<typeof toast>[0])
+        router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
+        router.refresh()
+        return
+      }
+
+      // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
       if (typeof window !== "undefined") {
         const createdRaw = localStorage.getItem("issac_created_admins")
         if (createdRaw) {
           try {
             const createdList = JSON.parse(createdRaw)
             if (Array.isArray(createdList)) {
-              const found = createdList.find((a: any) => a.email.toLowerCase() === values.email.toLowerCase())
+              const found = createdList.find((a: any) => a.email.toLowerCase().trim() === emailLower)
               if (found) {
                 if (!found.is_active) {
                   setLoading(false)
                   toast({
                     title: "Tài khoản bị tạm khoá",
-                    description: "Tài khoản của bạn đã bị vô hiệu hoá. Vui lòng liên hệ Ban Chủ nhiệm CLB.",
+                    description: "Tài khoản của bạn đã bị vô hiệu hoá bởi Ban Chủ nhiệm CLB.",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                if (found.password && found.password !== values.password) {
+                  setLoading(false)
+                  toast({
+                    title: "Mật khẩu không chính xác",
+                    description: "Mật khẩu không chính xác. Vui lòng liên hệ Ban Chủ nhiệm để được cấp lại.",
                     variant: "destructive"
                   })
                   return
@@ -104,9 +138,18 @@ function LoginForm() {
         }
       }
 
-      // 2. Kiểm tra tài khoản cán bộ quản trị hệ thống mặc định
-      const matchedAdmin = SYSTEM_ADMIN_ROLES[values.email.toLowerCase()]
+      // 3. Kiểm tra tài khoản cán bộ quản trị hệ thống mặc định
+      const matchedAdmin = SYSTEM_ADMIN_ROLES[emailLower]
       if (matchedAdmin) {
+        if (matchedAdmin.password && matchedAdmin.password !== values.password) {
+          setLoading(false)
+          toast({
+            title: "Mật khẩu không chính xác",
+            description: "Email hoặc mật khẩu không chính xác.",
+            variant: "destructive"
+          })
+          return
+        }
         document.cookie = "issac_admin_role=" + matchedAdmin.role + "; path=/; max-age=2592000"
         toast({
           title: "Đăng nhập thành công",
@@ -345,7 +388,7 @@ function LoginForm() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={loginType === "candidate" ? "ungvien@vnu.edu.vn" : "canbo@issac.vnu.edu.vn"}
+                  placeholder={loginType === "candidate" ? "ungvien@vnu.edu.vn" : "ambassadors.club@vnuis.edu.vn"}
                   {...register("email")}
                   className={`text-sm rounded-xl h-11 ${errors.email ? "border-red-300" : "border-gray-200"}`}
                 />
@@ -373,15 +416,17 @@ function LoginForm() {
                 {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
               </div>
 
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  className="text-xs text-[#1559c5] font-semibold hover:underline cursor-pointer"
-                >
-                  Quên mật khẩu?
-                </button>
-              </div>
+              {loginType === "candidate" && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-xs text-[#1559c5] font-semibold hover:underline cursor-pointer"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+              )}
 
               <Button
                 type="submit"

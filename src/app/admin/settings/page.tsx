@@ -24,11 +24,11 @@ interface Setting {
 
 const DEFAULT_SYSTEM_SETTINGS: Setting[] = [
   // Kỳ tuyển quân
-  { id: 'set-1', key: 'recruitment_start', value: '2026-09-01', label: 'Ngày mở cổng nhận đơn', description: 'Thời điểm bắt đầu mở form đăng ký cho ứng viên', value_type: 'date' },
-  { id: 'set-2', key: 'recruitment_end', value: '2026-10-15', label: 'Ngày đóng cổng nhận đơn', description: 'Hạn cuối cùng tiếp nhận hồ sơ ứng tuyển', value_type: 'date' },
-  { id: 'set-3', key: 'interview_start', value: '2026-10-20', label: 'Ngày bắt đầu phỏng vấn', description: 'Thời gian khởi động các ca phỏng vấn Vòng 2', value_type: 'date' },
-  { id: 'set-4', key: 'interview_end', value: '2026-10-30', label: 'Ngày kết thúc phỏng vấn', description: 'Hạn chót hoàn thành các ca phỏng vấn và nhập điểm', value_type: 'date' },
-  { id: 'set-5', key: 'result_announcement', value: '2026-11-05', label: 'Ngày công bố kết quả tuyển quân', description: 'Ngày gửi email và mở tra cứu kết quả cho ứng viên', value_type: 'date' },
+  { id: 'set-1', key: 'recruitment_start', value: '2026-09-10', label: 'Ngày mở cổng nhận đơn', description: 'Thời điểm bắt đầu mở form đăng ký cho ứng viên', value_type: 'date' },
+  { id: 'set-2', key: 'recruitment_end', value: '2026-09-20', label: 'Ngày đóng cổng nhận đơn', description: 'Hạn cuối cùng tiếp nhận hồ sơ ứng tuyển', value_type: 'date' },
+  { id: 'set-3', key: 'interview_start', value: '2026-09-22', label: 'Ngày bắt đầu phỏng vấn', description: 'Thời gian khởi động các ca phỏng vấn Vòng 2', value_type: 'date' },
+  { id: 'set-4', key: 'interview_end', value: '2026-09-25', label: 'Ngày kết thúc phỏng vấn', description: 'Hạn chót hoàn thành các ca phỏng vấn và nhập điểm', value_type: 'date' },
+  { id: 'set-5', key: 'result_announcement', value: '2026-09-28', label: 'Ngày công bố kết quả tuyển quân', description: 'Ngày gửi email và mở tra cứu kết quả cho ứng viên', value_type: 'date' },
 
   // Chỉ tiêu & Kết quả
   { id: 'set-6', key: 'recruitment_quota', value: '15', label: 'Chỉ tiêu tuyển chọn (Top CLB)', description: 'Số lượng ứng viên chính thức trúng tuyển đợt này (Top 15)', value_type: 'number' },
@@ -135,9 +135,10 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      // Save to localStorage so demo persists instantly
+      // Save to localStorage and dispatch event so all pages across the system update live
       if (typeof window !== 'undefined') {
         localStorage.setItem('issac_system_settings', JSON.stringify(values))
+        window.dispatchEvent(new CustomEvent('issac_system_settings_updated', { detail: values }))
       }
 
       // Try Supabase if connected

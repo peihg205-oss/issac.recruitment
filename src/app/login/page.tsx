@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
 import { isCandidateDeleted } from "@/lib/candidate-account-manager"
+import { useSystemSettings } from "@/lib/system-settings"
 import {
   Eye, EyeOff, LogIn, Loader2, Home,
   GraduationCap, ShieldCheck, UserCheck, Calendar,
@@ -44,6 +45,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [showForgotModal, setShowForgotModal] = useState(false)
   const supabase = createClient()
+  const { timeline } = useSystemSettings()
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -234,10 +236,10 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-[#fdc455]/20 text-[#fdc455] font-black text-xs flex items-center justify-center shrink-0">
                     01
                   </div>
-                  <span className="font-bold text-white text-xs">Vòng 1: Mở đơn đăng ký</span>
+                  <span className="font-bold text-white text-xs">{timeline.round1.name}</span>
                 </div>
                 <span className="font-mono text-xs font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  10/09 - 20/09
+                  {timeline.round1.dateBadge}
                 </span>
               </div>
 
@@ -247,10 +249,10 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-blue-400/20 text-blue-200 font-black text-xs flex items-center justify-center shrink-0">
                     02
                   </div>
-                  <span className="font-bold text-white text-xs">Vòng 2: Phỏng vấn tuyển chọn</span>
+                  <span className="font-bold text-white text-xs">{timeline.round2.name}</span>
                 </div>
                 <span className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  22/09 - 25/09
+                  {timeline.round2.dateBadge}
                 </span>
               </div>
 
@@ -260,10 +262,10 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-emerald-400/20 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0">
                     03
                   </div>
-                  <span className="font-bold text-white text-xs">Vòng 3: Công bố kết quả Top 15</span>
+                  <span className="font-bold text-white text-xs">{timeline.round3.name}</span>
                 </div>
                 <span className="font-mono text-xs font-bold text-emerald-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  28/09
+                  {timeline.round3.dateBadge}
                 </span>
               </div>
             </div>

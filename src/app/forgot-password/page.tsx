@@ -9,14 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   HelpCircle,
-  Mail,
-  Phone,
   Copy,
   Check,
   ExternalLink,
-  ArrowLeft,
-  Sparkles,
-  ShieldCheck
+  ArrowLeft
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -32,7 +28,7 @@ export default function ForgotPasswordPage() {
     setCopied(true)
     toast({
       title: "Đã sao chép cú pháp tin nhắn",
-      description: "Bạn có thể dán (Paste) ngay vào tin nhắn Fanpage hoặc gửi Email.",
+      description: "Bạn có thể dán (Paste) ngay vào tin nhắn gửi Fanpage.",
     })
     setTimeout(() => setCopied(false), 2500)
   }
@@ -76,7 +72,7 @@ export default function ForgotPasswordPage() {
 
           <CardContent className="p-6 space-y-5 text-left text-sm">
             <p className="text-xs text-slate-600 leading-relaxed">
-              Nếu bạn không nhớ mật khẩu đăng nhập tài khoản ứng viên iSSAC, vui lòng liên hệ trực tiếp với Ban Quản trị qua <strong>Fanpage</strong> hoặc <strong>Email chính thức</strong> của CLB để được kiểm tra và cấp lại ngay:
+              Nếu bạn không nhớ mật khẩu đăng nhập tài khoản ứng viên iSSAC, vui lòng nhắn tin trực tiếp tới <strong>Fanpage chính thức của CLB</strong> để được Ban Quản trị kiểm tra và hỗ trợ cấp lại ngay:
             </p>
 
             {/* Facebook Fanpage */}
@@ -84,62 +80,28 @@ export default function ForgotPasswordPage() {
               href="https://www.facebook.com/ambassadorsClub.VNUIS"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 hover:bg-blue-100/80 border border-blue-200 transition-all group"
+              className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 hover:bg-blue-100/80 border border-blue-200 transition-all group shadow-2xs hover:shadow-xs"
             >
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
+                <div className="w-10 h-10 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                   f
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-[#1657c1] transition-colors truncate">
                     Fanpage CLB Đại sứ Sinh viên VNU-IS
                   </div>
-                  <div className="text-[11px] text-slate-500 truncate">
-                    Nhắn tin trực tiếp qua Messenger (Khuyên dùng - phản hồi nhanh)
+                  <div className="text-[11px] text-blue-600 font-medium truncate mt-0.5">
+                    Nhắn tin trực tiếp qua Messenger Facebook →
                   </div>
                 </div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-[#1657c1] shrink-0 ml-2" />
             </a>
 
-            {/* Email */}
-            <a
-              href="mailto:ambassadors.club@vnuis.edu.vn?subject=%5BiSSAC%20Gen%203%5D%20Y%C3%AAu%20c%E1%BA%A7u%20c%E1%BA%A5p%20l%E1%BA%A1i%20m%E1%BA%ADt%20kh%E1%BA%A9u%20%E1%BB%A9ng%20vi%C3%AAn"
-              className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-            >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
-                    ambassadors.club@vnuis.edu.vn
-                  </div>
-                  <div className="text-[11px] text-slate-500 truncate">
-                    Gửi email tới Hòm thư Ban Tuyển quân CLB
-                  </div>
-                </div>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 shrink-0 ml-2" />
-            </a>
-
-            {/* Hotline */}
-            <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
-              <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Phone className="w-4.5 h-4.5" />
-              </div>
-              <div>
-                <div className="font-bold text-xs text-amber-950">Hotline hỗ trợ trực ban</div>
-                <div className="text-xs text-amber-800 font-semibold mt-0.5">
-                  0374140705 <span className="font-normal text-amber-700">(PCN - Mr. Hiệp)</span>
-                </div>
-              </div>
-            </div>
-
             {/* Syntax helper */}
             <div className="pt-2 border-t border-slate-200 space-y-2">
               <Label className="text-xs font-bold text-slate-700 block">
-                Tạo nhanh nội dung tin nhắn gửi Fanpage / Email
+                Tạo nhanh tin nhắn gửi Fanpage
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -159,6 +121,9 @@ export default function ForgotPasswordPage() {
                   <span>{copied ? "Đã chép" : "Sao chép"}</span>
                 </Button>
               </div>
+              <p className="text-[11px] text-slate-400">
+                Bấm sao chép và dán trực tiếp vào khung chat của Fanpage để được hỗ trợ tức thì.
+              </p>
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">

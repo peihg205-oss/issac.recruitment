@@ -121,7 +121,7 @@ export function CandidateAccountModal({
     setCopiedMsg(true)
     toast({
       title: "Đã sao chép mẫu tin nhắn",
-      description: "Bạn có thể gửi ngay nội dung này cho ứng viên qua Fanpage hoặc Email.",
+      description: "Bạn có thể gửi ngay nội dung này cho ứng viên qua Fanpage.",
     })
     setTimeout(() => setCopiedMsg(false), 2000)
   }
@@ -226,7 +226,7 @@ export function CandidateAccountModal({
               </span>
             </div>
             <p className="text-[11px] text-slate-600 leading-relaxed">
-              Nếu ứng viên liên hệ qua Fanpage hoặc Email để xin cấp lại mật khẩu, bạn có thể sao chép nhanh mẫu tin nhắn đã có sẵn mật khẩu này:
+              Nếu ứng viên liên hệ qua Fanpage để xin cấp lại mật khẩu, bạn có thể sao chép nhanh mẫu tin nhắn đã có sẵn mật khẩu này:
             </p>
             <Button
               type="button"
@@ -236,7 +236,7 @@ export function CandidateAccountModal({
               className="w-full h-8 text-xs font-bold bg-white text-[#1657c1] hover:bg-blue-100/60 border-blue-300 gap-1.5"
             >
               {copiedMsg ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedMsg ? "Đã chép tin nhắn mẫu" : "Sao chép tin nhắn gửi qua Fanpage / Email"}
+              {copiedMsg ? "Đã chép tin nhắn mẫu" : "Sao chép tin nhắn gửi qua Fanpage"}
             </Button>
           </div>
 

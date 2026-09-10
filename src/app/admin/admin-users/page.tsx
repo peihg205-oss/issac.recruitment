@@ -28,6 +28,7 @@ import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from "@/lib/permissions"
 interface AdminUser {
   id: string
   full_name: string
+  title?: string
   email: string
   password?: string
   role: string
@@ -68,6 +69,7 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   {
     id: "adm-fixed-master",
     full_name: "Ban Chủ nhiệm CLB iSSAC",
+    title: "Chủ nhiệm CLB iSSAC",
     email: "ambassadors.club@vnuis.edu.vn",
     password: "ISSAC2026@tuyenquan",
     role: "super_admin",
@@ -79,6 +81,7 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   {
     id: "adm-1",
     full_name: "Ban Chủ nhiệm (Dự phòng)",
+    title: "Phó Chủ nhiệm CLB",
     email: "bcn@issac.vnu.edu.vn",
     password: "ISSAC2026@tuyenquan",
     role: "super_admin",
@@ -89,6 +92,7 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   {
     id: "adm-2",
     full_name: "Giám khảo Ban Truyền thông",
+    title: "Phó Ban Truyền thông",
     email: "truyenthong@issac.vnu.edu.vn",
     role: "admin",
     admin_role: "truyen-thong",
@@ -98,6 +102,7 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   {
     id: "adm-3",
     full_name: "Giám khảo Ban Tư vấn",
+    title: "Trưởng Ban Tư vấn",
     email: "tuvan@issac.vnu.edu.vn",
     role: "admin",
     admin_role: "tu-van",
@@ -107,6 +112,7 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   {
     id: "adm-4",
     full_name: "Giám khảo Ban Nhân sự",
+    title: "Trưởng Ban Nhân sự",
     email: "nhansu@issac.vnu.edu.vn",
     role: "admin",
     admin_role: "nhan-su",
@@ -133,6 +139,7 @@ export default function AdminUsersPage() {
   // Form tạo tài khoản mới
   const [form, setForm] = useState({
     full_name: "",
+    title: "",
     email: "",
     password: "",
     admin_role: "truyen-thong" as "chu-nhiem" | "truyen-thong" | "tu-van" | "nhan-su",
@@ -264,6 +271,7 @@ export default function AdminUsersPage() {
     const emailClean = form.email.trim().toLowerCase()
     const passClean = form.password.trim()
     const nameClean = form.full_name.trim()
+    const titleClean = form.title.trim() || (form.admin_role === "chu-nhiem" ? "Phó Chủ nhiệm CLB" : `Cán bộ Tuyển quân · ${DEPT_INFO[form.admin_role].name}`)
     const roleClean = form.admin_role === "chu-nhiem" ? "super_admin" : "admin"
 
     // 1. Đồng bộ tài khoản lên Supabase Auth & Database để đăng nhập được trên Điện thoại và mọi thiết bị
@@ -275,6 +283,7 @@ export default function AdminUsersPage() {
         options: {
           data: {
             full_name: nameClean,
+            title: titleClean,
             role: roleClean,
             admin_role: form.admin_role,
           }
@@ -303,6 +312,7 @@ export default function AdminUsersPage() {
     const newAdmin: AdminUser = {
       id: `adm-${Date.now()}`,
       full_name: nameClean,
+      title: titleClean,
       email: emailClean,
       password: passClean,
       role: roleClean,
@@ -323,11 +333,11 @@ export default function AdminUsersPage() {
 
     setSaving(false)
     setShowCreateModal(false)
-    setForm({ full_name: "", email: "", password: "", admin_role: "truyen-thong" })
+    setForm({ full_name: "", title: "", email: "", password: "", admin_role: "truyen-thong" })
 
     toast({
       title: "✅ Đã cấp tài khoản thành công",
-      description: `Đã cấp quyền cho ${nameClean} (${DEPT_INFO[form.admin_role].name}). Tài khoản đã sẵn sàng đăng nhập trên mọi thiết bị (Điện thoại & Máy tính).`,
+      description: `Đã cấp quyền cho ${nameClean} (${titleClean} - ${DEPT_INFO[form.admin_role].name}). Tài khoản đã sẵn sàng đăng nhập trên mọi thiết bị (Điện thoại & Máy tính).`,
       variant: "success",
     } as Parameters<typeof toast>[0])
   }
@@ -523,8 +533,13 @@ export default function AdminUsersPage() {
                   return (
                     <tr key={admin.id} className="hover:bg-blue-50/30 transition-colors">
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                        <div className="font-bold text-gray-900 flex flex-wrap items-center gap-1.5">
                           <span>{admin.full_name}</span>
+                          {admin.title && (
+                            <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                              {admin.title}
+                            </span>
+                          )}
                           {admin.is_fixed && (
                             <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1.5 py-0 font-bold">
                               Cố định
@@ -655,7 +670,19 @@ export default function AdminUsersPage() {
               <Input
                 value={form.full_name}
                 onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                placeholder="VD: Nguyễn Hải Nam - Ban Truyền thông"
+                placeholder="VD: Nguyễn Văn A..."
+                className="text-sm"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Chức vụ / Vị trí đảm nhiệm
+              </Label>
+              <Input
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder={form.admin_role === "chu-nhiem" ? "VD: Phó Chủ nhiệm CLB, Chủ nhiệm CLB..." : "VD: Cán bộ Tuyển quân, Giám khảo..."}
                 className="text-sm"
               />
             </div>

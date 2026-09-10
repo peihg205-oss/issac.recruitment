@@ -143,7 +143,11 @@ function LoginForm() {
           return
         }
         // Set cookie với SameSite=Lax để hoạt động tốt trên Vercel
+        const defaultTitle = matchedAdmin.role === 'chu-nhiem' ? 'Chủ nhiệm CLB iSSAC' : matchedAdmin.name
         document.cookie = `issac_admin_role=${matchedAdmin.role}; path=/; max-age=2592000; SameSite=Lax`
+        document.cookie = `issac_logged_admin_name=${encodeURIComponent(matchedAdmin.name)}; path=/; max-age=2592000; SameSite=Lax`
+        document.cookie = `issac_logged_admin_title=${encodeURIComponent(defaultTitle)}; path=/; max-age=2592000; SameSite=Lax`
+        document.cookie = `issac_logged_admin_email=${encodeURIComponent(emailLower)}; path=/; max-age=2592000; SameSite=Lax`
         toast({
           title: "Đăng nhập thành công",
           description: `Chào mừng ${matchedAdmin.name}! Đang chuyển vào cổng quản trị...`,
@@ -199,13 +203,15 @@ function LoginForm() {
           })
           return
         }
-        // Lưu role và tên người dùng đã đăng nhập vào cookie
+        const foundTitle = found.title || (found.admin_role === 'chu-nhiem' ? 'Phó Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
+        // Lưu role và thông tin cá nhân của tài khoản đã đăng nhập vào cookie
         document.cookie = `issac_admin_role=${found.admin_role}; path=/; max-age=2592000; SameSite=Lax`
-        // Lưu tên thực của tài khoản vào cookie để layout đọc được
         document.cookie = `issac_logged_admin_name=${encodeURIComponent(found.full_name)}; path=/; max-age=2592000; SameSite=Lax`
+        document.cookie = `issac_logged_admin_title=${encodeURIComponent(foundTitle)}; path=/; max-age=2592000; SameSite=Lax`
+        document.cookie = `issac_logged_admin_email=${encodeURIComponent(found.email)}; path=/; max-age=2592000; SameSite=Lax`
         toast({
           title: "Đăng nhập thành công",
-          description: `Chào mừng ${found.full_name}! Đang chuyển vào cổng quản trị...`,
+          description: `Chào mừng ${found.full_name} (${foundTitle})! Đang chuyển vào cổng quản trị...`,
           variant: "success"
         } as Parameters<typeof toast>[0])
         router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
@@ -300,16 +306,19 @@ function LoginForm() {
       return
     }
 
-    const targetAdminRole = profile?.admin_role || "chu-nhiem"
-    const displayName = profile?.full_name || authData.user.user_metadata?.full_name || "Cán bộ Tuyển quân"
+    const userMeta = authData.user.user_metadata || {}
+    const targetAdminRole = profile?.admin_role || userMeta.admin_role || "chu-nhiem"
+    const displayName = profile?.full_name || userMeta.full_name || "Cán bộ Tuyển quân"
+    const displayTitle = userMeta.title || (targetAdminRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
 
     document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
     document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_title=${encodeURIComponent(displayTitle)}; path=/; max-age=2592000; SameSite=Lax`
     document.cookie = `issac_logged_admin_email=${encodeURIComponent(authData.user.email || "")}; path=/; max-age=2592000; SameSite=Lax`
 
     toast({
       title: "Đăng nhập thành công",
-      description: `Chào mừng ${displayName}! Đang chuyển vào cổng quản trị...`,
+      description: `Chào mừng ${displayName} (${displayTitle})! Đang chuyển vào cổng quản trị...`,
       variant: "success"
     } as Parameters<typeof toast>[0])
 

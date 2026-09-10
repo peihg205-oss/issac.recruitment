@@ -49,6 +49,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const loggedAdminNameRaw = cookieStore.get("issac_logged_admin_name")?.value
   const loggedAdminName = loggedAdminNameRaw ? decodeURIComponent(loggedAdminNameRaw) : null
 
+  // Đọc chức vụ tài khoản từ cookie
+  const loggedAdminTitleRaw = cookieStore.get("issac_logged_admin_title")?.value
+  const loggedAdminTitle = loggedAdminTitleRaw ? decodeURIComponent(loggedAdminTitleRaw) : null
+
   // Đọc danh sách tài khoản do BCN tạo từ cookie
   const createdAdminsCookie = cookieStore.get("issac_created_admins")?.value
   let createdAdmins: any[] = []
@@ -62,9 +66,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const baseAcc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS["chu-nhiem"]
   const resolvedName = userProfile?.full_name || loggedAdminName || customAccounts[activeRole]?.name || baseAcc.name
   const isDefaultLead = !userProfile?.full_name || userProfile.full_name === baseAcc.name
-  const resolvedTitle = isDefaultLead
+  const resolvedTitle = loggedAdminTitle || (isDefaultLead
     ? (customAccounts[activeRole]?.title || baseAcc.title)
-    : `Cán bộ Tuyển quân · ${baseAcc.departmentName}`
+    : (activeRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : `Cán bộ Tuyển quân · ${baseAcc.departmentName}`))
 
   const acc = {
     ...baseAcc,

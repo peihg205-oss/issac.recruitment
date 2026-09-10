@@ -83,23 +83,28 @@ export default function EvaluationListClient({
           const interviewerProfile = ev?.interviewer_id ? profilesMap[ev.interviewer_id] : null
 
           let parsedGrader: any = null
+          let parsedBcnReviewer: any = null
           if (ev?.overall_comment && typeof ev.overall_comment === 'string' && ev.overall_comment.startsWith('{')) {
             try {
               const pc = JSON.parse(ev.overall_comment)
               if (pc.grader) parsedGrader = pc.grader
+              if (pc.bcnReviewer) parsedBcnReviewer = pc.bcnReviewer
             } catch {}
           }
 
           // Check cached scores in localStorage as well
-          if (!parsedGrader && typeof window !== 'undefined') {
+          if (typeof window !== 'undefined') {
             try {
               const cached = localStorage.getItem(`eval_scores_${a.id}`)
               if (cached) {
                 const parsed = JSON.parse(cached)
-                if (parsed.evaluator) {
+                if (!parsedGrader && parsed.evaluator) {
                   parsedGrader = typeof parsed.evaluator === 'string'
                     ? { name: parsed.evaluator }
                     : parsed.evaluator
+                }
+                if (!parsedBcnReviewer && parsed.bcnReviewer) {
+                  parsedBcnReviewer = parsed.bcnReviewer
                 }
               }
             } catch {}
@@ -129,7 +134,8 @@ export default function EvaluationListClient({
               bcn_decision: (a.candidate_rankings as any)?.result || 'pending',
               bcn_note: ev.overall_comment,
             } : null,
-            evaluator
+            evaluator,
+            bcnReviewer: parsedBcnReviewer
           }
         })
         setApps(mapped)
@@ -325,14 +331,24 @@ export default function EvaluationListClient({
 
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           {evaluator ? (
-                            <div className="text-xs">
-                              <div className="font-bold text-gray-900 flex items-center gap-1">
-                                <UserCheck className="w-3.5 h-3.5 text-[#1559c5] flex-shrink-0" />
-                                <span>{evaluator.name}</span>
+                            <div className="text-xs space-y-1">
+                              <div>
+                                <div className="font-bold text-gray-900 flex items-center gap-1">
+                                  <UserCheck className="w-3.5 h-3.5 text-[#1559c5] flex-shrink-0" />
+                                  <span>{evaluator.name}</span>
+                                </div>
+                                {evaluator.title && (
+                                  <div className="text-[11px] text-slate-500 font-medium">
+                                    {evaluator.title}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-[11px] text-gray-500 font-mono truncate max-w-[160px]">
-                                {evaluator.email}
-                              </div>
+                              {app.bcnReviewer && (
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-300 text-amber-950 text-[10px] font-bold shadow-2xs">
+                                  <Crown className="w-3 h-3 text-amber-600 shrink-0" />
+                                  <span>BCN: {app.bcnReviewer.name}</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-gray-400 italic">Chưa chấm</span>

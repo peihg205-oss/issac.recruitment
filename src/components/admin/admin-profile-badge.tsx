@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import {
   Dialog,
   DialogContent,
@@ -103,10 +104,18 @@ export function AdminProfileBadge({
     refreshData()
   }, [role, selectedDeptToEdit])
 
-  // Current display data: Ưu tiên tên của chính người dùng đang đăng nhập (initialName)
-  const displayName = initialName?.trim() || (accounts ? accounts[role]?.name : "") || EVALUATOR_ACCOUNTS[role]?.name || ""
-  const displayTitle = initialTitle?.trim() || (accounts ? accounts[role]?.title : "") || EVALUATOR_ACCOUNTS[role]?.title || ""
-  const displayAvatar = initialAvatarInitial || displayName.charAt(0).toUpperCase() || "A"
+  const [selfName, setSelfName] = useState(initialName)
+  const [selfTitle, setSelfTitle] = useState(initialTitle)
+
+  useEffect(() => {
+    if (initialName) setSelfName(initialName)
+    if (initialTitle) setSelfTitle(initialTitle)
+  }, [initialName, initialTitle])
+
+  // Current display data: Ưu tiên tên và chức vụ của chính tài khoản đang đăng nhập
+  const displayName = selfName?.trim() || initialName?.trim() || (accounts ? accounts[role]?.name : "") || EVALUATOR_ACCOUNTS[role]?.name || ""
+  const displayTitle = selfTitle?.trim() || initialTitle?.trim() || (accounts ? accounts[role]?.title : "") || EVALUATOR_ACCOUNTS[role]?.title || ""
+  const displayAvatar = displayName.charAt(0).toUpperCase() || "A"
 
   const currentAcc = {
     name: displayName,
@@ -135,37 +144,70 @@ export function AdminProfileBadge({
     }
   }
 
-  // Handle self-save (BCN direct update)
-  const handleSaveSelf = () => {
-    if (!nameInput.trim()) {
+  // Cập nhật thông tin của CHÍNH TÀI KHOẢN ĐANG ĐĂNG NHẬP (không ghi đè các tài khoản khác trong cùng Ban)
+  const handleSaveSelf = async () => {
+    const trimmedName = nameInput.trim()
+    const trimmedTitle = titleInput.trim()
+    if (!trimmedName) {
       setFeedbackMsg({ type: "error", text: "Vui lòng nhập họ và tên hiển thị." })
       return
     }
-    if (!titleInput.trim()) {
+    if (!trimmedTitle) {
       setFeedbackMsg({ type: "error", text: "Vui lòng nhập chức vụ hiển thị." })
       return
     }
 
-    if (isBCN) {
-      // Ban Chủ nhiệm directly saves
-      updateAccountDirectly(role, nameInput, titleInput)
-      refreshData()
-      setFeedbackMsg({
-        type: "success",
-        text: "✅ Ban Chủ nhiệm: Đã cập nhật Tên và Chức vụ thành công ngay lập tức!",
-      })
-      setTimeout(() => {
-        router.refresh()
-      }, 500)
-    } else {
-      // Department Admin submits request to BCN
-      submitChangeRequest(role, nameInput, titleInput)
-      refreshData()
-      setFeedbackMsg({
-        type: "info",
-        text: "📨 Đã gửi yêu cầu đổi tên & chức vụ tới Ban Chủ nhiệm. Vui lòng chờ phê duyệt!",
-      })
+    // 1. Cập nhật cookie cá nhân của tài khoản này
+    document.cookie = `issac_logged_admin_name=${encodeURIComponent(trimmedName)}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_title=${encodeURIComponent(trimmedTitle)}; path=/; max-age=2592000; SameSite=Lax`
+
+    // 2. Cập nhật vào Supabase profile nếu có phiên đăng nhập
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from("profiles").update({
+          full_name: trimmedName,
+        }).eq("id", user.id)
+      }
+    } catch {}
+
+    // 3. Cập nhật vào danh sách tài khoản đã tạo theo email
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("issac_created_admins")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) {
+            let emailMatch = ""
+            const emCookie = document.cookie.match(/(?:^|;\s*)issac_logged_admin_email=([^;]+)/)
+            if (emCookie) emailMatch = decodeURIComponent(emCookie[1]).toLowerCase()
+
+            const updated = parsed.map((a: any) => {
+              if (emailMatch && a.email?.toLowerCase() === emailMatch) {
+                return { ...a, full_name: trimmedName, title: trimmedTitle }
+              }
+              return a
+            })
+            localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+            document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+          }
+        }
+      } catch {}
     }
+
+    setSelfName(trimmedName)
+    setSelfTitle(trimmedTitle)
+
+    setFeedbackMsg({
+      type: "success",
+      text: "✅ Đã cập nhật Tên và Chức vụ của tài khoản thành công!",
+    })
+
+    setTimeout(() => {
+      setOpen(false)
+      router.refresh()
+    }, 600)
   }
 
   // Handle BCN direct edit for another department

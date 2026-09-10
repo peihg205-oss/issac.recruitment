@@ -89,6 +89,7 @@ export default function EvaluationDetailPage() {
   const [bcnDecision, setBcnDecision] = useState<'pass' | 'waitlist' | 'fail' | 'pending'>('pending')
   const [bcnNote, setBcnNote] = useState('')
   const [evaluatorInfo, setEvaluatorInfo] = useState<any>(null)
+  const [bcnReviewerInfo, setBcnReviewerInfo] = useState<any>(null)
   const [candidateCode, setCandidateCode] = useState<string>('ISSAC-01')
 
   const [loading, setLoading] = useState(true)
@@ -181,12 +182,13 @@ export default function EvaluationDetailPage() {
 
         let resolvedEvaluator: any = null
 
-        // Check if evals.overall_comment has structured payload with grader
+        // Check if evals.overall_comment has structured payload with grader and bcnReviewer
         if (evals?.overall_comment) {
           try {
             if (evals.overall_comment.startsWith('{')) {
               const parsedComment = JSON.parse(evals.overall_comment)
               if (parsedComment.grader) resolvedEvaluator = parsedComment.grader
+              if (parsedComment.bcnReviewer) setBcnReviewerInfo(parsedComment.bcnReviewer)
               if (parsedComment.justification) setJustification(parsedComment.justification)
               if (parsedComment.bcnNote) setBcnNote(parsedComment.bcnNote)
             } else {
@@ -221,6 +223,7 @@ export default function EvaluationDetailPage() {
             if (parsed.recommendation) setRecommendation(parsed.recommendation)
             if (parsed.bcnDecision) setBcnDecision(parsed.bcnDecision)
             if (parsed.bcnNote) setBcnNote(parsed.bcnNote)
+            if (parsed.bcnReviewer) setBcnReviewerInfo(parsed.bcnReviewer)
             if (parsed.evaluator) {
               resolvedEvaluator = typeof parsed.evaluator === 'string'
                 ? { name: parsed.evaluator }
@@ -394,13 +397,28 @@ export default function EvaluationDetailPage() {
   }
 
   let loggedName: string | null = null
+  let loggedTitle: string | null = null
+  let loggedEmail: string | null = null
   if (typeof document !== 'undefined') {
-    const match = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
-    if (match) {
-      try {
-        loggedName = decodeURIComponent(match[1])
-      } catch {}
+    const matchName = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
+    if (matchName) {
+      try { loggedName = decodeURIComponent(matchName[1]) } catch {}
     }
+    const matchTitle = document.cookie.match(/(?:^|;\s*)issac_logged_admin_title=([^;]+)/)
+    if (matchTitle) {
+      try { loggedTitle = decodeURIComponent(matchTitle[1]) } catch {}
+    }
+    const matchEmail = document.cookie.match(/(?:^|;\s*)issac_logged_admin_email=([^;]+)/)
+    if (matchEmail) {
+      try { loggedEmail = decodeURIComponent(matchEmail[1]) } catch {}
+    }
+  }
+
+  const currentLoggedInAdmin = {
+    name: loggedName || activeAdmin.name || currentEvaluator.name,
+    title: loggedTitle || (isSuperAdmin ? (activeAdmin.title || 'Ban Chủ nhiệm CLB') : (activeAdmin.title || `Cán bộ Tuyển quân · ${currentEvaluator.departmentName}`)),
+    email: loggedEmail || activeAdmin.email || currentEvaluator.email,
+    role: activeRole,
   }
 
   // displayEvaluator: Giữ đúng Giám khảo ban chuyên môn đã chấm điểm
@@ -412,10 +430,10 @@ export default function EvaluationDetailPage() {
       title: targetDeptTitle,
       role: targetDeptSlug
     } : {
-      name: loggedName || activeAdmin.name || currentEvaluator.name,
-      email: bcnAssignedEmail,
+      name: currentLoggedInAdmin.name,
+      email: currentLoggedInAdmin.email,
       departmentName: isSuperAdmin ? 'Ban Chủ nhiệm' : currentEvaluator.departmentName,
-      title: loggedName ? `Cán bộ Tuyển quân · ${currentEvaluator.departmentName}` : (activeAdmin.title || currentEvaluator.title),
+      title: currentLoggedInAdmin.title,
       role: activeRole
     }
   )
@@ -465,13 +483,23 @@ export default function EvaluationDetailPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const interviewerId = user?.id || '00000000-0000-0000-0000-000000000001'
 
-      const graderToPersist = evaluatorInfo || displayEvaluator
+      // Người chấm điểm: Nếu đã có thông tin chấm từ trước, giữ nguyên; nếu chưa, lưu chính tài khoản đang chấm
+      const graderToPersist = evaluatorInfo ? evaluatorInfo : {
+        name: currentLoggedInAdmin.name,
+        title: currentLoggedInAdmin.title,
+        email: currentLoggedInAdmin.email,
+        departmentName: isSuperAdmin ? 'Ban Chủ nhiệm' : currentEvaluator.departmentName,
+        role: activeRole,
+        evaluatedAt: new Date().toISOString()
+      }
+
+      // Thông tin Ban Chủ nhiệm thẩm định
       const bcnReviewerPayload = isSuperAdmin ? {
-        name: activeAdmin.name,
-        title: activeAdmin.title,
-        email: activeAdmin.email,
+        name: currentLoggedInAdmin.name,
+        title: currentLoggedInAdmin.title,
+        email: currentLoggedInAdmin.email,
         reviewedAt: new Date().toISOString()
-      } : null
+      } : (bcnReviewerInfo || null)
 
       const overallPayload = JSON.stringify({
         justification: justification.trim(),
@@ -626,7 +654,7 @@ export default function EvaluationDetailPage() {
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-[#1657c1]">
-                  Giám khảo chấm điểm (Ban chuyên môn)
+                  Giám khảo chấm điểm phỏng vấn
                 </div>
                 <div className="font-black text-base sm:text-lg text-slate-900 flex flex-wrap items-center gap-2 mt-0.5">
                   <span>{displayEvaluator.name}</span>
@@ -638,15 +666,21 @@ export default function EvaluationDetailPage() {
                 <div className="text-xs text-slate-600 font-mono mt-0.5">
                   Email: <strong>{displayEvaluator.email}</strong>
                 </div>
+                {bcnReviewerInfo && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold shadow-2xs">
+                    <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Ban Chủ nhiệm thẩm định: <strong>{bcnReviewerInfo.name}</strong> ({bcnReviewerInfo.title})</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0">
-              <div className="text-[11px] text-slate-500 font-medium">Tư cách đang đăng nhập</div>
+              <div className="text-[11px] text-slate-500 font-medium">Bạn đang đăng nhập với tư cách</div>
               <div className="font-bold text-xs sm:text-sm text-slate-900 flex items-center sm:justify-end gap-1.5 mt-0.5">
                 {isSuperAdmin && <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
-                <span>{activeAdmin.name}</span>
-                <span className="text-slate-500 text-xs font-normal">({activeAdmin.title})</span>
+                <span className="text-[#1657c1] font-black">{currentLoggedInAdmin.name}</span>
+                <span className="text-slate-600 text-xs font-semibold">({currentLoggedInAdmin.title})</span>
               </div>
               {isSuperAdmin ? (
                 <div className="mt-1">

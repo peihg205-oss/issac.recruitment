@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast"
 import {
   ShieldCheck, Users, Crown, Megaphone, MessageSquare,
   Plus, Key, Lock, CheckCircle2, AlertCircle, Loader2, Trash2,
-  Clock, Check, XCircle, Eye, EyeOff
+  Clock, Check, XCircle, Eye, EyeOff, Edit3
 } from "lucide-react"
 import {
   getAdminAccounts,
@@ -129,6 +129,14 @@ export default function AdminUsersPage() {
   const [roleChecked, setRoleChecked] = useState(false)
   const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ACCOUNTS)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedAdminForEdit, setSelectedAdminForEdit] = useState<AdminUser | null>(null)
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    title: "",
+    admin_role: "tu-van" as "chu-nhiem" | "truyen-thong" | "tu-van" | "nhan-su",
+    password: "",
+  })
   const [showResetModal, setShowResetModal] = useState(false)
   const [selectedAdminForReset, setSelectedAdminForReset] = useState<AdminUser | null>(null)
   const [newPasswordInput, setNewPasswordInput] = useState("")
@@ -172,7 +180,7 @@ export default function AdminUsersPage() {
       const supabase = createClient()
       const { data: dbAdmins } = await supabase
         .from("profiles")
-        .select("id, email, full_name, role, admin_role, is_active, created_at")
+        .select("id, email, full_name, role, admin_role, is_active, high_school, created_at")
         .in("role", ["admin", "super_admin"])
 
       if (dbAdmins && dbAdmins.length > 0) {
@@ -180,10 +188,21 @@ export default function AdminUsersPage() {
           if (!p.email) return
           const emLower = p.email.toLowerCase()
           const existing = emailMap.get(emLower)
+
+          // Tránh để chuỗi mặc định cũ "Cán bộ Tuyển quân (...)" ghi đè tên đã được BCN chỉ định
+          const isGenericDefault = p.full_name?.startsWith("Cán bộ Tuyển quân (")
+          const resolvedName = (existing?.full_name && !existing.full_name.startsWith("Cán bộ Tuyển quân ("))
+            ? existing.full_name
+            : (!isGenericDefault && p.full_name ? p.full_name : (existing?.full_name || p.full_name || p.email))
+
+          const resolvedTitle = p.high_school || existing?.title || ""
+
           if (existing) {
             emailMap.set(emLower, {
               ...existing,
-              full_name: p.full_name || existing.full_name,
+              id: p.id || existing.id,
+              full_name: resolvedName,
+              title: resolvedTitle || existing.title,
               role: p.role || existing.role,
               admin_role: (p.admin_role as any) || existing.admin_role,
               is_active: p.is_active !== undefined ? p.is_active : existing.is_active,
@@ -191,7 +210,8 @@ export default function AdminUsersPage() {
           } else {
             emailMap.set(emLower, {
               id: p.id,
-              full_name: p.full_name || p.email,
+              full_name: resolvedName,
+              title: resolvedTitle,
               email: p.email,
               role: p.role,
               admin_role: (p.admin_role as any) || "truyen-thong",
@@ -277,7 +297,18 @@ export default function AdminUsersPage() {
     // 1. Đồng bộ tài khoản lên Supabase Auth & Database để đăng nhập được trên Điện thoại và mọi thiết bị
     try {
       const tempSupabase = createClient()
-      const { data: authData, error: authErr } = await tempSupabase.auth.signUp({
+      
+      // Update trực tiếp vào profiles để DB nhận ngay tên & chức vụ được BCN assign
+      await tempSupabase.from("profiles").update({
+        full_name: nameClean,
+        high_school: titleClean,
+        role: roleClean,
+        admin_role: form.admin_role,
+        is_active: true
+      }).ilike("email", emailClean)
+
+      // Thử đăng ký Supabase Auth
+      await tempSupabase.auth.signUp({
         email: emailClean,
         password: passClean,
         options: {
@@ -289,21 +320,6 @@ export default function AdminUsersPage() {
           }
         }
       })
-
-      if (!authErr && authData.user) {
-        const { data: loginData } = await tempSupabase.auth.signInWithPassword({
-          email: emailClean,
-          password: passClean,
-        })
-        if (loginData.user) {
-          await tempSupabase.from("profiles").update({
-            full_name: nameClean,
-            role: roleClean,
-            admin_role: form.admin_role,
-            is_active: true
-          }).eq("id", loginData.user.id)
-        }
-      }
     } catch (e) {
       console.warn("Supabase auth sync notice:", e)
     }
@@ -338,6 +354,75 @@ export default function AdminUsersPage() {
     toast({
       title: "✅ Đã cấp tài khoản thành công",
       description: `Đã cấp quyền cho ${nameClean} (${titleClean} - ${DEPT_INFO[form.admin_role].name}). Tài khoản đã sẵn sàng đăng nhập trên mọi thiết bị (Điện thoại & Máy tính).`,
+      variant: "success",
+    } as Parameters<typeof toast>[0])
+  }
+
+  const handleOpenEditModal = (admin: AdminUser) => {
+    setSelectedAdminForEdit(admin)
+    setEditForm({
+      full_name: admin.full_name,
+      title: admin.title || "",
+      admin_role: admin.admin_role,
+      password: admin.password || "",
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEditAdmin = async () => {
+    if (!selectedAdminForEdit) return
+    if (!editForm.full_name.trim()) {
+      toast({ title: "Vui lòng nhập họ và tên cán bộ", variant: "destructive" })
+      return
+    }
+
+    setSaving(true)
+    const nameClean = editForm.full_name.trim()
+    const titleClean = editForm.title.trim() || (editForm.admin_role === "chu-nhiem" ? "Phó Chủ nhiệm CLB" : `Cán bộ Tuyển quân · ${DEPT_INFO[editForm.admin_role].name}`)
+    const roleClean = editForm.admin_role === "chu-nhiem" ? "super_admin" : "admin"
+    const passClean = editForm.password.trim()
+
+    // 1. Cập nhật trực tiếp vào Supabase Database
+    try {
+      const supabase = createClient()
+      await supabase.from("profiles").update({
+        full_name: nameClean,
+        high_school: titleClean,
+        role: roleClean,
+        admin_role: editForm.admin_role,
+        is_active: true
+      }).ilike("email", selectedAdminForEdit.email)
+    } catch (e) {
+      console.warn("Update profile error:", e)
+    }
+
+    // 2. Cập nhật state & LocalStorage
+    setAdmins(prev => {
+      const updated = prev.map(a => {
+        if (a.id === selectedAdminForEdit.id || a.email.toLowerCase() === selectedAdminForEdit.email.toLowerCase()) {
+          return {
+            ...a,
+            full_name: nameClean,
+            title: titleClean,
+            admin_role: editForm.admin_role,
+            role: roleClean,
+            ...(passClean ? { password: passClean } : {})
+          }
+        }
+        return a
+      })
+      if (typeof window !== "undefined") {
+        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+      }
+      return updated
+    })
+
+    setSaving(false)
+    setShowEditModal(false)
+    toast({
+      title: "✅ Đã cập nhật thành công",
+      description: `Đã lưu thông tin cho ${nameClean} (${titleClean} - ${DEPT_INFO[editForm.admin_role].name}).`,
       variant: "success",
     } as Parameters<typeof toast>[0])
   }
@@ -589,6 +674,16 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleOpenEditModal(admin)}
+                            className="h-8 text-xs text-amber-900 hover:bg-amber-100/60 font-bold border border-amber-200"
+                            title="Chỉnh sửa họ tên, chức vụ, ban của tài khoản này"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 mr-1 text-amber-700" /> Sửa thông tin
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleOpenResetModal(admin)}
                             className="h-8 text-xs text-blue-700 hover:bg-blue-50 font-bold"
                             title="Đổi mật khẩu tài khoản này"
@@ -760,6 +855,90 @@ export default function AdminUsersPage() {
             </Button>
             <Button onClick={handleSaveResetPassword} variant="gold" className="font-bold">
               Lưu mật khẩu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Chỉnh sửa thông tin tài khoản Admin (Họ tên, Chức vụ, Ban) */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="w-5 h-5 text-amber-600" />
+              Chỉnh sửa thông tin Cán bộ
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Cập nhật Họ và tên, Chức vụ và Ban phân công cho: <strong className="text-gray-900 font-mono">{selectedAdminForEdit?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-left">
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Ban được phân công <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={editForm.admin_role}
+                onValueChange={(v: any) => setEditForm(f => ({ ...f, admin_role: v }))}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chu-nhiem">Ban Chủ nhiệm (Toàn quyền)</SelectItem>
+                  <SelectItem value="truyen-thong">Ban Truyền thông</SelectItem>
+                  <SelectItem value="tu-van">Ban Tư vấn</SelectItem>
+                  <SelectItem value="nhan-su">Ban Nhân sự</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Họ và tên cán bộ <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={editForm.full_name}
+                onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+                placeholder="VD: Nguyễn Hải Nam"
+                className="text-sm"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Chức vụ / Chức danh cụ thể
+              </Label>
+              <Input
+                value={editForm.title}
+                onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                placeholder={editForm.admin_role === "chu-nhiem" ? "VD: Phó Chủ nhiệm CLB, Chủ nhiệm CLB..." : "VD: Phó ban Tư vấn, Trưởng ban, Giám khảo..."}
+                className="text-sm font-medium"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Mật khẩu mới (để trống nếu không muốn đổi)
+              </Label>
+              <Input
+                type="text"
+                value={editForm.password}
+                onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Nhập mật khẩu mới hoặc giữ nguyên..."
+                className="text-sm font-mono"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSaveEditAdmin} disabled={saving} variant="gold" className="font-bold">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Lưu thay đổi
             </Button>
           </DialogFooter>
         </DialogContent>

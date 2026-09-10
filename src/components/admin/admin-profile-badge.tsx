@@ -397,96 +397,95 @@ export function AdminProfileBadge({
             {/* TAB 1: SELF PROFILE EDIT */}
             {activeTab === "self" && (
               <div className="space-y-4">
-                {/* Role Permission Badge Alert */}
-                {!isBCN && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
-                    <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-900 leading-relaxed">
-                      Thay đổi tên và chức vụ sẽ được gửi đến <strong>Ban Chủ nhiệm phê duyệt</strong> trước khi áp dụng.
-                    </div>
-                  </div>
-                )}
+                {!isBCN ? (
+                  <div className="space-y-4">
+                    {/* Read-only profile view for department admin */}
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-[#1657c1] text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                          {currentAcc.avatarInitial}
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Cán bộ được phân công
+                          </div>
+                          <div className="font-black text-base text-slate-900 leading-tight">
+                            {currentAcc.name}
+                          </div>
+                          <div className="text-xs text-[#1657c1] font-bold mt-0.5">
+                            {currentAcc.title}
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Form Fields */}
-                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                  <div>
-                    <Label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Họ và tên người đại diện / Giám khảo
-                    </Label>
-                    <Input
-                      value={nameInput}
-                      onChange={e => setNameInput(e.target.value)}
-                      placeholder="VD: Nguyễn Thị Hồng Hân..."
-                      className="text-sm bg-white font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Chức vụ đảm nhiệm
-                    </Label>
-                    <Input
-                      value={titleInput}
-                      onChange={e => setTitleInput(e.target.value)}
-                      placeholder="VD: Chủ nhiệm CLB iSSAC, Trưởng Ban, Phó Ban..."
-                      className="text-sm bg-white font-medium"
-                    />
-                  </div>
-                </div>
-
-                {/* Status for Department Admin */}
-                {!isBCN && myPendingRequest && (
-                  <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold flex items-center gap-1.5 text-blue-950">
-                        <Clock className="w-3.5 h-3.5 text-blue-600" />
-                        Đang có 1 yêu cầu chờ BCN duyệt
-                      </span>
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] font-bold">
-                        Chờ duyệt
-                      </Badge>
+                      <div className="pt-2.5 border-t border-slate-200/80 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Ban phụ trách:</span>
+                          <span className="font-bold text-slate-800">{EVALUATOR_ACCOUNTS[role]?.departmentName}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Quyền hạn hệ thống:</span>
+                          <span className="font-semibold text-emerald-700">Chấm điểm & Đặt câu hỏi phỏng vấn Ban</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-600 bg-white/80 p-2.5 rounded-lg border border-blue-100">
-                      Đổi thành: <strong>{myPendingRequest.requestedName}</strong> - <span>{myPendingRequest.requestedTitle}</span>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-900 leading-relaxed">
+                        Họ tên, chức vụ và quyền hạn được phân công và bảo vệ bởi <strong>Ban Chủ nhiệm CLB iSSAC</strong>. Cán bộ không được tự ý thay đổi tên hoặc chức vụ của Ban để đảm bảo tính minh bạch.
+                      </div>
                     </div>
+
                     <div className="flex justify-end pt-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCancelRequest(myPendingRequest.id)}
-                        className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                      >
-                        Hủy yêu cầu này
+                      <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
+                        Đóng
                       </Button>
                     </div>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {/* Form Fields for BCN */}
+                    <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                          Họ và tên người đại diện / Giám khảo
+                        </Label>
+                        <Input
+                          value={nameInput}
+                          onChange={e => setNameInput(e.target.value)}
+                          placeholder="VD: Nguyễn Thị Hồng Hân..."
+                          className="text-sm bg-white font-medium"
+                        />
+                      </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
-                    Đóng
-                  </Button>
-                  <Button
-                    onClick={handleSaveSelf}
-                    className={"text-xs font-bold gap-1.5 " + (
-                      isBCN
-                        ? "bg-[#1657c1] hover:bg-blue-800 text-white"
-                        : "bg-amber-500 hover:bg-amber-600 text-slate-950"
-                    )}
-                  >
-                    {isBCN ? (
-                      <>
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                          Chức vụ đảm nhiệm
+                        </Label>
+                        <Input
+                          value={titleInput}
+                          onChange={e => setTitleInput(e.target.value)}
+                          placeholder="VD: Chủ nhiệm CLB iSSAC, Phó Chủ nhiệm CLB..."
+                          className="text-sm bg-white font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
+                        Đóng
+                      </Button>
+                      <Button
+                        onClick={handleSaveSelf}
+                        className="text-xs font-bold gap-1.5 bg-[#1657c1] hover:bg-blue-800 text-white"
+                      >
                         <Check className="w-3.5 h-3.5" />
                         Lưu thay đổi ngay
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="w-3.5 h-3.5" />
-                        Gửi yêu cầu tới BCN
-                      </>
-                    )}
-                  </Button>
-                </div>
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

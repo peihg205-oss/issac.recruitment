@@ -125,6 +125,30 @@ function LoginForm() {
     setUnconfirmedEmail(null)
     const supabase = createClient()
 
+    const getCreatedAdminsList = (): any[] => {
+      // Thử đọc từ cookie trước (chia sẻ được giữa các thiết bị nếu set đúng)
+      const cookieMatch = typeof document !== "undefined" ? document.cookie.match(/(?:^|;\s*)issac_created_admins=([^;]+)/) : null
+      if (cookieMatch) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
+          if (Array.isArray(parsed)) return parsed
+        } catch {}
+      }
+      // Fallback: đọc từ localStorage
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("issac_created_admins")
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed)) return parsed
+          } catch {}
+        }
+      }
+      return []
+    }
+
+    const createdList = getCreatedAdminsList()
+
     // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
     if (loginType === "admin") {
       const emailLower = values.email.toLowerCase().trim()
@@ -159,31 +183,7 @@ function LoginForm() {
       }
 
       // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
-      // Ưu tiên đọc từ cookie (hoạt động cross-device), fallback localStorage
-      const getCreatedAdminsList = (): any[] => {
-        // Thử đọc từ cookie trước (chia sẻ được giữa các thiết bị nếu set đúng)
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)issac_created_admins=([^;]+)/)
-        if (cookieMatch) {
-          try {
-            const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
-            if (Array.isArray(parsed)) return parsed
-          } catch {}
-        }
-        // Fallback: đọc từ localStorage
-        if (typeof window !== "undefined") {
-          const raw = localStorage.getItem("issac_created_admins")
-          if (raw) {
-            try {
-              const parsed = JSON.parse(raw)
-              if (Array.isArray(parsed)) return parsed
-            } catch {}
-          }
-        }
-        return []
-      }
-
-      const createdList = getCreatedAdminsList()
-      const found = createdList.find((a: any) => a.email.toLowerCase().trim() === emailLower)
+      const found = createdList.find((a: any) => a.email?.toLowerCase().trim() === emailLower)
       if (found) {
         if (!found.is_active) {
           setLoading(false)
@@ -290,7 +290,7 @@ function LoginForm() {
     // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, admin_role, full_name, email")
+      .select("role, admin_role, full_name, email, high_school")
       .eq("id", authData.user.id)
       .single()
 
@@ -307,9 +307,12 @@ function LoginForm() {
     }
 
     const userMeta = authData.user.user_metadata || {}
-    const targetAdminRole = profile?.admin_role || userMeta.admin_role || "chu-nhiem"
-    const displayName = profile?.full_name || userMeta.full_name || "Cán bộ Tuyển quân"
-    const displayTitle = userMeta.title || (targetAdminRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
+    const emailLower = (authData.user.email || values.email).toLowerCase().trim()
+    const foundCreated = createdList.find((a: any) => a.email?.toLowerCase().trim() === emailLower)
+
+    const targetAdminRole = foundCreated?.admin_role || profile?.admin_role || userMeta.admin_role || "chu-nhiem"
+    const displayName = foundCreated?.full_name || profile?.full_name || userMeta.full_name || "Cán bộ Tuyển quân"
+    const displayTitle = foundCreated?.title || profile?.high_school || userMeta.title || (targetAdminRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
 
     document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
     document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`

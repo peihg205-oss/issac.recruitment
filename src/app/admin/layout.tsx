@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (user) {
     const { data: prof } = await supabase
       .from("profiles")
-      .select("full_name, email, role, admin_role")
+      .select("full_name, email, role, admin_role, high_school")
       .eq("id", user.id)
       .single()
     userProfile = prof
@@ -64,11 +64,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const baseAcc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS["chu-nhiem"]
-  const resolvedName = userProfile?.full_name || loggedAdminName || customAccounts[activeRole]?.name || baseAcc.name
-  const isDefaultLead = !userProfile?.full_name || userProfile.full_name === baseAcc.name
-  const resolvedTitle = loggedAdminTitle || (isDefaultLead
-    ? (customAccounts[activeRole]?.title || baseAcc.title)
-    : (activeRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : `Cán bộ Tuyển quân · ${baseAcc.departmentName}`))
+  const isGenericDefault = userProfile?.full_name?.startsWith("Cán bộ Tuyển quân (")
+  const resolvedName = loggedAdminName || (!isGenericDefault && userProfile?.full_name ? userProfile.full_name : (loggedAdminName || userProfile?.full_name || customAccounts[activeRole]?.name || baseAcc.name))
+  const resolvedTitle = loggedAdminTitle || (userProfile as any)?.high_school || customAccounts[activeRole]?.title || (activeRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : baseAcc.title)
 
   const acc = {
     ...baseAcc,

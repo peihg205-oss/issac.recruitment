@@ -1,11 +1,8 @@
 import { cookies } from "next/headers"
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { AdminSidebar } from "@/components/shared/admin-sidebar"
-import { AdminProfileBadge } from "@/components/admin/admin-profile-badge"
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from "@/lib/permissions"
-import { ShieldCheck, Home } from "lucide-react"
+import { AdminLayoutClient } from "./AdminLayoutClient"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -86,52 +83,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
-      <AdminSidebar user={profile as any} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header - Aligned h-16 and border with Sidebar */}
-        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between shrink-0 z-10">
-          {/* Header Title with Modern Icon Badge */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-600 shadow-2xs">
-              <ShieldCheck className="w-4.5 h-4.5 text-amber-600" />
-            </div>
-            <div>
-              <div className="flex items-center">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Hệ thống Quản trị Tuyển quân Gen 3
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-500 font-medium hidden md:block">
-                CLB Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC)
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all"
-              title="Về Trang chủ"
-            >
-              <Home className="w-4.5 h-4.5" />
-            </Link>
-
-            {/* Interactive Admin Profile Badge with Edit & BCN Approval Modal */}
-            <AdminProfileBadge
-              role={activeRole}
-              initialName={acc.name}
-              initialTitle={acc.title}
-              initialAvatarInitial={acc.avatarInitial}
-            />
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <AdminLayoutClient
+      profile={profile as any}
+      activeRole={activeRole}
+      acc={acc}
+    >
+      {children}
+    </AdminLayoutClient>
   )
 }

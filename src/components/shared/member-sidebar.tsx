@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -7,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, User, FileText, HelpCircle,
-  Calendar, Trophy, LogOut, Bell, ChevronRight, Info
+  Calendar, Trophy, LogOut, Bell, ChevronRight, Info, X
 } from 'lucide-react'
 
 const navItems = [
@@ -21,9 +22,11 @@ const navItems = [
 
 interface MemberSidebarProps {
   user?: { full_name?: string; email?: string; avatar_url?: string | null }
+  isOpen?: boolean
+  onClose?: () => void
 }
 
-export function MemberSidebar({ user }: MemberSidebarProps) {
+export function MemberSidebar({ user, isOpen = false, onClose }: MemberSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -34,20 +37,31 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
     router.refresh()
   }
 
-  return (
-    <aside className="w-64 min-h-screen flex flex-col bg-white border-r border-slate-200 shrink-0">
-      {/* Logo - Matching exact h-16 height and border with top header */}
-      <div className="h-16 px-5 border-b border-slate-200 flex items-center shrink-0">
-        <Link href="/" className="flex items-center gap-3">
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    onClose?.()
+  }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sidebarContent = (
+    <aside className="w-64 h-full flex flex-col bg-white border-r border-slate-200 shrink-0">
+      {/* Logo */}
+      <div className="h-16 px-5 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <Link href="/" className="flex items-center gap-3" onClick={onClose}>
           <Image src="/issac-logo.png" alt="iSSAC" width={34} height={36} className="object-contain drop-shadow-sm shrink-0" />
           <div>
             <div className="font-black text-blue-900 text-sm leading-tight">iSSAC Portal</div>
             <div className="text-[11px] text-blue-400 font-medium">Member Dashboard</div>
           </div>
         </Link>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          aria-label="Đóng menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
-
-
 
       {/* Navigation */}
       <nav className="px-3 pt-3 pb-1 space-y-1">
@@ -72,7 +86,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
         })}
       </nav>
 
-      {/* Mascot ISARIS Illustration in the middle empty space */}
+      {/* Mascot ISARIS */}
       <div className="flex-1 px-4 py-2 flex items-center justify-center my-auto min-h-[140px]">
         <Link
           href="/member/about"
@@ -109,5 +123,29 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
         </button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden md:flex h-screen flex-shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: overlay drawer */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative h-full">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   )
 }

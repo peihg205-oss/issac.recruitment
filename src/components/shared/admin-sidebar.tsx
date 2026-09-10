@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Trophy, Calendar,
   FileQuestion, ShieldCheck, Download, Settings,
-  LogOut, CheckSquare, Crown, Megaphone, MessageSquare
+  LogOut, CheckSquare, Crown, Megaphone, MessageSquare, X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from '@/lib/permissions'
@@ -31,7 +31,13 @@ const navItems: NavItem[] = [
   { href: '/admin/settings', label: 'Cài đặt hệ thống', icon: Settings, group: 'tools', superAdminOnly: true },
 ]
 
-export function AdminSidebar({ user }: { user: { full_name?: string; email?: string; admin_role?: string; role?: string } | null }) {
+interface AdminSidebarProps {
+  user: { full_name?: string; email?: string; admin_role?: string; role?: string } | null
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -58,8 +64,12 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
     readRole()
   }, [user?.admin_role, pathname])
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    onClose?.()
+  }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSignOut = async () => {
-    // Clear demo cookie if any
     document.cookie = 'issac_admin_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     await supabase.auth.signOut()
     router.push('/login')
@@ -68,8 +78,6 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
 
   const roleKey = activeRole
   const currentConfig = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS['chu-nhiem']
-  const acc = EVALUATOR_ACCOUNTS[roleKey] || EVALUATOR_ACCOUNTS['chu-nhiem']
-  // Chỉ duy nhất Ban Chủ nhiệm mới có quyền Super Admin xem Cấp tài khoản và Cài đặt hệ thống
   const isSuper = roleKey === 'chu-nhiem' && currentConfig.isSuperAdmin
 
   const mainItems = navItems.filter(n => n.group === 'main')
@@ -77,24 +85,19 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
 
   const getRoleIcon = () => {
     switch (roleKey) {
-      case 'chu-nhiem':
-        return <Crown className="w-3.5 h-3.5 text-amber-400" />
-      case 'truyen-thong':
-        return <Megaphone className="w-3.5 h-3.5 text-blue-300" />
-      case 'tu-van':
-        return <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
-      case 'nhan-su':
-        return <Users className="w-3.5 h-3.5 text-purple-300" />
-      default:
-        return <Crown className="w-3.5 h-3.5 text-amber-400" />
+      case 'chu-nhiem': return <Crown className="w-3.5 h-3.5 text-amber-400" />
+      case 'truyen-thong': return <Megaphone className="w-3.5 h-3.5 text-blue-300" />
+      case 'tu-van': return <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
+      case 'nhan-su': return <Users className="w-3.5 h-3.5 text-purple-300" />
+      default: return <Crown className="w-3.5 h-3.5 text-amber-400" />
     }
   }
 
-  return (
-    <aside className="w-64 min-h-screen flex flex-col text-white shadow-xl flex-shrink-0" style={{background: 'linear-gradient(180deg, #1559c5 0%, #0d3d8a 100%)'}}>
-      {/* Brand Header - Matching h-16 height with header */}
-      <div className="h-16 px-5 border-b border-white/10 flex items-center shrink-0">
-        <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+  const sidebarContent = (
+    <aside className="w-64 h-full flex flex-col text-white shadow-xl flex-shrink-0" style={{ background: 'linear-gradient(180deg, #1559c5 0%, #0d3d8a 100%)' }}>
+      {/* Brand Header */}
+      <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between shrink-0">
+        <Link href="/admin/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
           <Image
             src="/issac-logo.png"
             alt="iSSAC Logo"
@@ -107,6 +110,14 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
             <div className="text-[11px] text-blue-300 font-medium">Recruitment Portal</div>
           </div>
         </Link>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Đóng menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Nav List */}
@@ -152,9 +163,7 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
               const Icon = item.icon
               const isLocked = item.superAdminOnly && !isSuper
 
-              if (isLocked) {
-                return null // Cleanly hide admin-only management tools for departmental users
-              }
+              if (isLocked) return null
 
               return (
                 <Link
@@ -186,5 +195,29 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
         </button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden md:flex h-screen flex-shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: overlay drawer */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative h-full">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   )
 }

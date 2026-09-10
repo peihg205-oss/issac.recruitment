@@ -26,37 +26,37 @@ export function AdminLayoutClient({ children, profile, activeRole, acc }: AdminL
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-2 sm:gap-3">
+        <header className="h-16 bg-white border-b border-slate-200 px-3 sm:px-6 flex items-center justify-between shrink-0 z-10 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             {/* Hamburger — only on mobile */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+              className="md:hidden p-1.5 -ml-1 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
               aria-label="Mở menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-600 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-600 shadow-2xs shrink-0">
               <ShieldCheck className="w-4.5 h-4.5 text-amber-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-800 leading-tight">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800 leading-tight truncate">
                   <span className="hidden sm:inline">Hệ thống Quản trị Tuyển quân Gen 3</span>
-                  <span className="sm:hidden">Admin Portal</span>
+                  <span className="sm:hidden text-[11px]">Admin Portal</span>
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 font-medium hidden md:block">
+              <div className="text-[11px] text-slate-500 font-medium hidden md:block truncate">
                 CLB Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN (iSSAC)
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/"
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all"
+              className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all shrink-0"
               title="Về Trang chủ"
             >
               <Home className="w-4.5 h-4.5" />

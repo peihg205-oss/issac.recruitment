@@ -270,22 +270,24 @@ export function AdminProfileBadge({
           setFeedbackMsg(null)
           refreshData()
         }}
-        className="relative flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-50/90 to-amber-100/60 hover:from-amber-100/90 hover:to-amber-200/60 border border-amber-200/90 cursor-pointer transition-all shadow-2xs hover:shadow-xs group select-none"
-        title="Nhấp để thay đổi Tên & Chức vụ"
+        className="relative flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-50/90 to-amber-100/60 hover:from-amber-100/90 hover:to-amber-200/60 border border-amber-200/90 cursor-pointer transition-all shadow-2xs hover:shadow-xs group select-none max-w-[160px] xs:max-w-[200px] sm:max-w-none shrink-0"
+        title="Nhấp để xem / quản trị thông tin"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1657c1] to-blue-800 flex items-center justify-center text-white font-black text-xs shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#1657c1] to-blue-800 flex items-center justify-center text-white font-black text-xs shadow-xs shrink-0 group-hover:scale-105 transition-transform">
           {currentAcc.avatarInitial}
         </div>
-        <div className="text-left min-w-0 pr-1">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-slate-900 text-xs sm:text-sm truncate leading-tight group-hover:text-[#1657c1] transition-colors">
+        <div className="text-left min-w-0 pr-0.5">
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-slate-900 text-xs sm:text-sm truncate leading-tight group-hover:text-[#1657c1] transition-colors block max-w-[95px] xs:max-w-[135px] sm:max-w-none">
               {currentAcc.name}
             </span>
-            <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#1657c1] transition-colors shrink-0" />
+            {isBCN && (
+              <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#1657c1] transition-colors shrink-0" />
+            )}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 truncate leading-tight mt-0.5">
+          <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-800 truncate leading-tight mt-0.5">
             {getRoleIcon(role)}
-            <span>{currentAcc.title}</span>
+            <span className="truncate max-w-[85px] xs:max-w-[120px] sm:max-w-none">{currentAcc.title}</span>
           </div>
         </div>
 

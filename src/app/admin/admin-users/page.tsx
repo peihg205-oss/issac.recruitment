@@ -601,11 +601,11 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600 uppercase text-xs border-b">
                 <tr>
-                  <th className="py-3.5 px-4">Tài khoản / Người đại diện</th>
-                  <th className="py-3.5 px-4">Ban được phân công</th>
-                  <th className="py-3.5 px-4">Mật khẩu</th>
-                  <th className="py-3.5 px-4">Trạng thái</th>
-                  <th className="py-3.5 px-4 text-right">Thao tác</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[220px]">Tài khoản / Người đại diện</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Ban được phân công</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[130px]">Mật khẩu</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[110px]">Trạng thái</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[260px]">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -621,12 +621,12 @@ export default function AdminUsersPage() {
                         <div className="font-bold text-gray-900 flex flex-wrap items-center gap-1.5">
                           <span>{admin.full_name}</span>
                           {admin.title && (
-                            <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                            <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 whitespace-nowrap">
                               {admin.title}
                             </span>
                           )}
                           {admin.is_fixed && (
-                            <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1.5 py-0 font-bold">
+                            <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1.5 py-0 font-bold whitespace-nowrap">
                               Cố định
                             </Badge>
                           )}
@@ -634,10 +634,10 @@ export default function AdminUsersPage() {
                         <div className="text-xs text-gray-500 font-mono">{admin.email}</div>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${dept.color}`}>
-                          <DeptIcon className="w-3.5 h-3.5" />
-                          <span>{dept.name}</span>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border whitespace-nowrap shrink-0 ${dept.color}`}>
+                          <DeptIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span className="whitespace-nowrap">{dept.name}</span>
                         </span>
                       </td>
 

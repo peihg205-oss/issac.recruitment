@@ -14,6 +14,8 @@ import { APPLICATION_STATUS_LABELS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { useSystemSettings, isRecruitmentOpen, formatDayMonth } from '@/lib/system-settings'
+import { fetchAllQuestions, subscribeQuestionsChange, type QuestionItem } from '@/lib/questions-manager'
+import { Sparkles, Layers, MessageSquareText } from 'lucide-react'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
 interface Question { id: string; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
@@ -30,6 +32,8 @@ export default function ApplicationPage() {
   const [selectedDept, setSelectedDept] = useState<string>('')
   const [selectedDept2, setSelectedDept2] = useState<string>('')
   const [questions, setQuestions] = useState<Question[]>([])
+  const [commonQuestions, setCommonQuestions] = useState<any[]>([])
+  const [departmentQuestions, setDepartmentQuestions] = useState<any[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [checkboxAnswers, setCheckboxAnswers] = useState<Record<string, string[]>>({})
   const [existingApp, setExistingApp] = useState<any>(null)
@@ -101,56 +105,59 @@ export default function ApplicationPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   const loadQuestions = useCallback(async (deptId: string) => {
-    let qList: any[] = []
+    let allQs: any[] = []
     try {
-      const { data: q } = await supabase
-        .from('questions')
-        .select('*, question_options(id, option_text)')
-        .eq('department_id', deptId)
-        .eq('is_active', true)
-        .order('sort_order')
-      if (q && q.length > 0) qList = q
+      allQs = await fetchAllQuestions()
     } catch {}
 
-    if (qList.length === 0) {
+    // 1. Phân loại câu hỏi chung toàn CLB (department_id là null hoặc common)
+    const commons = allQs.filter(q => !q.department_id || q.department_id === 'common')
+
+    // 2. Phân loại câu hỏi chuyên môn của ban đã chọn
+    let deptQs = allQs.filter(q => {
+      if (!q.department_id || q.department_id === 'common') return false
+      return q.department_id === deptId || q.departments?.id === deptId || q.departments?.slug === deptId
+    })
+
+    if (deptQs.length === 0) {
       if (deptId === 'dept-1' || deptId.includes('truyen-thong')) {
-        qList = [
-          { id: 'q-tt-1', question_text: 'Vì sao bạn muốn tham gia Ban Truyền thông iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và mục tiêu của bạn...' },
-          { id: 'q-tt-2', question_text: 'Bạn có kinh nghiệm thiết kế (Photoshop/Canva) hoặc quay dựng video chưa? Hãy chia sẻ link sản phẩm nếu có.', question_type: 'long_text', is_required: true, placeholder: 'Link drive, portfolio hoặc mô tả kinh nghiệm...' },
-          { id: 'q-tt-3', question_text: 'Nếu được giao nhiệm vụ lên ý tưởng viral cho chiến dịch truyền thông của iSSAC, bạn sẽ làm gì?', question_type: 'long_text', is_required: false, placeholder: 'Ý tưởng sáng tạo của bạn...' }
+        deptQs = [
+          { id: 'q-tt-1', question_text: 'Vì sao bạn muốn tham gia Ban Truyền thông iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và mục tiêu của bạn...', sort_order: 10, is_active: true },
+          { id: 'q-tt-2', question_text: 'Bạn có kinh nghiệm thiết kế (Photoshop/Canva) hoặc quay dựng video chưa? Hãy chia sẻ link sản phẩm nếu có.', question_type: 'long_text', is_required: true, placeholder: 'Link drive, portfolio hoặc mô tả kinh nghiệm...', sort_order: 11, is_active: true },
+          { id: 'q-tt-3', question_text: 'Nếu được giao nhiệm vụ lên ý tưởng viral cho chiến dịch truyền thông của iSSAC, bạn sẽ làm gì?', question_type: 'long_text', is_required: false, placeholder: 'Ý tưởng sáng tạo của bạn...', sort_order: 12, is_active: true }
         ]
       } else if (deptId === 'dept-2' || deptId.includes('tu-van')) {
-        qList = [
-          { id: 'q-tv-1', question_text: 'Vì sao bạn lựa chọn ứng tuyển vào Ban Tư vấn iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và nguyện vọng...' },
-          { id: 'q-tv-2', question_text: 'Theo bạn, những kỹ năng quan trọng nhất của một Đại sứ sinh viên khi tư vấn là gì?', question_type: 'long_text', is_required: true, placeholder: 'Kỹ năng lắng nghe, thấu cảm, truyền đạt...' },
-          { id: 'q-tv-3', question_text: 'Chia sẻ một tình huống bạn từng lắng nghe và hỗ trợ giải quyết khó khăn cho một người bạn.', question_type: 'long_text', is_required: false, placeholder: 'Kể lại trải nghiệm thực tế...' }
+        deptQs = [
+          { id: 'q-tv-1', question_text: 'Vì sao bạn lựa chọn ứng tuyển vào Ban Tư vấn iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và nguyện vọng...', sort_order: 10, is_active: true },
+          { id: 'q-tv-2', question_text: 'Theo bạn, những kỹ năng quan trọng nhất của một Đại sứ sinh viên khi tư vấn là gì?', question_type: 'long_text', is_required: true, placeholder: 'Kỹ năng lắng nghe, thấu cảm, truyền đạt...', sort_order: 11, is_active: true },
+          { id: 'q-tv-3', question_text: 'Chia sẻ một tình huống bạn từng lắng nghe và hỗ trợ giải quyết khó khăn cho một người bạn.', question_type: 'long_text', is_required: false, placeholder: 'Kể lại trải nghiệm thực tế...', sort_order: 12, is_active: true }
         ]
       } else {
-        qList = [
-          { id: 'q-ns-1', question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Lý do ứng tuyển...' },
-          { id: 'q-ns-2', question_text: 'Bạn đã có kinh nghiệm quản lý nhóm, gắn kết thành viên hoặc tổ chức team building chưa?', question_type: 'long_text', is_required: true, placeholder: 'Kinh nghiệm hoạt động đội nhóm...' },
-          { id: 'q-ns-3', question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm, bạn sẽ xử lý như thế nào?', question_type: 'long_text', is_required: false, placeholder: 'Cách giải quyết mâu thuẫn...' }
+        deptQs = [
+          { id: 'q-ns-1', question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Lý do ứng tuyển...', sort_order: 10, is_active: true },
+          { id: 'q-ns-2', question_text: 'Bạn đã có kinh nghiệm quản lý nhóm, gắn kết thành viên hoặc tổ chức team building chưa?', question_type: 'long_text', is_required: true, placeholder: 'Kinh nghiệm hoạt động đội nhóm...', sort_order: 11, is_active: true },
+          { id: 'q-ns-3', question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm, bạn sẽ xử lý như thế nào?', question_type: 'long_text', is_required: false, placeholder: 'Cách giải quyết mâu thuẫn...', sort_order: 12, is_active: true }
         ]
       }
     }
-    setQuestions(qList)
-  }, [supabase])
+
+    setCommonQuestions(commons)
+    setDepartmentQuestions(deptQs)
+    setQuestions([...commons, ...deptQs])
+  }, [])
 
   useEffect(() => { 
     if (!selectedDept) return
     loadQuestions(selectedDept) 
 
-    const channel = supabase
-      .channel(`member-questions-${selectedDept}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
-        loadQuestions(selectedDept)
-      })
-      .subscribe()
+    const unsubscribe = subscribeQuestionsChange(() => {
+      loadQuestions(selectedDept)
+    })
 
     return () => {
-      supabase.removeChannel(channel)
+      unsubscribe()
     }
-  }, [selectedDept, loadQuestions, supabase])
+  }, [selectedDept, loadQuestions])
 
   const handleAnswer = (qId: string, value: string) => setAnswers(prev => ({ ...prev, [qId]: value }))
 
@@ -854,27 +861,127 @@ const SOCIAL_CHANNELS = [
           </div>
         ) : (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
-                  Câu hỏi chuyên môn - {departments.find(d => d.id === selectedDept)?.name}
+          {/* PHẦN 1: CÂU HỎI CHUNG TOÀN CLB */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#fdc455] text-amber-950 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Phần A: Câu hỏi chung toàn CLB</span>
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+                    • Bắt buộc cho tất cả ứng viên iSSAC
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Vui lòng trả lời chân thành và đầy đủ các câu hỏi để Ban Tuyển quân CLB hiểu rõ về bạn
+                <p className="text-xs text-slate-600">
+                  Tìm hiểu mức độ hiểu biết về CLB iSSAC, mục tiêu tham gia và mức độ cam kết của bạn
                 </p>
               </div>
-              <span className="px-3 py-1 rounded-full bg-blue-50 text-[#1657c1] border border-blue-200 font-bold text-xs">
-                {questions.length} câu hỏi
+              <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-bold text-xs">
+                {commonQuestions.length} câu hỏi
               </span>
             </div>
 
             <div className="space-y-5">
-              {questions.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">Chưa có câu hỏi nào cho ban này.</div>
+              {commonQuestions.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs italic">
+                  Không có câu hỏi chung bổ sung.
+                </div>
               ) : (
-                questions.map((q, i) => (
-                  <div key={q.id} className="p-5 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-3">
+                commonQuestions.map((q, i) => (
+                  <div key={q.id} className="p-5 rounded-2xl bg-amber-50/20 border border-amber-200/70 space-y-3">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-900 block leading-snug">
+                      <span className="w-5 h-5 rounded-md bg-[#fdc455] text-amber-950 inline-flex items-center justify-center text-xs font-black mr-2">
+                        {i + 1}
+                      </span>
+                      {q.question_text}
+                      {q.is_required && <span className="text-red-500 ml-1 font-bold">*</span>}
+                    </Label>
+
+                    {q.question_type === 'short_text' && (
+                      <Input 
+                        value={answers[q.id] || ''} 
+                        onChange={e => handleAnswer(q.id, e.target.value)} 
+                        placeholder={q.placeholder || 'Nhập câu trả lời ngắn của bạn...'} 
+                        className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+                      />
+                    )}
+
+                    {q.question_type === 'long_text' && (
+                      <Textarea 
+                        value={answers[q.id] || ''} 
+                        onChange={e => handleAnswer(q.id, e.target.value)} 
+                        placeholder={q.placeholder || 'Nhập câu trả lời chi tiết của bạn...'} 
+                        rows={3} 
+                        className="rounded-xl border-slate-200 text-xs sm:text-sm bg-white focus:border-[#1657c1] focus:ring-2 focus:ring-blue-100"
+                      />
+                    )}
+
+                    {(q.question_type === 'multiple_choice' || q.question_type === 'dropdown') && (
+                      <Select value={answers[q.id] || ''} onValueChange={v => handleAnswer(q.id, v)}>
+                        <SelectTrigger className="rounded-xl border-slate-200 text-xs sm:text-sm h-11 bg-white focus:ring-2 focus:ring-blue-100">
+                          <SelectValue placeholder="Chọn một phương án phù hợp..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {q.question_options?.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.option_text}>{opt.option_text}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {q.question_type === 'checkbox' && (
+                      <div className="grid gap-2 pt-1">
+                        {q.question_options?.map((opt: any) => (
+                          <label key={opt.id} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-white border border-slate-200 hover:border-blue-200">
+                            <input
+                              type="checkbox"
+                              checked={(checkboxAnswers[q.id] || []).includes(opt.option_text)}
+                              onChange={e => handleCheckbox(q.id, opt.option_text, e.target.checked)}
+                              className="w-4 h-4 text-[#1657c1] rounded border-slate-300"
+                            />
+                            <span className="text-xs sm:text-sm text-slate-800 font-medium">{opt.option_text}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* PHẦN 2: CÂU HỎI CHUYÊN MÔN THEO BAN */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#1657c1] text-white flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Phần B: Câu hỏi chuyên môn</span>
+                  </span>
+                  <span className="text-xs font-bold text-slate-900">
+                    {departments.find(d => d.id === selectedDept)?.name}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Đánh giá kỹ năng, kinh nghiệm và năng khiếu thực tế dành riêng cho Ban chuyên môn bạn chọn
+                </p>
+              </div>
+              <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-blue-50 text-[#1657c1] border border-blue-200 font-bold text-xs">
+                {departmentQuestions.length} câu hỏi
+              </span>
+            </div>
+
+            <div className="space-y-5">
+              {departmentQuestions.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs italic">
+                  Chưa có câu hỏi chuyên môn cho ban này.
+                </div>
+              ) : (
+                departmentQuestions.map((q, i) => (
+                  <div key={q.id} className="p-5 rounded-2xl bg-blue-50/20 border border-blue-200/70 space-y-3">
                     <Label className="text-xs sm:text-sm font-bold text-slate-900 block leading-snug">
                       <span className="w-5 h-5 rounded-md bg-[#1657c1] text-white inline-flex items-center justify-center text-xs font-black mr-2">
                         {i + 1}
@@ -908,7 +1015,7 @@ const SOCIAL_CHANNELS = [
                           <SelectValue placeholder="Chọn một đáp án..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
-                          {q.question_options?.map(opt => (
+                          {q.question_options?.map((opt: any) => (
                             <SelectItem key={opt.id} value={opt.option_text}>{opt.option_text}</SelectItem>
                           ))}
                         </SelectContent>
@@ -917,7 +1024,7 @@ const SOCIAL_CHANNELS = [
 
                     {q.question_type === 'checkbox' && (
                       <div className="grid gap-2 pt-1">
-                        {q.question_options?.map(opt => (
+                        {q.question_options?.map((opt: any) => (
                           <label key={opt.id} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-white border border-slate-200 hover:border-blue-200">
                             <input
                               type="checkbox"
@@ -947,7 +1054,25 @@ const SOCIAL_CHANNELS = [
 
             <button
               type="button"
-              onClick={() => setStep(3)}
+              onClick={() => {
+                // Kiểm tra các câu hỏi bắt buộc trước khi sang Bước 3
+                for (const q of questions) {
+                  if (q.is_required) {
+                    const textAns = answers[q.id]?.trim()
+                    const cbAns = checkboxAnswers[q.id]
+                    const hasAns = (textAns && textAns.length > 0) || (cbAns && cbAns.length > 0)
+                    if (!hasAns) {
+                      toast({
+                        title: 'Vui lòng hoàn thành câu hỏi bắt buộc',
+                        description: `Bạn chưa trả lời: "${q.question_text.slice(0, 60)}..."`,
+                        variant: 'destructive',
+                      })
+                      return
+                    }
+                  }
+                }
+                setStep(3)
+              }}
               className="px-8 py-2.5 rounded-full bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
             >
               Xem lại & Nộp đơn
@@ -960,13 +1085,13 @@ const SOCIAL_CHANNELS = [
       {/* STEP 3: XEM LẠI & NỘP */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
             <div className="border-b border-slate-100 pb-3">
               <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1]">
                 Xác nhận thông tin trước khi nộp chính thức
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Kiểm tra kỹ nguyện vọng và các câu trả lời của bạn trước khi gửi
+                Kiểm tra kỹ nguyện vọng và các câu trả lời của bạn trước khi gửi đến Ban Tuyển quân
               </p>
             </div>
 
@@ -989,14 +1114,33 @@ const SOCIAL_CHANNELS = [
               )}
             </div>
 
-            {/* Khối xem lại câu trả lời */}
-            <div className="space-y-3 pt-1">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Nội dung câu trả lời của bạn:
+            {/* Khối xem lại Câu hỏi chung */}
+            <div className="space-y-3 pt-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-950 bg-amber-100/70 border border-amber-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                <span>Phần A: Câu hỏi chung toàn CLB</span>
               </div>
-              {questions.map((q, i) => (
-                <div key={q.id} className="border-l-4 border-[#1657c1] pl-4 py-2 space-y-1 bg-slate-50/60 rounded-r-xl">
-                  <div className="text-xs font-bold text-slate-700">
+              {commonQuestions.map((q, i) => (
+                <div key={q.id} className="border-l-4 border-[#fdc455] pl-4 py-2 space-y-1 bg-amber-50/20 rounded-r-xl">
+                  <div className="text-xs font-bold text-slate-800">
+                    {i + 1}. {q.question_text}
+                  </div>
+                  <div className="text-xs sm:text-sm text-slate-900 font-medium leading-relaxed">
+                    {answers[q.id] || (checkboxAnswers[q.id]?.join(', ')) || <span className="text-slate-400 italic">Chưa trả lời</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Khối xem lại Câu hỏi chuyên môn */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#1657c1] bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-[#1657c1]" />
+                <span>Phần B: Câu hỏi chuyên môn - {departments.find(d => d.id === selectedDept)?.name}</span>
+              </div>
+              {departmentQuestions.map((q, i) => (
+                <div key={q.id} className="border-l-4 border-[#1657c1] pl-4 py-2 space-y-1 bg-blue-50/20 rounded-r-xl">
+                  <div className="text-xs font-bold text-slate-800">
                     {i + 1}. {q.question_text}
                   </div>
                   <div className="text-xs sm:text-sm text-slate-900 font-medium leading-relaxed">

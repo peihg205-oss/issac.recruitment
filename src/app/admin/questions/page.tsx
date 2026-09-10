@@ -9,10 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock } from 'lucide-react'
+import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock, Sparkles, Layers } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 import { getStoredSystemSettings } from '@/lib/system-settings'
+import {
+  fetchAllQuestions,
+  saveQuestionItem,
+  deleteQuestionItem,
+  subscribeQuestionsChange,
+  DEFAULT_COMMON_QUESTIONS,
+  type QuestionItem
+} from '@/lib/questions-manager'
 
 const QUESTION_TYPES: Record<string, string> = {
   short_text: 'Văn bản ngắn',
@@ -22,40 +30,22 @@ const QUESTION_TYPES: Record<string, string> = {
   dropdown: 'Danh sách thả xuống',
 }
 
-const INITIAL_QUESTIONS = [
-  // Câu hỏi chung
-  { id: 'q-gen-1', department_id: null, question_text: 'Bạn biết đến iSSAC qua kênh thông tin nào?', question_type: 'multiple_choice', is_required: true, sort_order: 1, question_options: [{ id: 'o-1', option_text: 'Fanpage CLB' }, { id: 'o-2', option_text: 'Bạn bè giới thiệu' }, { id: 'o-3', option_text: 'Thầy cô / VNU-IS' }] },
-  { id: 'q-gen-2', department_id: null, question_text: 'Mục tiêu lớn nhất của bạn khi ứng tuyển trở thành Đại sứ sinh viên iSSAC?', question_type: 'long_text', is_required: true, sort_order: 2, question_options: [] },
-
-  // Ban Truyền thông
-  { id: 'q-tt-1', department_id: 'dept-1', departments: { name: 'Ban Truyền thông', slug: 'truyen-thong' }, question_text: 'Vì sao bạn muốn tham gia Ban Truyền thông iSSAC?', question_type: 'long_text', is_required: true, sort_order: 3, question_options: [] },
-  { id: 'q-tt-2', department_id: 'dept-1', departments: { name: 'Ban Truyền thông', slug: 'truyen-thong' }, question_text: 'Bạn đã từng có kinh nghiệm thiết kế (Canva/Photoshop) hoặc làm video (CapCut/Premiere) chưa? Hãy đính kèm link sản phẩm nổi bật.', question_type: 'long_text', is_required: true, sort_order: 4, question_options: [] },
-
-  // Ban Tư vấn
-  { id: 'q-tv-1', department_id: 'dept-2', departments: { name: 'Ban Tư vấn', slug: 'tu-van' }, question_text: 'Vì sao bạn lựa chọn ứng tuyển vào Ban Tư vấn iSSAC?', question_type: 'long_text', is_required: true, sort_order: 5, question_options: [] },
-  { id: 'q-tv-2', department_id: 'dept-2', departments: { name: 'Ban Tư vấn', slug: 'tu-van' }, question_text: 'Theo bạn, kỹ năng quan trọng nhất của người tư vấn là gì? Hãy chia sẻ một tình huống thực tế bạn từng hỗ trợ người khác.', question_type: 'long_text', is_required: true, sort_order: 6, question_options: [] },
-
-  // Ban Nhân sự
-  { id: 'q-ns-1', department_id: 'dept-3', departments: { name: 'Ban Nhân sự', slug: 'nhan-su' }, question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC?', question_type: 'long_text', is_required: true, sort_order: 7, question_options: [] },
-  { id: 'q-ns-2', department_id: 'dept-3', departments: { name: 'Ban Nhân sự', slug: 'nhan-su' }, question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm gay gắt trong quá trình làm việc, bạn sẽ giải quyết như thế nào?', question_type: 'long_text', is_required: true, sort_order: 8, question_options: [] },
-]
-
 export default function QuestionsPage() {
   const supabase = createClient()
   const { toast } = useToast()
 
   const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
-  const [questions, setQuestions] = useState<any[]>(INITIAL_QUESTIONS)
+  const [questions, setQuestions] = useState<QuestionItem[]>(DEFAULT_COMMON_QUESTIONS)
   const [departments, setDepartments] = useState<any[]>(MOCK_DEPARTMENTS)
   const [deptFilter, setDeptFilter] = useState('all')
 
   const [showForm, setShowForm] = useState(false)
-  const [editQ, setEditQ] = useState<any>(null)
+  const [editQ, setEditQ] = useState<QuestionItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    department_id: '',
+    department_id: 'common',
     question_text: '',
-    question_type: 'long_text',
+    question_type: 'long_text' as QuestionItem['question_type'],
     placeholder: '',
     is_required: true,
   })
@@ -120,12 +110,8 @@ export default function QuestionsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [{ data: qs }, { data: depts }] = await Promise.all([
-        supabase
-          .from('questions')
-          .select('*, departments(name, slug), question_options(id, option_text, sort_order)')
-          .eq('is_active', true)
-          .order('sort_order'),
+      const [qs, { data: depts }] = await Promise.all([
+        fetchAllQuestions(),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
       ])
       if (qs && qs.length > 0) setQuestions(qs)
@@ -135,22 +121,30 @@ export default function QuestionsPage() {
 
   useEffect(() => {
     fetchData()
-    const channel = supabase
-      .channel('admin-questions-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
-        fetchData()
-      })
-      .subscribe()
-
+    const unsubscribe = subscribeQuestionsChange(() => {
+      fetchData()
+    })
     return () => {
-      supabase.removeChannel(channel)
+      unsubscribe()
     }
-  }, [fetchData, supabase])
+  }, [fetchData])
 
   const openCreate = () => {
     setEditQ(null)
+    let initialDept = 'common'
+    if (!isSuperAdmin) {
+      initialDept = userDeptObj?.id || 'common'
+    } else {
+      if (deptFilter === 'general' || deptFilter === 'all') {
+        initialDept = 'common'
+      } else {
+        const found = departments.find(d => d.slug === deptFilter)
+        initialDept = found?.id || 'common'
+      }
+    }
+
     setForm({
-      department_id: isSuperAdmin ? '' : (userDeptObj?.id || ''),
+      department_id: initialDept,
       question_text: '',
       question_type: 'long_text',
       placeholder: '',
@@ -159,7 +153,7 @@ export default function QuestionsPage() {
     setShowForm(true)
   }
 
-  const openEdit = (q: any) => {
+  const openEdit = (q: QuestionItem) => {
     // Phân quyền: Ban chuyên môn chỉ được sửa câu hỏi của ban mình
     if (!isSuperAdmin && q.departments?.slug !== activeRole && q.department_id !== userDeptObj?.id) {
       toast({ title: 'Không có quyền chỉnh sửa câu hỏi này', variant: 'destructive' })
@@ -168,7 +162,7 @@ export default function QuestionsPage() {
 
     setEditQ(q)
     setForm({
-      department_id: q.department_id || '',
+      department_id: q.department_id || 'common',
       question_text: q.question_text,
       question_type: q.question_type,
       placeholder: q.placeholder || '',
@@ -184,53 +178,31 @@ export default function QuestionsPage() {
     }
 
     setSaving(true)
-    const assignedDeptId = isSuperAdmin ? (form.department_id || null) : (userDeptObj?.id || null)
-    const assignedDept = departments.find(d => d.id === assignedDeptId)
+    const targetDeptId = isSuperAdmin
+      ? (form.department_id === 'common' ? null : form.department_id)
+      : (userDeptObj?.id || null)
+
+    const assignedDept = departments.find(d => d.id === targetDeptId) || null
 
     try {
+      const saved = await saveQuestionItem({
+        id: editQ ? editQ.id : undefined,
+        department_id: targetDeptId,
+        question_text: form.question_text.trim(),
+        question_type: form.question_type,
+        placeholder: form.placeholder.trim() || null,
+        is_required: form.is_required,
+        sort_order: editQ ? editQ.sort_order : questions.length + 1,
+        departments: assignedDept,
+        question_options: editQ ? editQ.question_options : [],
+      })
+
       if (editQ) {
-        const { error } = await supabase
-          .from('questions')
-          .update({
-            question_text: form.question_text,
-            question_type: form.question_type,
-            department_id: assignedDeptId,
-            placeholder: form.placeholder || null,
-            is_required: form.is_required,
-          })
-          .eq('id', editQ.id)
-
-        if (error) throw error
-
-        setQuestions(prev => prev.map(q => q.id === editQ.id ? {
-          ...q,
-          question_text: form.question_text,
-          question_type: form.question_type,
-          department_id: assignedDeptId,
-          departments: assignedDept,
-          placeholder: form.placeholder || '',
-          is_required: form.is_required,
-        } : q))
-        toast({ title: 'Đã lưu thay đổi vào cơ sở dữ liệu' } as Parameters<typeof toast>[0])
+        setQuestions(prev => prev.map(q => q.id === editQ.id ? { ...saved, departments: assignedDept } : q))
+        toast({ title: 'Đã lưu thay đổi câu hỏi thành công' })
       } else {
-        const { data: newQ, error } = await supabase
-          .from('questions')
-          .insert({
-            department_id: assignedDeptId,
-            question_text: form.question_text,
-            question_type: form.question_type,
-            placeholder: form.placeholder || null,
-            is_required: form.is_required,
-            sort_order: questions.length + 1,
-            is_active: true,
-          })
-          .select('*, question_options(id, option_text, sort_order)')
-          .single()
-
-        if (error) throw error
-
-        setQuestions(prev => [...prev, { ...newQ, departments: assignedDept }])
-        toast({ title: 'Đã thêm câu hỏi mới thành công' } as Parameters<typeof toast>[0])
+        setQuestions(prev => [...prev, { ...saved, departments: assignedDept }])
+        toast({ title: 'Đã tạo câu hỏi mới thành công' })
       }
       setShowForm(false)
     } catch (err: any) {
@@ -240,42 +212,42 @@ export default function QuestionsPage() {
     }
   }
 
-  const handleDelete = async (q: any) => {
+  const handleDelete = async (q: QuestionItem) => {
     if (!isSuperAdmin && q.departments?.slug !== activeRole && q.department_id !== userDeptObj?.id) {
       toast({ title: 'Không có quyền xóa câu hỏi này', variant: 'destructive' })
       return
     }
 
-    if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+    if (confirm(`Bạn có chắc chắn muốn xóa câu hỏi: "${q.question_text}"?`)) {
       try {
-        const { error } = await supabase.from('questions').delete().eq('id', q.id)
-        if (error) throw error
+        await deleteQuestionItem(q.id)
         setQuestions(prev => prev.filter(item => item.id !== q.id))
-        toast({ title: 'Đã xóa câu hỏi khỏi cơ sở dữ liệu' } as Parameters<typeof toast>[0])
+        toast({ title: 'Đã xóa câu hỏi thành công' })
       } catch (err: any) {
         toast({ title: 'Lỗi xóa câu hỏi', description: err.message, variant: 'destructive' })
       }
     }
   }
 
-  // Tất cả các Ban đều xem được toàn bộ danh sách câu hỏi
+  // Phân loại câu hỏi
+  const commonQuestions = questions.filter(q => !q.department_id)
   const filtered = deptFilter === 'all'
     ? questions
     : deptFilter === 'general'
-    ? questions.filter(q => !q.department_id)
+    ? commonQuestions
     : questions.filter(q => q.departments?.slug === deptFilter || q.department_id === departments.find(d => d.slug === deptFilter)?.id)
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-6xl">
+    <div className="space-y-6 animate-fade-in max-w-6xl font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5 tracking-tight">
             <HelpCircle className="w-6 h-6 text-[#1559c5]" />
-            Quản lý Câu hỏi
+            Quản lý Ngân hàng Câu hỏi
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Thiết lập câu hỏi chung toàn CLB và câu hỏi chuyên môn của từng Ban
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+            Thiết lập câu hỏi chung toàn CLB và câu hỏi chuyên môn của từng Ban (Đồng bộ real-time với Ứng viên)
           </p>
         </div>
 
@@ -294,8 +266,6 @@ export default function QuestionsPage() {
               title={isQuestionsPublished ? 'Bộ câu hỏi đang công khai. Nhấn để tạm khóa.' : 'Bộ câu hỏi đang tạm khóa. Nhấn để công khai.'}
             >
               <span>Bộ câu hỏi</span>
-              
-              {/* Toggle Switch */}
               <span
                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
                   isQuestionsPublished ? 'bg-emerald-500' : 'bg-slate-300'
@@ -310,8 +280,11 @@ export default function QuestionsPage() {
             </button>
           )}
 
-          <Button onClick={openCreate} className="gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-medium rounded-xl shadow-sm">
-            <Plus className="w-4 h-4" /> Thêm câu hỏi
+          <Button
+            onClick={openCreate}
+            className="gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl shadow-xs px-4 py-2"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" /> Thêm câu hỏi
           </Button>
         </div>
       </div>
@@ -320,47 +293,94 @@ export default function QuestionsPage() {
       <div className="flex gap-2 flex-wrap items-center">
         <button
           onClick={() => setDeptFilter('all')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
             deptFilter === 'all'
-              ? 'bg-[#1559c5] text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-[#1559c5] text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Tất cả
+          <Layers className="w-3.5 h-3.5" />
+          <span>Tất cả</span>
+          <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-black ${
+            deptFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {questions.length}
+          </span>
         </button>
+
         <button
           onClick={() => setDeptFilter('general')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
             deptFilter === 'general'
-              ? 'bg-[#1559c5] text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-[#1559c5] text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Chung
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>Câu hỏi chung (Toàn CLB)</span>
+          <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-black ${
+            deptFilter === 'general' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
+          }`}>
+            {commonQuestions.length}
+          </span>
         </button>
-        {departments.map(d => (
-          <button
-            key={d.id}
-            onClick={() => setDeptFilter(d.slug)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-              deptFilter === d.slug
-                ? 'bg-[#1559c5] text-white shadow-sm font-bold'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {d.name} {d.slug === activeRole && !isSuperAdmin ? '(Ban mình)' : ''}
-          </button>
-        ))}
+
+        {departments.map(d => {
+          const deptCount = questions.filter(q => q.departments?.slug === d.slug || q.department_id === d.id).length
+          const isCurrentAdminDept = d.slug === activeRole && !isSuperAdmin
+
+          return (
+            <button
+              key={d.id}
+              onClick={() => setDeptFilter(d.slug)}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                deptFilter === d.slug
+                  ? 'bg-[#1559c5] text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>{d.name}</span>
+              {isCurrentAdminDept && <span className="text-[10px] text-amber-500 font-normal">(Ban mình)</span>}
+              <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-black ${
+                deptFilter === d.slug ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {deptCount}
+              </span>
+            </button>
+          )
+        })}
       </div>
+
+      {/* Description banner for Common Questions */}
+      {deptFilter === 'general' && (
+        <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-4 text-xs sm:text-sm text-amber-950 flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>
+              <strong>Lưu ý:</strong> Câu hỏi chung sẽ được áp dụng bắt buộc cho <strong>toàn bộ ứng viên</strong> khi nộp đơn, bất kể ứng viên chọn Ban chuyên môn nào.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={openCreate}
+            className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold text-xs rounded-lg shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Thêm câu hỏi chung
+          </Button>
+        </div>
+      )}
 
       {/* Questions List */}
       {filtered.length === 0 ? (
-        <Card className="text-center py-20 rounded-2xl border border-gray-100 shadow-sm">
+        <Card className="text-center py-20 rounded-2xl border border-dashed border-slate-300 bg-white shadow-xs">
           <CardContent>
-            <HelpCircle className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-            <p className="font-semibold text-gray-700 text-base">Chưa có câu hỏi nào trong danh mục này.</p>
-            <Button onClick={openCreate} className="mt-4 gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white">
-              <Plus className="w-4 h-4" /> Thêm câu hỏi
+            <HelpCircle className="w-14 h-14 text-slate-300 mx-auto mb-3" />
+            <p className="font-bold text-slate-700 text-base">Chưa có câu hỏi nào trong danh mục này.</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Nhấn nút bên dưới để tạo câu hỏi mới cho ứng viên trả lời.
+            </p>
+            <Button onClick={openCreate} className="mt-4 gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl">
+              <Plus className="w-4 h-4" /> Thêm câu hỏi ngay
             </Button>
           </CardContent>
         </Card>
@@ -371,55 +391,70 @@ export default function QuestionsPage() {
             const canManage = isSuperAdmin || (!isGeneral && (q.departments?.slug === activeRole || q.department_id === userDeptObj?.id))
 
             return (
-              <Card key={q.id} className="hover:shadow-sm transition-all rounded-2xl border border-gray-100 bg-white">
+              <Card key={q.id} className="hover:shadow-md transition-all rounded-2xl border border-slate-200/90 bg-white">
                 <CardContent className="py-4 px-5 flex items-start gap-4">
-                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-[#1559c5] font-bold text-sm flex-shrink-0 mt-0.5 border border-blue-100">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 border ${
+                    isGeneral 
+                      ? 'bg-amber-50 text-amber-900 border-amber-200' 
+                      : 'bg-blue-50 text-[#1559c5] border-blue-200'
+                  }`}>
                     {i + 1}
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm mb-1.5">
+                    <div className="font-bold text-slate-900 text-sm mb-1.5 leading-snug">
                       {q.question_text}
                     </div>
+
                     <div className="flex items-center gap-2 flex-wrap text-xs">
-                      <Badge variant="secondary" className="text-[11px] font-medium bg-gray-100 text-gray-700">
+                      <Badge variant="secondary" className="text-[11px] font-medium bg-slate-100 text-slate-700">
                         {QUESTION_TYPES[q.question_type] || q.question_type}
                       </Badge>
-                      {q.department_id ? (
-                        <Badge variant="outline" className="text-[11px] font-bold border-blue-200 text-[#1559c5] bg-blue-50/50">
-                          {q.departments?.name}
+
+                      {isGeneral ? (
+                        <Badge className="text-[11px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                          🌟 Câu hỏi chung (Toàn CLB)
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[11px] font-medium text-gray-600 bg-gray-50">
-                          Câu hỏi chung CLB
+                        <Badge variant="outline" className="text-[11px] font-bold border-blue-200 text-[#1559c5] bg-blue-50/50">
+                          {q.departments?.name || 'Ban chuyên môn'}
                         </Badge>
                       )}
+
                       {q.is_required && (
-                        <Badge variant="destructive" className="text-[10px] uppercase font-bold">
+                        <Badge variant="destructive" className="text-[10px] uppercase font-bold px-2 py-0.5">
                           Bắt buộc
                         </Badge>
+                      )}
+
+                      {q.placeholder && (
+                        <span className="text-[11px] text-slate-400 italic truncate max-w-xs">
+                          Gợi ý: {q.placeholder}
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {canManage ? (
                       <>
                         <button
                           onClick={() => openEdit(q)}
-                          className="inline-flex items-center gap-1 text-xs text-[#1559c5] hover:text-blue-800 font-bold py-1 px-2.5 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-[#1559c5] hover:text-blue-800 font-bold py-1.5 px-3 rounded-xl hover:bg-blue-50 border border-slate-200 transition-colors cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5" /> Sửa
                         </button>
                         <button
                           onClick={() => handleDelete(q)}
-                          className="inline-flex items-center text-xs text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          className="inline-flex items-center text-xs text-rose-600 hover:text-rose-800 p-2 rounded-xl hover:bg-rose-50 border border-slate-200 transition-colors cursor-pointer"
+                          title="Xóa câu hỏi"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium py-1 px-2 bg-gray-50 rounded-lg border border-gray-200">
-                        <Lock className="w-3 h-3 text-gray-400" /> Chỉ xem
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-400 font-medium py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <Lock className="w-3 h-3 text-slate-400" /> Chỉ xem
                       </span>
                     )}
                   </div>
@@ -430,28 +465,30 @@ export default function QuestionsPage() {
         </div>
       )}
 
-      {/* Dialog Thêm/Sửa */}
+      {/* Dialog Thêm/Sửa câu hỏi */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-3xl p-6">
           <DialogHeader>
-            <DialogTitle className="font-bold text-gray-900">
-              {editQ ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}
+            <DialogTitle className="font-bold text-gray-900 text-lg">
+              {editQ ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi mới'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-left">
             <div>
-              <Label className="text-xs font-semibold text-gray-700 mb-1.5 block">Ban áp dụng</Label>
+              <Label className="text-xs font-bold text-slate-700 mb-1.5 block">Phạm vi áp dụng</Label>
               {isSuperAdmin ? (
                 <Select
                   value={form.department_id}
                   onValueChange={v => setForm(f => ({ ...f, department_id: v }))}
                 >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Chọn ban (để trống = câu hỏi chung)" />
+                  <SelectTrigger className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm font-medium">
+                    <SelectValue placeholder="Chọn phạm vi áp dụng" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Câu hỏi chung (Toàn CLB)</SelectItem>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="common" className="font-bold text-amber-900">
+                      🌟 Câu hỏi chung (Toàn CLB - Tất cả ứng viên)
+                    </SelectItem>
                     {departments.map(d => (
                       <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                     ))}
@@ -462,36 +499,49 @@ export default function QuestionsPage() {
                   <div className="font-bold text-[#1559c5]">
                     {userDeptObj?.name || 'Ban phụ trách'}
                   </div>
-                  <span className="text-[11px] text-gray-500 font-medium">Cố định theo tài khoản của bạn</span>
+                  <span className="text-[11px] text-gray-500 font-medium">Cố định theo tài khoản của Ban</span>
                 </div>
               )}
             </div>
 
             <div>
-              <Label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+              <Label className="text-xs font-bold text-slate-700 mb-1.5 block">
                 Nội dung câu hỏi <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 value={form.question_text}
                 onChange={e => setForm(f => ({ ...f, question_text: e.target.value }))}
                 rows={3}
-                placeholder="Nhập nội dung câu hỏi..."
-                className="text-sm rounded-xl"
+                placeholder="Nhập nội dung câu hỏi phỏng vấn ứng viên..."
+                className="text-xs sm:text-sm rounded-xl border-slate-200 focus:border-[#1559c5]"
               />
             </div>
 
             <div>
-              <Label className="text-xs font-semibold text-gray-700 mb-1.5 block">Loại câu hỏi</Label>
+              <Label className="text-xs font-bold text-slate-700 mb-1.5 block">
+                Gợi ý câu trả lời (Placeholder)
+              </Label>
+              <Textarea
+                value={form.placeholder}
+                onChange={e => setForm(f => ({ ...f, placeholder: e.target.value }))}
+                rows={2}
+                placeholder="VD: Chia sẻ kinh nghiệm, đường dẫn liên kết, hoặc quan điểm cá nhân..."
+                className="text-xs sm:text-sm rounded-xl border-slate-200 focus:border-[#1559c5]"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-slate-700 mb-1.5 block">Định dạng câu trả lời</Label>
               <Select
                 value={form.question_type}
-                onValueChange={v => setForm(f => ({ ...f, question_type: v }))}
+                onValueChange={(v: any) => setForm(f => ({ ...f, question_type: v }))}
               >
-                <SelectTrigger className="rounded-xl">
+                <SelectTrigger className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="long_text">Văn bản dài (Tự luận)</SelectItem>
-                  <SelectItem value="short_text">Văn bản ngắn</SelectItem>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="long_text">Văn bản dài (Tự luận / Trả lời chi tiết)</SelectItem>
+                  <SelectItem value="short_text">Văn bản ngắn (1 dòng)</SelectItem>
                   <SelectItem value="multiple_choice">Trắc nghiệm một lựa chọn</SelectItem>
                   <SelectItem value="checkbox">Hộp kiểm chọn nhiều</SelectItem>
                 </SelectContent>
@@ -506,17 +556,17 @@ export default function QuestionsPage() {
                 onChange={e => setForm(f => ({ ...f, is_required: e.target.checked }))}
                 className="w-4 h-4 rounded text-[#1559c5] focus:ring-blue-500 cursor-pointer"
               />
-              <label htmlFor="req-check" className="text-xs text-gray-700 cursor-pointer font-medium">
-                Bắt buộc ứng viên trả lời
+              <label htmlFor="req-check" className="text-xs text-slate-700 cursor-pointer font-bold">
+                Bắt buộc ứng viên phải trả lời câu hỏi này
               </label>
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-xl">
+          <DialogFooter className="gap-2 pt-2 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-xl text-xs font-bold">
               Hủy
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl">
+            <Button onClick={handleSave} disabled={saving} className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl text-xs">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               {editQ ? 'Lưu thay đổi' : 'Thêm câu hỏi'}
             </Button>

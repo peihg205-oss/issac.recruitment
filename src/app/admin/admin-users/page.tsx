@@ -158,9 +158,30 @@ export default function AdminUsersPage() {
   }, [])
 
   const loadAllAdmins = useCallback(async () => {
-    let list = [...INITIAL_ACCOUNTS]
+    // 1. Đọc danh sách email đã bị BCN xóa vĩnh viễn
+    const deletedEmails = new Set<string>()
+    if (typeof window !== "undefined") {
+      try {
+        const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
+        if (savedDeleted) {
+          const parsed = JSON.parse(savedDeleted)
+          if (Array.isArray(parsed)) {
+            parsed.forEach((em: string) => deletedEmails.add(em.toLowerCase().trim()))
+          }
+        }
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)issac_deleted_admin_emails=([^;]+)/)
+        if (cookieMatch) {
+          const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
+          if (Array.isArray(parsed)) {
+            parsed.forEach((em: string) => deletedEmails.add(em.toLowerCase().trim()))
+          }
+        }
+      } catch {}
+    }
+
+    let list = INITIAL_ACCOUNTS.filter(a => !deletedEmails.has(a.email.toLowerCase().trim()))
     const emailMap = new Map<string, AdminUser>()
-    list.forEach(a => emailMap.set(a.email.toLowerCase(), a))
+    list.forEach(a => emailMap.set(a.email.toLowerCase().trim(), a))
 
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("issac_created_admins")
@@ -169,7 +190,9 @@ export default function AdminUsersPage() {
           const parsed = JSON.parse(saved)
           if (Array.isArray(parsed)) {
             parsed.forEach(p => {
-              if (p.email) emailMap.set(p.email.toLowerCase(), p)
+              if (p.email && !deletedEmails.has(p.email.toLowerCase().trim())) {
+                emailMap.set(p.email.toLowerCase().trim(), p)
+              }
             })
           }
         } catch {}
@@ -186,7 +209,9 @@ export default function AdminUsersPage() {
       if (dbAdmins && dbAdmins.length > 0) {
         dbAdmins.forEach(p => {
           if (!p.email) return
-          const emLower = p.email.toLowerCase()
+          const emLower = p.email.toLowerCase().trim()
+          if (deletedEmails.has(emLower)) return // Bỏ qua nếu đã bị BCN xóa
+
           const existing = emailMap.get(emLower)
 
           // Tránh để chuỗi mặc định cũ "Cán bộ Tuyển quân (...)" ghi đè tên đã được BCN chỉ định
@@ -337,6 +362,20 @@ export default function AdminUsersPage() {
       created_at: new Date().toISOString().slice(0, 10),
     }
 
+    if (typeof window !== "undefined") {
+      try {
+        const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
+        if (savedDeleted) {
+          let parsed = JSON.parse(savedDeleted)
+          if (Array.isArray(parsed)) {
+            parsed = parsed.filter((em: string) => em.toLowerCase().trim() !== emailClean)
+            localStorage.setItem("issac_deleted_admin_emails", JSON.stringify(parsed))
+            document.cookie = `issac_deleted_admin_emails=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=2592000; SameSite=Lax`
+          }
+        }
+      } catch {}
+    }
+
     setAdmins(prev => {
       const filtered = prev.filter(a => a.email.toLowerCase() !== emailClean)
       const updated = [...filtered, newAdmin]
@@ -464,10 +503,29 @@ export default function AdminUsersPage() {
       return
     }
 
-    // 1. Xóa / Gỡ bỏ trong database Supabase profiles
+    const emailToDelete = admin.email.toLowerCase().trim()
+
+    // 1. Lưu vào danh sách email đã bị BCN xóa vĩnh viễn (localStorage + cookie)
+    if (typeof window !== "undefined") {
+      try {
+        let deletedList: string[] = []
+        const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
+        if (savedDeleted) {
+          const parsed = JSON.parse(savedDeleted)
+          if (Array.isArray(parsed)) deletedList = parsed
+        }
+        if (!deletedList.includes(emailToDelete)) {
+          deletedList.push(emailToDelete)
+        }
+        localStorage.setItem("issac_deleted_admin_emails", JSON.stringify(deletedList))
+        document.cookie = `issac_deleted_admin_emails=${encodeURIComponent(JSON.stringify(deletedList))}; path=/; max-age=2592000; SameSite=Lax`
+      } catch {}
+    }
+
+    // 2. Xóa / Gỡ bỏ trong database Supabase profiles
     try {
       const supabase = createClient()
-      await supabase.from("profiles").delete().ilike("email", admin.email)
+      await supabase.from("profiles").delete().ilike("email", emailToDelete)
       if (admin.id && !admin.id.startsWith("adm-")) {
         await supabase.from("profiles").delete().eq("id", admin.id)
       }
@@ -475,9 +533,9 @@ export default function AdminUsersPage() {
       console.warn("Delete profile error:", e)
     }
 
-    // 2. Cập nhật state & LocalStorage
+    // 3. Cập nhật state & LocalStorage created_admins
     setAdmins(prev => {
-      const updated = prev.filter(a => a.id !== admin.id && a.email.toLowerCase() !== admin.email.toLowerCase())
+      const updated = prev.filter(a => a.id !== admin.id && a.email.toLowerCase().trim() !== emailToDelete)
       if (typeof window !== "undefined") {
         localStorage.setItem("issac_created_admins", JSON.stringify(updated))
         document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
@@ -486,8 +544,8 @@ export default function AdminUsersPage() {
     })
 
     toast({
-      title: "✅ Đã xóa tài khoản",
-      description: `Đã xóa tài khoản ${admin.full_name} (${admin.email}) khỏi hệ thống.`,
+      title: "✅ Đã xóa tài khoản vĩnh viễn",
+      description: `Đã xóa tài khoản ${admin.full_name} (${admin.email}) khỏi hệ thống và sẽ không xuất hiện lại.`,
       variant: "success",
     } as Parameters<typeof toast>[0])
   }

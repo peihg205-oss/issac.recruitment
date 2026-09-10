@@ -153,6 +153,35 @@ function LoginForm() {
     if (loginType === "admin") {
       const emailLower = values.email.toLowerCase().trim()
 
+      // Kiểm tra nếu tài khoản này đã bị BCN xóa vĩnh viễn
+      const isDeletedAdmin = (): boolean => {
+        try {
+          if (typeof window !== "undefined") {
+            const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
+            if (savedDeleted) {
+              const parsed = JSON.parse(savedDeleted)
+              if (Array.isArray(parsed) && parsed.includes(emailLower)) return true
+            }
+          }
+          const cookieMatch = typeof document !== "undefined" ? document.cookie.match(/(?:^|;\s*)issac_deleted_admin_emails=([^;]+)/) : null
+          if (cookieMatch) {
+            const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
+            if (Array.isArray(parsed) && parsed.includes(emailLower)) return true
+          }
+        } catch {}
+        return false
+      }
+
+      if (isDeletedAdmin()) {
+        setLoading(false)
+        toast({
+          title: "Tài khoản không tồn tại",
+          description: "Tài khoản quản trị này đã bị Ban Chủ nhiệm xóa khỏi hệ thống.",
+          variant: "destructive"
+        })
+        return
+      }
+
       // 1. Kiểm tra tài khoản hệ thống (BCN & các ban)
       const matchedAdmin = SYSTEM_ADMIN_ROLES[emailLower]
       if (matchedAdmin) {

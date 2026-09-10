@@ -393,7 +393,17 @@ export default function EvaluationDetailPage() {
     } catch {}
   }
 
-  // displayEvaluator: Giữ đúng Giám khảo ban chuyên môn đã chấm điểm (Vũ Đình Hải cho Ban Truyền thông)
+  let loggedName: string | null = null
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
+    if (match) {
+      try {
+        loggedName = decodeURIComponent(match[1])
+      } catch {}
+    }
+  }
+
+  // displayEvaluator: Giữ đúng Giám khảo ban chuyên môn đã chấm điểm
   const displayEvaluator = evaluatorInfo || (
     (isSubmitted || Object.keys(scores).length > 0) ? {
       name: targetDeptName,
@@ -402,10 +412,10 @@ export default function EvaluationDetailPage() {
       title: targetDeptTitle,
       role: targetDeptSlug
     } : {
-      name: activeAdmin.name || currentEvaluator.name,
+      name: loggedName || activeAdmin.name || currentEvaluator.name,
       email: bcnAssignedEmail,
       departmentName: isSuperAdmin ? 'Ban Chủ nhiệm' : currentEvaluator.departmentName,
-      title: activeAdmin.title || currentEvaluator.title,
+      title: loggedName ? `Cán bộ Tuyển quân · ${currentEvaluator.departmentName}` : (activeAdmin.title || currentEvaluator.title),
       role: activeRole
     }
   )

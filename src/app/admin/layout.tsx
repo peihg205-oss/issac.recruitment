@@ -60,11 +60,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const baseAcc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS["chu-nhiem"]
+  const resolvedName = userProfile?.full_name || loggedAdminName || customAccounts[activeRole]?.name || baseAcc.name
+  const isDefaultLead = !userProfile?.full_name || userProfile.full_name === baseAcc.name
+  const resolvedTitle = isDefaultLead
+    ? (customAccounts[activeRole]?.title || baseAcc.title)
+    : `Cán bộ Tuyển quân · ${baseAcc.departmentName}`
+
   const acc = {
     ...baseAcc,
-    name: loggedAdminName || customAccounts[activeRole]?.name || baseAcc.name,
-    title: customAccounts[activeRole]?.title || baseAcc.title,
-    avatarInitial: loggedAdminName ? loggedAdminName.charAt(0).toUpperCase() : (customAccounts[activeRole]?.avatarInitial || baseAcc.avatarInitial),
+    name: resolvedName,
+    title: resolvedTitle,
+    avatarInitial: resolvedName.charAt(0).toUpperCase(),
   }
 
   let profile = null
@@ -83,9 +89,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ...userProfile,
       admin_role: activeRole,
       role: currentConfig.isSuperAdmin ? "super_admin" : "admin",
-      full_name: customAccounts[activeRole]?.name || userProfile.full_name || acc.name,
-      title: customAccounts[activeRole]?.title || acc.title,
-      avatarInitial: customAccounts[activeRole]?.avatarInitial || acc.avatarInitial,
+      full_name: resolvedName,
+      title: resolvedTitle,
+      avatarInitial: acc.avatarInitial,
     } : {
       full_name: acc.name,
       email: acc.email,

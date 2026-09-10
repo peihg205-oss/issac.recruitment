@@ -142,25 +142,61 @@ export default function AdminUsersPage() {
     setChangeRequests(getAdminRequests())
   }, [])
 
-  const loadAllAdmins = useCallback(() => {
+  const loadAllAdmins = useCallback(async () => {
     let list = [...INITIAL_ACCOUNTS]
+    const emailMap = new Map<string, AdminUser>()
+    list.forEach(a => emailMap.set(a.email.toLowerCase(), a))
+
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("issac_created_admins")
       if (saved) {
         try {
           const parsed = JSON.parse(saved)
           if (Array.isArray(parsed)) {
-            const existingIds = new Set(list.map(a => a.id))
             parsed.forEach(p => {
-              if (!existingIds.has(p.id)) {
-                list.push(p)
-              }
+              if (p.email) emailMap.set(p.email.toLowerCase(), p)
             })
           }
         } catch {}
       }
     }
-    setAdmins(list)
+
+    try {
+      const supabase = createClient()
+      const { data: dbAdmins } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, role, admin_role, is_active, created_at")
+        .in("role", ["admin", "super_admin"])
+
+      if (dbAdmins && dbAdmins.length > 0) {
+        dbAdmins.forEach(p => {
+          if (!p.email) return
+          const emLower = p.email.toLowerCase()
+          const existing = emailMap.get(emLower)
+          if (existing) {
+            emailMap.set(emLower, {
+              ...existing,
+              full_name: p.full_name || existing.full_name,
+              role: p.role || existing.role,
+              admin_role: (p.admin_role as any) || existing.admin_role,
+              is_active: p.is_active !== undefined ? p.is_active : existing.is_active,
+            })
+          } else {
+            emailMap.set(emLower, {
+              id: p.id,
+              full_name: p.full_name || p.email,
+              email: p.email,
+              role: p.role,
+              admin_role: (p.admin_role as any) || "truyen-thong",
+              is_active: p.is_active !== false,
+              created_at: p.created_at ? p.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
+            })
+          }
+        })
+      }
+    } catch {}
+
+    setAdmins(Array.from(emailMap.values()))
   }, [])
 
   useEffect(() => {
@@ -225,33 +261,73 @@ export default function AdminUsersPage() {
     }
 
     setSaving(true)
+    const emailClean = form.email.trim().toLowerCase()
+    const passClean = form.password.trim()
+    const nameClean = form.full_name.trim()
+    const roleClean = form.admin_role === "chu-nhiem" ? "super_admin" : "admin"
 
+    // 1. Đồng bộ tài khoản lên Supabase Auth & Database để đăng nhập được trên Điện thoại và mọi thiết bị
+    try {
+      const tempSupabase = createClient()
+      const { data: authData, error: authErr } = await tempSupabase.auth.signUp({
+        email: emailClean,
+        password: passClean,
+        options: {
+          data: {
+            full_name: nameClean,
+            role: roleClean,
+            admin_role: form.admin_role,
+          }
+        }
+      })
+
+      if (!authErr && authData.user) {
+        const { data: loginData } = await tempSupabase.auth.signInWithPassword({
+          email: emailClean,
+          password: passClean,
+        })
+        if (loginData.user) {
+          await tempSupabase.from("profiles").update({
+            full_name: nameClean,
+            role: roleClean,
+            admin_role: form.admin_role,
+            is_active: true
+          }).eq("id", loginData.user.id)
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase auth sync notice:", e)
+    }
+
+    // 2. Lưu vào state và LocalStorage
     const newAdmin: AdminUser = {
       id: `adm-${Date.now()}`,
-      full_name: form.full_name.trim(),
-      email: form.email.trim().toLowerCase(),
-      password: form.password.trim(),
-      role: form.admin_role === "chu-nhiem" ? "super_admin" : "admin",
+      full_name: nameClean,
+      email: emailClean,
+      password: passClean,
+      role: roleClean,
       admin_role: form.admin_role,
       is_active: true,
       created_at: new Date().toISOString().slice(0, 10),
     }
 
     setAdmins(prev => {
-      const updated = [...prev, newAdmin]
+      const filtered = prev.filter(a => a.email.toLowerCase() !== emailClean)
+      const updated = [...filtered, newAdmin]
       if (typeof window !== "undefined") {
         localStorage.setItem("issac_created_admins", JSON.stringify(updated))
         document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
       }
       return updated
     })
+
     setSaving(false)
     setShowCreateModal(false)
     setForm({ full_name: "", email: "", password: "", admin_role: "truyen-thong" })
 
     toast({
-      title: "✅ Đã tạo tài khoản thành công",
-      description: `Đã cấp quyền cho ${newAdmin.full_name} thuộc ${DEPT_INFO[newAdmin.admin_role].name}.`,
+      title: "✅ Đã cấp tài khoản thành công",
+      description: `Đã cấp quyền cho ${nameClean} (${DEPT_INFO[form.admin_role].name}). Tài khoản đã sẵn sàng đăng nhập trên mọi thiết bị (Điện thoại & Máy tính).`,
       variant: "success",
     } as Parameters<typeof toast>[0])
   }

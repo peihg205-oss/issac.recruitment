@@ -103,11 +103,15 @@ export function AdminProfileBadge({
     refreshData()
   }, [role, selectedDeptToEdit])
 
-  // Current display data
-  const currentAcc = accounts ? accounts[role] : {
-    name: initialName,
-    title: initialTitle,
-    avatarInitial: initialAvatarInitial,
+  // Current display data: Ưu tiên tên của chính người dùng đang đăng nhập (initialName)
+  const displayName = initialName?.trim() || (accounts ? accounts[role]?.name : "") || EVALUATOR_ACCOUNTS[role]?.name || ""
+  const displayTitle = initialTitle?.trim() || (accounts ? accounts[role]?.title : "") || EVALUATOR_ACCOUNTS[role]?.title || ""
+  const displayAvatar = initialAvatarInitial || displayName.charAt(0).toUpperCase() || "A"
+
+  const currentAcc = {
+    name: displayName,
+    title: displayTitle,
+    avatarInitial: displayAvatar,
     email: EVALUATOR_ACCOUNTS[role]?.email || "",
   }
 

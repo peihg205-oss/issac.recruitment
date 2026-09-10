@@ -284,7 +284,7 @@ function LoginForm() {
     // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, admin_role")
+      .select("role, admin_role, full_name, email")
       .eq("id", authData.user.id)
       .single()
 
@@ -301,9 +301,17 @@ function LoginForm() {
     }
 
     const targetAdminRole = profile?.admin_role || "chu-nhiem"
-    document.cookie = "issac_admin_role=" + targetAdminRole + "; path=/; max-age=2592000"
+    const displayName = profile?.full_name || authData.user.user_metadata?.full_name || "Cán bộ Tuyển quân"
 
-    toast({ title: "Đăng nhập thành công", variant: "success" } as Parameters<typeof toast>[0])
+    document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_email=${encodeURIComponent(authData.user.email || "")}; path=/; max-age=2592000; SameSite=Lax`
+
+    toast({
+      title: "Đăng nhập thành công",
+      description: `Chào mừng ${displayName}! Đang chuyển vào cổng quản trị...`,
+      variant: "success"
+    } as Parameters<typeof toast>[0])
 
     const redirectTo = searchParams.get("redirectedFrom")
     if (redirectTo && redirectTo.startsWith("/admin")) {

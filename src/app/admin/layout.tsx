@@ -45,12 +45,26 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     } catch {}
   }
 
+  // Đọc tên tài khoản từ cookie được set lúc đăng nhập (dành cho tài khoản do BCN tạo)
+  const loggedAdminNameRaw = cookieStore.get("issac_logged_admin_name")?.value
+  const loggedAdminName = loggedAdminNameRaw ? decodeURIComponent(loggedAdminNameRaw) : null
+
+  // Đọc danh sách tài khoản do BCN tạo từ cookie
+  const createdAdminsCookie = cookieStore.get("issac_created_admins")?.value
+  let createdAdmins: any[] = []
+  if (createdAdminsCookie) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(createdAdminsCookie))
+      if (Array.isArray(parsed)) createdAdmins = parsed
+    } catch {}
+  }
+
   const baseAcc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS["chu-nhiem"]
   const acc = {
     ...baseAcc,
-    name: customAccounts[activeRole]?.name || baseAcc.name,
+    name: loggedAdminName || customAccounts[activeRole]?.name || baseAcc.name,
     title: customAccounts[activeRole]?.title || baseAcc.title,
-    avatarInitial: customAccounts[activeRole]?.avatarInitial || baseAcc.avatarInitial,
+    avatarInitial: loggedAdminName ? loggedAdminName.charAt(0).toUpperCase() : (customAccounts[activeRole]?.avatarInitial || baseAcc.avatarInitial),
   }
 
   let profile = null

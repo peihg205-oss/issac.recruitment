@@ -154,46 +154,63 @@ function LoginForm() {
         return
       }
 
-      // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới (lưu trong localStorage)
-      if (typeof window !== "undefined") {
-        const createdRaw = localStorage.getItem("issac_created_admins")
-        if (createdRaw) {
+      // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
+      // Ưu tiên đọc từ cookie (hoạt động cross-device), fallback localStorage
+      const getCreatedAdminsList = (): any[] => {
+        // Thử đọc từ cookie trước (chia sẻ được giữa các thiết bị nếu set đúng)
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)issac_created_admins=([^;]+)/)
+        if (cookieMatch) {
           try {
-            const createdList = JSON.parse(createdRaw)
-            if (Array.isArray(createdList)) {
-              const found = createdList.find((a: any) => a.email.toLowerCase().trim() === emailLower)
-              if (found) {
-                if (!found.is_active) {
-                  setLoading(false)
-                  toast({
-                    title: "Tài khoản bị tạm khoá",
-                    description: "Tài khoản của bạn đã bị vô hiệu hoá bởi Ban Chủ nhiệm CLB.",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                if (found.password && found.password !== values.password) {
-                  setLoading(false)
-                  toast({
-                    title: "Mật khẩu không chính xác",
-                    description: "Mật khẩu không chính xác. Vui lòng liên hệ Ban Chủ nhiệm để được cấp lại.",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                document.cookie = `issac_admin_role=${found.admin_role}; path=/; max-age=2592000; SameSite=Lax`
-                toast({
-                  title: "Đăng nhập thành công",
-                  description: `Chào mừng ${found.full_name}! Đang chuyển vào cổng quản trị...`,
-                  variant: "success"
-                } as Parameters<typeof toast>[0])
-                router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
-                router.refresh()
-                return
-              }
-            }
+            const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
+            if (Array.isArray(parsed)) return parsed
           } catch {}
         }
+        // Fallback: đọc từ localStorage
+        if (typeof window !== "undefined") {
+          const raw = localStorage.getItem("issac_created_admins")
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw)
+              if (Array.isArray(parsed)) return parsed
+            } catch {}
+          }
+        }
+        return []
+      }
+
+      const createdList = getCreatedAdminsList()
+      const found = createdList.find((a: any) => a.email.toLowerCase().trim() === emailLower)
+      if (found) {
+        if (!found.is_active) {
+          setLoading(false)
+          toast({
+            title: "Tài khoản bị tạm khoá",
+            description: "Tài khoản của bạn đã bị vô hiệu hoá bởi Ban Chủ nhiệm CLB.",
+            variant: "destructive"
+          })
+          return
+        }
+        if (found.password && found.password !== values.password) {
+          setLoading(false)
+          toast({
+            title: "Mật khẩu không chính xác",
+            description: "Mật khẩu không chính xác. Vui lòng liên hệ Ban Chủ nhiệm để được cấp lại.",
+            variant: "destructive"
+          })
+          return
+        }
+        // Lưu role và tên người dùng đã đăng nhập vào cookie
+        document.cookie = `issac_admin_role=${found.admin_role}; path=/; max-age=2592000; SameSite=Lax`
+        // Lưu tên thực của tài khoản vào cookie để layout đọc được
+        document.cookie = `issac_logged_admin_name=${encodeURIComponent(found.full_name)}; path=/; max-age=2592000; SameSite=Lax`
+        toast({
+          title: "Đăng nhập thành công",
+          description: `Chào mừng ${found.full_name}! Đang chuyển vào cổng quản trị...`,
+          variant: "success"
+        } as Parameters<typeof toast>[0])
+        router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
+        router.refresh()
+        return
       }
 
       // Không tìm thấy tài khoản admin phù hợp → thử Supabase Auth

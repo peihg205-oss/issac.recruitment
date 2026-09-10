@@ -71,6 +71,7 @@ export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProp
 
   const handleSignOut = async () => {
     document.cookie = 'issac_admin_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'issac_logged_admin_name=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

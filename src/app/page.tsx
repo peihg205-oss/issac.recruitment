@@ -32,7 +32,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#fcfbf9] text-slate-900 font-sans selection:bg-[#fdc455]/30">
       {/* 1. TOP NAVBAR */}
       <header className="bg-[#0d4499] text-white sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <Image
@@ -40,7 +40,7 @@ export default function HomePage() {
               alt="iSSAC - VNU-IS Ambassadors Club"
               width={200}
               height={50}
-              className="h-9 sm:h-11 w-auto object-contain"
+              className="h-8 sm:h-11 w-auto object-contain max-w-[110px] sm:max-w-[180px] lg:max-w-none"
               priority
             />
           </Link>
@@ -71,20 +71,20 @@ export default function HomePage() {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/40 hover:border-white text-white text-xs sm:text-sm font-semibold transition-all hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full border border-white/40 hover:border-white text-white text-xs sm:text-sm font-semibold transition-all hover:bg-white/10"
             >
               <User className="w-3.5 h-3.5" />
-              <span>Đăng nhập</span>
+              <span className="hidden xs:inline sm:inline">Đăng nhập</span>
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
             >
               <Send className="w-3.5 h-3.5 rotate-[-20deg]" />
-              <span>Ứng tuyển ngay</span>
+              <span className="whitespace-nowrap">Ứng tuyển</span>
             </Link>
           </div>
         </div>
@@ -105,18 +105,17 @@ export default function HomePage() {
               <span>Tuyển thành viên 2026</span>
             </div>
 
-            {/* Headline with playful sparkles */}
+            {/* Headline */}
             <div className="relative space-y-1">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase">
+              <h1 className="text-[2rem] sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase">
                 Trở thành
                 <span className="block">thành viên</span>
-                <span className="block text-[#fdc455] mt-1 relative inline-block">
+                <span className="block text-[#fdc455] mt-1 relative">
                   iSSAC 2026
-                  {/* Decorative Hand-drawn rays/sparkle */}
-                  <span className="absolute -right-8 top-1 text-[#fdc455] text-xl font-bold hidden sm:inline-block rotate-12">
+                  <span className="absolute -right-6 top-1 text-[#fdc455] text-xl font-bold hidden sm:inline-block rotate-12">
                     ✦
                   </span>
-                  <span className="absolute -right-12 top-4 text-[#fdc455] text-sm font-bold hidden sm:inline-block -rotate-12">
+                  <span className="absolute -right-10 top-4 text-[#fdc455] text-sm font-bold hidden sm:inline-block -rotate-12">
                     ★
                   </span>
                 </span>

@@ -26,8 +26,18 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-// BCN password is read from env var BCN_ADMIN_PASSWORD (fallback to default for dev)
-const getBcnPassword = () => process.env.NEXT_PUBLIC_BCN_ADMIN_PASSWORD || "ISSAC2026@tuyenquan"
+// Hardcoded BCN password as the ultimate fallback
+const BCN_PASSWORD_DEFAULT = "ISSAC2026@tuyenquan"
+
+// Accept entered password if it matches EITHER the env var OR the hardcoded default
+// This prevents Vercel encoding issues with special characters like '@'
+const isBcnPasswordValid = (entered: string): boolean => {
+  const trimmed = entered.trim()
+  if (trimmed === BCN_PASSWORD_DEFAULT) return true
+  const envPw = process.env.NEXT_PUBLIC_BCN_ADMIN_PASSWORD?.trim()
+  if (envPw && trimmed === envPw) return true
+  return false
+}
 
 const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string; useBcnPassword?: boolean }> = {
   "ambassadors.club@vnuis.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm CLB iSSAC", useBcnPassword: true },
@@ -118,13 +128,12 @@ function LoginForm() {
     // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
     if (loginType === "admin") {
       const emailLower = values.email.toLowerCase().trim()
-      const bcnPassword = getBcnPassword()
 
       // 1. Kiểm tra tài khoản hệ thống (BCN & các ban)
       const matchedAdmin = SYSTEM_ADMIN_ROLES[emailLower]
       if (matchedAdmin) {
-        const expectedPassword = matchedAdmin.useBcnPassword ? bcnPassword : null
-        if (expectedPassword && values.password !== expectedPassword) {
+        // Kiểm tra mật khẩu BCN (chấp nhận env var HOẶC hardcoded default)
+        if (matchedAdmin.useBcnPassword && !isBcnPasswordValid(values.password)) {
           setLoading(false)
           toast({
             title: "Mật khẩu không chính xác",

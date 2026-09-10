@@ -74,7 +74,15 @@ function LoginForm() {
     } else {
       setLoginType("candidate")
     }
-  }, [searchParams])
+
+    if (searchParams.get("deleted") === "true") {
+      toast({
+        title: "Tài khoản không tồn tại",
+        description: "Tài khoản ứng viên của bạn đã bị Ban Chủ nhiệm xóa khỏi hệ thống.",
+        variant: "destructive"
+      })
+    }
+  }, [searchParams, toast])
 
   const handleTabChange = (type: "candidate" | "admin") => {
     setLoginType(type)
@@ -253,12 +261,13 @@ function LoginForm() {
 
     // XỬ LÝ ĐĂNG NHẬP ỨNG VIÊN
     if (loginType === "candidate") {
-      const isDeleted = isCandidateDeleted("", values.email)
+      const emailLower = values.email.toLowerCase().trim()
+      const isDeleted = isCandidateDeleted("", emailLower)
       if (isDeleted) {
         setLoading(false)
         toast({
           title: "Tài khoản không tồn tại",
-          description: "Hồ sơ ứng viên này đã bị xoá khỏi hệ thống.",
+          description: "Tài khoản ứng viên này đã bị Ban Tuyển quân xóa khỏi hệ thống.",
           variant: "destructive"
         })
         return
@@ -271,9 +280,8 @@ function LoginForm() {
       password: values.password,
     })
 
-    setLoading(false)
-
     if (error) {
+      setLoading(false)
       if (error.message.toLowerCase().includes('email not confirmed')) {
         setUnconfirmedEmail(values.email)
       }
@@ -294,10 +302,50 @@ function LoginForm() {
       return
     }
 
-    if (!authData.user) return
+    if (!authData.user) {
+      setLoading(false)
+      return
+    }
 
-    // Lưu mật khẩu thực tế đang hoạt động của tài khoản ứng viên
+    // XỬ LÝ CHO ỨNG VIÊN SAU KHI XÁC THỰC AUTH THÀNH CÔNG
     if (loginType === "candidate") {
+      const userEmail = (authData.user.email || values.email).toLowerCase().trim()
+      const userId = authData.user.id
+
+      // 1. Kiểm tra trong danh sách blacklist đã bị BCN xóa
+      if (isCandidateDeleted(userId, userEmail)) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        toast({
+          title: "Tài khoản không tồn tại",
+          description: "Tài khoản ứng viên của bạn đã bị Ban Tuyển quân xóa khỏi hệ thống.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // 2. Kiểm tra trực tiếp trên DB profiles (bảo mật đa thiết bị)
+      try {
+        const { data: userProf } = await supabase
+          .from('profiles')
+          .select('id, role, is_active')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (userProf && (userProf.is_active === false || userProf.role === 'deleted')) {
+          await supabase.auth.signOut()
+          setLoading(false)
+          toast({
+            title: "Tài khoản không khả dụng",
+            description: "Tài khoản của bạn đã bị Ban Tuyển quân xóa hoặc vô hiệu hóa khỏi hệ thống.",
+            variant: "destructive"
+          })
+          return
+        }
+      } catch {}
+
+      setLoading(false)
+      // Lưu mật khẩu thực tế đang hoạt động của tài khoản ứng viên
       setCandidatePassword(values.email, values.password)
 
       // Xóa triệt để cookie admin nếu có sót lại từ phiên đăng nhập trước
@@ -315,6 +363,8 @@ function LoginForm() {
       router.refresh()
       return
     }
+
+    setLoading(false)
 
     // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN)
     const { data: profile } = await supabase

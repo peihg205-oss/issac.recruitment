@@ -11,7 +11,7 @@ import {
   ArrowUpDown, Users, Loader2, ChevronRight, Filter, Key, Trash2
 } from 'lucide-react'
 import { CandidateAccountModal } from "@/components/admin/candidate-account-modal"
-import { isCandidateDeleted } from "@/lib/candidate-account-manager"
+import { isCandidateDeleted, deleteCandidateAccount } from "@/lib/candidate-account-manager"
 import Link from 'next/link'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV, buildCandidateCodeMap } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -69,7 +69,7 @@ export default function CandidatesPage() {
           `)
           .order('created_at', { ascending: false }),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
-        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, created_at')
+        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at')
       ])
 
       let candidateList: Candidate[] = []
@@ -92,10 +92,16 @@ export default function CandidatesPage() {
           profiles: profilesMap[a.user_id] || { full_name: 'Ứng viên', email: '', student_id: '' }
         })) as unknown as Candidate[]
 
-        // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn
+        // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn (lọc bỏ tài khoản đã xóa)
         if (allProfiles && allProfiles.length > 0) {
           const appUserIds = new Set(apps.map((a: any) => a.user_id))
-          const unsubmittedProfiles = allProfiles.filter((p: any) => !appUserIds.has(p.id) && p.role !== 'admin')
+          const unsubmittedProfiles = allProfiles.filter((p: any) => 
+            !appUserIds.has(p.id) && 
+            p.role !== 'admin' && 
+            p.role !== 'deleted' && 
+            p.is_active !== false &&
+            !isCandidateDeleted(p.id, p.email, p.id)
+          )
           unsubmittedProfiles.forEach((p: any) => {
             candidateList.push({
               id: `reg-${p.id}`,
@@ -110,15 +116,19 @@ export default function CandidatesPage() {
           })
         }
       } else {
-        // Fallback demo/mock data (bao gồm cả ứng viên đã nộp đơn và người mới đăng ký chưa làm đơn)
+        // Fallback demo/mock data
         candidateList = MOCK_CANDIDATES as unknown as Candidate[]
       }
+
+      // LỌC BỎ TOÀN BỘ ỨNG VIÊN ĐÃ BỊ BCN XÓA (ĐẢM BẢO HIỂN THỊ ĐÚNG DỮ LIỆU THẬT)
+      candidateList = candidateList.filter(c => !isCandidateDeleted(c.id, c.profiles?.email, c.user_id))
 
       setCandidates(candidateList)
       setDepartments(depts && depts.length > 0 ? depts : MOCK_DEPARTMENTS)
     } catch (err) {
       console.error('Error fetching candidates:', err)
-      setCandidates(MOCK_CANDIDATES as unknown as Candidate[])
+      const fallback = (MOCK_CANDIDATES as unknown as Candidate[]).filter(c => !isCandidateDeleted(c.id, c.profiles?.email, c.user_id))
+      setCandidates(fallback)
       setDepartments(MOCK_DEPARTMENTS)
     } finally {
       setLoading(false)
@@ -134,8 +144,18 @@ export default function CandidatesPage() {
       })
       .subscribe()
 
+    const onCandidatesUpdated = () => {
+      fetchData()
+    }
+    window.addEventListener('issac_candidate_deleted', onCandidatesUpdated)
+    window.addEventListener('issac_candidates_updated', onCandidatesUpdated)
+    window.addEventListener('storage', onCandidatesUpdated)
+
     return () => {
       supabase.removeChannel(channel)
+      window.removeEventListener('issac_candidate_deleted', onCandidatesUpdated)
+      window.removeEventListener('issac_candidates_updated', onCandidatesUpdated)
+      window.removeEventListener('storage', onCandidatesUpdated)
     }
   }, [fetchData, supabase])
 
@@ -232,6 +252,25 @@ export default function CandidatesPage() {
       description: `Hồ sơ đã chuyển sang "${APPLICATION_STATUS_LABELS[newStatus]}"`,
       variant: 'success'
     } as Parameters<typeof toast>[0])
+  }
+
+  const handleDeleteCandidate = async (c: Candidate) => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Chỉ Ban Chủ nhiệm mới có quyền xóa tài khoản ứng viên', variant: 'destructive' })
+      return
+    }
+
+    const name = c.profiles?.full_name || 'Ứng viên'
+    const email = c.profiles?.email || ''
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản của ứng viên "${name}" (${email})? Sau khi xóa, ứng viên sẽ không thể đăng nhập và toàn bộ dữ liệu hồ sơ sẽ biến mất khỏi cổng tuyển quân.`)) {
+      setCandidates(prev => prev.filter(x => x.id !== c.id && (!email || x.profiles?.email?.toLowerCase() !== email.toLowerCase())))
+      await deleteCandidateAccount(c.id, email, c.user_id)
+      toast({
+        title: 'Đã xóa tài khoản ứng viên',
+        description: `Tài khoản ${name} (${email}) đã được xóa vĩnh viễn khỏi hệ thống.`,
+        variant: 'success'
+      } as Parameters<typeof toast>[0])
+    }
   }
 
   // Tất cả các Ban đều xem được danh sách ứng viên toàn CLB
@@ -513,6 +552,18 @@ export default function CandidatesPage() {
                               Hồ sơ
                             </Button>
                           </Link>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
+                              onClick={() => handleDeleteCandidate(c)}
+                              title="Xóa vĩnh viễn tài khoản & hồ sơ ứng viên"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1" />
+                              Xóa
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

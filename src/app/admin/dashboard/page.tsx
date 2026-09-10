@@ -1,13 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Users, FileText, CheckCircle, Clock, Calendar,
   ClipboardList, Trophy, TrendingUp, BarChart3, Star
 } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
+import { parseDeletedCandidateIdsFromCookie } from '@/lib/candidate-account-manager'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
+  const cookieStore = await cookies()
+  const deletedCookieStr = cookieStore.get('issac_deleted_candidates')?.value
+  const deletedIds = parseDeletedCandidateIdsFromCookie(deletedCookieStr ? `issac_deleted_candidates=${deletedCookieStr}` : '')
 
   let applications: any[] | null = null
   let evaluations: any[] | null = null
@@ -18,11 +23,11 @@ export default async function AdminDashboardPage() {
 
   try {
     const [appsRes, evalsRes, ranksRes, deptsRes, ivwsRes, settRes] = await Promise.all([
-      supabase.from('applications').select('id, status, department_id, departments!applications_department_id_fkey(name, slug)'),
-      supabase.from('evaluations').select('id, status, total_score'),
-      supabase.from('candidate_rankings').select('id, result, final_score, rank_number').order('rank_number', { ascending: true }),
+      supabase.from('applications').select('id, user_id, status, department_id, departments!applications_department_id_fkey(name, slug)'),
+      supabase.from('evaluations').select('id, application_id, status, total_score'),
+      supabase.from('candidate_rankings').select('id, application_id, result, final_score, rank_number').order('rank_number', { ascending: true }),
       supabase.from('departments').select('id, name, slug, color').neq('slug', 'chu-nhiem'),
-      supabase.from('interviews').select('id, status'),
+      supabase.from('interviews').select('id, application_id, status'),
       supabase.from('system_settings').select('key, value').in('key', ['recruitment_quota', 'recruitment_end', 'interview_end', 'result_announcement'])
     ])
     applications = appsRes.data
@@ -35,10 +40,16 @@ export default async function AdminDashboardPage() {
     console.error('Error fetching dashboard data:', err)
   }
 
-  // Real data only, no mock candidate fallback
-  const apps: any[] = applications || []
+  // Lọc bỏ toàn bộ ứng viên đã bị Ban Chủ nhiệm xóa
+  const rawApps: any[] = applications || []
+  const apps: any[] = rawApps.filter(a => !deletedIds.includes(a.id) && !deletedIds.includes(a.user_id))
   const depts = (departments && departments.length > 0) ? departments : MOCK_DEPARTMENTS
-  const ranks: any[] = rankings || []
+  const rawRanks: any[] = rankings || []
+  const ranks: any[] = rawRanks.filter(r => !r.application_id || !deletedIds.includes(r.application_id))
+  const rawEvals: any[] = evaluations || []
+  const filteredEvals = rawEvals.filter(e => !e.application_id || !deletedIds.includes(e.application_id))
+  const rawIvws: any[] = interviews || []
+  const filteredIvws = rawIvws.filter(i => !i.application_id || !deletedIds.includes(i.application_id))
   const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
 
   const statusCounts = {
@@ -56,10 +67,10 @@ export default async function AdminDashboardPage() {
   }
 
   const evalStats = {
-    total: evaluations?.length || 0,
-    submitted: evaluations?.filter(e => e.status === 'submitted').length || 0,
-    avgScore: evaluations && evaluations.length > 0
-      ? (evaluations.reduce((acc, e) => acc + (e.total_score || 0), 0) / evaluations.length).toFixed(1)
+    total: filteredEvals.length,
+    submitted: filteredEvals.filter(e => e.status === 'submitted').length,
+    avgScore: filteredEvals.length > 0
+      ? (filteredEvals.reduce((acc, e) => acc + (e.total_score || 0), 0) / filteredEvals.length).toFixed(1)
       : '0.0',
   }
 
@@ -82,7 +93,7 @@ export default async function AdminDashboardPage() {
     { label: 'Tổng hồ sơ', value: statusCounts.total, icon: Users },
     { label: 'Chờ duyệt', value: statusCounts.submitted + statusCounts.received + statusCounts.reviewing, icon: Clock },
     { label: 'Đã duyệt hồ sơ', value: statusCounts.approved + statusCounts.interview_scheduled, icon: CheckCircle },
-    { label: 'Lịch phỏng vấn', value: interviews?.length || 0, icon: Calendar },
+    { label: 'Lịch phỏng vấn', value: filteredIvws.length, icon: Calendar },
     { label: 'Đã hoàn thành PV', value: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, icon: Users },
     { label: 'Đã chấm điểm', value: evalStats.submitted, icon: ClipboardList },
     { label: 'Pass', value: rankStats.pass, icon: Trophy },

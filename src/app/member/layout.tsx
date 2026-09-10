@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { MemberLayoutClient } from "./MemberLayoutClient"
+import { parseDeletedCandidateIdsFromCookie } from "@/lib/candidate-account-manager"
 
 function formatStudentInfo({
   cohort,
@@ -55,10 +58,20 @@ export default async function MemberLayout({ children }: { children: React.React
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      // 1. Kiểm tra cookie danh sách bị xóa
+      const cookieStore = await cookies()
+      const deletedCookieStr = cookieStore.get('issac_deleted_candidates')?.value
+      const deletedIds = parseDeletedCandidateIdsFromCookie(deletedCookieStr ? `issac_deleted_candidates=${deletedCookieStr}` : '')
+      const userEmail = (user.email || '').toLowerCase().trim()
+
+      if (deletedIds.includes(user.id) || (userEmail && deletedIds.includes(userEmail))) {
+        return redirect('/login?deleted=true')
+      }
+
       const [{ data: profile }, { data: app }] = await Promise.all([
         supabase
           .from('profiles')
-          .select('full_name, email, avatar_url, role, student_id, cohort')
+          .select('full_name, email, avatar_url, role, student_id, cohort, is_active')
           .eq('id', user.id)
           .maybeSingle(),
         supabase
@@ -67,6 +80,11 @@ export default async function MemberLayout({ children }: { children: React.React
           .eq('user_id', user.id)
           .maybeSingle()
       ])
+
+      // 2. Kiểm tra database profile nếu đã bị BCN vô hiệu hóa/xóa
+      if (profile && (profile.is_active === false || profile.role === 'deleted')) {
+        return redirect('/login?deleted=true')
+      }
 
       userProfile = {
         full_name: profile?.full_name || user.user_metadata?.full_name || 'Ứng viên',

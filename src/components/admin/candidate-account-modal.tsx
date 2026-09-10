@@ -38,6 +38,7 @@ import { useToast } from "@/components/ui/use-toast"
 interface CandidateAccountModalProps {
   candidate: {
     id: string
+    user_id?: string
     profiles: {
       full_name: string
       email: string
@@ -153,8 +154,8 @@ export function CandidateAccountModal({
     setTimeout(() => setCopiedMsg(false), 2000)
   }
 
-  const handleDelete = () => {
-    deleteCandidateAccount(candidate.id, email)
+  const handleDelete = async () => {
+    await deleteCandidateAccount(candidate.id, email, candidate.user_id)
     toast({
       title: "Đã xóa tài khoản ứng viên",
       description: "Hồ sơ và tài khoản của " + fullName + " đã được xóa khỏi hệ thống.",

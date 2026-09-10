@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
                     Fanpage CLB Đại sứ Sinh viên VNU-IS
                   </div>
                   <div className="text-[11px] text-blue-600 font-bold truncate mt-0.5">
-                    Nhắn tin trực tiếp tới Admin Page qua Messenger →
+                    Nhắn tin trực tiếp tới Admin Page qua Messenger
                   </div>
                 </div>
               </div>

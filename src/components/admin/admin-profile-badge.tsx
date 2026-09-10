@@ -370,7 +370,7 @@ export function AdminProfileBadge({
                     <Input
                       value={nameInput}
                       onChange={e => setNameInput(e.target.value)}
-                      placeholder="VD: Trần Phương Linh..."
+                      placeholder="VD: Nguyễn Thị Hồng Hân..."
                       className="text-sm bg-white font-medium"
                     />
                   </div>

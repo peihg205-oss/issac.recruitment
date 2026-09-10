@@ -13,13 +13,15 @@ import {
 import { 
   APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, 
   formatDate, formatDateTime, formatFullTimestamp, 
-  RESULT_COLORS, RESULT_LABELS 
+  RESULT_COLORS, RESULT_LABELS, getCandidateCode 
 } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, getCandidateApplicationAnswers } from '@/lib/mock-data'
 import { CandidateDetailAccountBtn } from "@/components/admin/candidate-detail-account-btn"
 
-export default async function CandidateDetailPage({ params }: { params: { id: string } }) {
+export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = await params
+  const id = resolvedParams.id
   const supabase = await createClient()
 
   let application: any = null
@@ -27,51 +29,67 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
   let interviews: any[] | null = null
   let evaluations: any[] | null = null
   let ranking: any = null
+  let candidateCode = 'ISSAC-01'
 
   try {
-    const { data: app } = await supabase
-      .from('applications')
-      .select(`
-        *,
-        profiles:user_id(full_name, email, student_id, phone, date_of_birth, university, cohort, major, high_school, address, gender, avatar_url, cv_url, facebook_url, gpa, bio),
-        departments!applications_department_id_fkey(name, slug, color),
-        second_dept:second_department_id(name)
-      `)
-      .eq('id', params.id)
-      .single()
+    const [{ data: app }, { data: allApps }] = await Promise.all([
+      supabase
+        .from('applications')
+        .select(`
+          *,
+          departments!applications_department_id_fkey(name, slug, color),
+          second_dept:second_department_id(name)
+        `)
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('applications')
+        .select('id, submitted_at, created_at')
+        .order('created_at', { ascending: true })
+    ])
 
-    application = app
+    const appsList = (allApps && allApps.length > 0) ? allApps : MOCK_CANDIDATES
+    candidateCode = getCandidateCode(id, appsList)
+
+    if (app) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', app.user_id)
+        .maybeSingle()
+
+      application = { ...app, profiles: prof || { full_name: 'Ứng viên', email: '', student_id: '' } }
+    }
 
     const [ansRes, intRes, evRes, rankRes] = await Promise.all([
       supabase
         .from('application_answers')
         .select('*, questions(question_text, question_type, sort_order)')
-        .eq('application_id', params.id)
-        .order('questions(sort_order)', { ascending: true }),
+        .eq('application_id', id),
       supabase
         .from('interviews')
         .select('*, interview_slots(*)')
-        .eq('application_id', params.id),
+        .eq('application_id', id),
       supabase
         .from('evaluations')
-        .select('*, profiles:interviewer_id(full_name), evaluation_scores(*, evaluation_criteria(name, max_score, sort_order))')
-        .eq('application_id', params.id),
+        .select('*, evaluation_scores(*, evaluation_criteria(name, max_score, sort_order))')
+        .eq('application_id', id),
       supabase
         .from('candidate_rankings')
         .select('*')
-        .eq('application_id', params.id)
-        .single()
+        .eq('application_id', id)
+        .maybeSingle()
     ])
 
     answers = ansRes.data
     interviews = intRes.data
     evaluations = evRes.data
     ranking = rankRes.data
-  } catch {
-    // Demo fallback
+  } catch (err) {
+    console.error('Error fetching candidate detail:', err)
   }
 
-  const mockCandidate = MOCK_CANDIDATES.find(c => c.id === params.id)
+  const mockCandidate = MOCK_CANDIDATES.find(c => c.id === id)
   if (!application && !mockCandidate) notFound()
 
   const appData = application || mockCandidate
@@ -79,229 +97,271 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
   const dept = appData.departments as any
   const finalRanking = ranking || mockCandidate?.candidate_rankings
 
+  // Facebook URL resolution (from profiles.facebook_url or profiles.address)
+  const facebookUrl = (profile as any)?.facebook_url || 
+    (profile?.address?.includes('facebook.com') || profile?.address?.startsWith('http') ? profile.address : null)
+
   // Exact submission timestamp
   const submissionTimestamp = appData.submitted_at || appData.created_at
   const { dateStr, timeStr } = formatFullTimestamp(submissionTimestamp)
 
-  // Candidate answers (mock enriched or Supabase answers)
-  const candidateAnswers = getCandidateApplicationAnswers(params.id)
+  // Candidate answers (Real Supabase answers if available, otherwise mock)
+  const candidateAnswers = (answers && answers.length > 0)
+    ? answers.map((ans, idx) => ({
+        question_id: ans.question_id || ans.id,
+        question_order: (ans.questions as any)?.sort_order ?? idx + 1,
+        category_label: 'Câu hỏi tuyển quân',
+        question_type: (ans.questions as any)?.question_type || 'long_text',
+        question_text: (ans.questions as any)?.question_text || 'Câu hỏi',
+        answer_text: ans.answer_text,
+        file_url: ans.file_url,
+        options: (ans.answer_options as string[]) || [],
+        selected_option: ans.answer_text || (Array.isArray(ans.answer_options) ? ans.answer_options.join(', ') : ''),
+        is_submitted: true,
+      }))
+    : getCandidateApplicationAnswers(id)
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border shadow-xs">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/candidates">
-            <Button variant="outline" size="sm" className="gap-2 font-medium hover:bg-gray-100">
-              <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
-            </Button>
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-black text-gray-900">{profile?.full_name || 'Ứng viên'}</h1>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${APPLICATION_STATUS_COLORS[appData.status as ApplicationStatus] || 'bg-gray-100 text-gray-700'}`}>
-                {APPLICATION_STATUS_LABELS[appData.status as ApplicationStatus] || appData.status}
-              </span>
-            </div>
-            <p className="text-gray-500 text-xs sm:text-sm mt-0.5">
-              {profile?.email} · MSSV: <span className="font-mono font-semibold text-gray-700">{profile?.student_id || '—'}</span> · {profile?.cohort || 'K23'} {profile?.major || 'VNU-IS'}
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in pb-12 font-sans">
+      {/* 1. TOP NAVIGATION: Nút quay lại danh sách độc lập, thẩm mỹ, đúng chuẩn UI */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <Link 
+          href="/admin/candidates"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#1657c1] hover:border-blue-300 text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm group w-fit cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:-translate-x-1 transition-transform" />
+          <span>Quay lại danh sách ứng viên</span>
+        </Link>
 
-        {/* Right Header: Exact Giờ Gửi & Final Result */}
-        <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2">
-          <CandidateDetailAccountBtn candidate={appData} />
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold shadow-2xs">
-            <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Giờ gửi hồ sơ (Giờ VN): <strong className="font-mono font-black text-blue-900">{timeStr}</strong> · {dateStr}</span>
-          </div>
-
-          {finalRanking && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-500">Kết quả:</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${RESULT_COLORS[finalRanking.result as keyof typeof RESULT_COLORS] || ''}`}>
-                {RESULT_LABELS[finalRanking.result as keyof typeof RESULT_LABELS] || finalRanking.result}
-              </span>
-            </div>
-          )}
+        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+          <span>Quản trị tuyển quân</span>
+          <span className="text-slate-300">/</span>
+          <span>Hồ sơ ứng viên</span>
+          <span className="text-slate-300">/</span>
+          <span className="font-bold text-slate-900">{profile?.full_name || 'Ứng viên'}</span>
         </div>
       </div>
 
-      {/* Summary 4 KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Department */}
-        <Card className="shadow-xs border hover:border-blue-200 transition-colors">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-              <Building className="w-5 h-5" />
+      {/* 2. MASTER CANDIDATE DOSSIER CARD: Bố cục khoa học, typography sắc nét, không bị lặp thông tin */}
+      <Card className="border border-slate-200/90 shadow-sm bg-white rounded-3xl overflow-hidden">
+        {/* Hero Header */}
+        <div className="p-6 sm:p-7 bg-gradient-to-r from-blue-50/90 via-white to-indigo-50/50 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1657c1] to-blue-700 text-white flex items-center justify-center font-black text-2xl shadow-md ring-4 ring-blue-50 shrink-0">
+              {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500">Ban đăng ký (NV1)</div>
-              <div className="font-black text-sm text-gray-900 truncate">{dept?.name || 'Chưa chọn'}</div>
-              <div className="text-[11px] text-gray-400 truncate">Trường Quốc tế - VNU-IS</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Submission exact time */}
-        <Card className="shadow-xs border border-blue-100 bg-blue-50/20 hover:border-blue-300 transition-colors">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-blue-800 font-semibold">Thời gian gửi đơn</div>
-              <div className="font-black text-base font-mono text-gray-900">{timeStr}</div>
-              <div className="text-[11px] text-gray-500 font-medium">Ngày {dateStr}</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: Interview Score */}
-        <Card className="shadow-xs border hover:border-purple-200 transition-colors">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-              <Star className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500">Điểm phỏng vấn PV</div>
-              <div className="font-black text-lg text-blue-700">
-                {finalRanking?.final_score != null ? `${Number(finalRanking.final_score).toFixed(1)}/10` : '—'}
+            <div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {profile?.full_name || 'Ứng viên'}
+                </h1>
+                <Badge className="bg-blue-100 text-[#1657c1] border-blue-200 text-xs font-black px-2.5 py-0.5">
+                  {profile?.cohort || 'K22'}
+                </Badge>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${APPLICATION_STATUS_COLORS[appData.status as ApplicationStatus] || 'bg-gray-100 text-gray-700'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${appData.status === 'draft' ? 'bg-amber-500' : appData.status === 'finalized' || appData.status === 'approved' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                  <span>{APPLICATION_STATUS_LABELS[appData.status as ApplicationStatus] || appData.status}</span>
+                </span>
+                <Badge variant="outline" className="bg-white text-slate-700 border-slate-300 text-xs font-semibold">
+                  {dept?.name || 'Ban chưa chọn'}
+                </Badge>
               </div>
-              <div className="text-[11px] text-gray-400 truncate">
-                Chấm: {mockCandidate?.evaluator?.name || 'Giám khảo Ban'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Card 4: CLB Rank & Result */}
-        <Card className="shadow-xs border hover:border-amber-200 transition-colors">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-              <Award className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500">Thứ hạng toàn CLB</div>
-              <div className="font-black text-lg text-amber-600">
-                {finalRanking?.rank_number ? `#${finalRanking.rank_number}` : '—'}
-              </div>
-              <div className="text-[11px] text-gray-500">
-                {finalRanking?.result ? RESULT_LABELS[finalRanking.result as keyof typeof RESULT_LABELS] || finalRanking.result : 'Đang xét'}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs sm:text-sm text-slate-600 mt-2.5 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold">Mã hồ sơ:</span>
+                  <strong className="font-mono text-[#1657c1] font-bold">
+                    {candidateCode}
+                  </strong>
+                </span>
+                <span className="hidden sm:inline text-slate-300">•</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold">MSSV:</span>
+                  <strong className="font-mono text-slate-900 font-bold">{profile?.student_id || '—'}</strong>
+                </span>
+                <span className="hidden sm:inline text-slate-300">•</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold">Ngành học:</span>
+                  <strong className="text-slate-800">{profile?.major || 'VNU-IS'}</strong>
+                </span>
+                <span className="hidden sm:inline text-slate-300">•</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold">Trường:</span>
+                  <span className="text-slate-700">{profile?.university || 'Trường Quốc tế - ĐHQGHN'}</span>
+                </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      {/* Main Tabs: Default value is 'answers' as explicitly requested */}
+          {/* Action Buttons & Submission Time */}
+          <div className="flex flex-wrap items-center lg:flex-col lg:items-end gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <CandidateDetailAccountBtn candidate={appData} />
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Trang Facebook</span>
+                  <ExternalLink className="w-3 h-3 opacity-80" />
+                </a>
+              )}
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200/60">
+              <Clock className="w-3.5 h-3.5 text-[#1657c1] shrink-0" />
+              <span>Thời gian nộp: <strong className="font-mono text-slate-900 font-bold">{timeStr}</strong> · {dateStr}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Thông tin nhân khẩu & học vụ chi tiết */}
+        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white text-xs sm:text-sm">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Số điện thoại liên hệ</div>
+            <div className="font-mono font-bold text-slate-900 mt-1 text-sm">{profile?.phone || '—'}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Email trường (VNU)</div>
+            <div className="font-mono font-bold text-slate-900 mt-1 text-xs truncate" title={profile?.email}>{profile?.email || '—'}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ngày sinh & Giới tính</div>
+            <div className="font-bold text-slate-900 mt-1">
+              {profile?.date_of_birth ? profile.date_of_birth : '—'} · {profile?.gender || '—'}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Trường THPT</div>
+            <div className="font-bold text-slate-900 mt-1 truncate" title={profile?.high_school}>{profile?.high_school || '—'}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ban đăng ký (NV1)</div>
+            <div className="font-bold text-[#1657c1] mt-1">{dept?.name || '—'}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Điểm phỏng vấn PV</div>
+            <div className="font-bold text-amber-600 mt-1 font-mono text-sm">
+              {finalRanking?.final_score != null ? `${Number(finalRanking.final_score).toFixed(1)}/10` : 'Chưa chấm'}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Thứ hạng toàn CLB</div>
+            <div className="font-bold text-amber-600 mt-1">
+              {finalRanking?.rank_number ? `#${finalRanking.rank_number}` : 'Đang xét'}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Facebook cá nhân</div>
+            <div className="font-semibold text-blue-600 mt-1 truncate">
+              {facebookUrl ? (
+                <a href={facebookUrl} target="_blank" rel="noreferrer" className="underline hover:text-blue-800">
+                  {facebookUrl}
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal italic">Chưa cập nhật</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* 3. TABS HỆ THỐNG: Tách bạch rõ ràng, font chữ to rõ, không bị trùng lặp banner */}
       <Tabs defaultValue="answers" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-lg bg-gray-100 p-1 rounded-xl">
-          <TabsTrigger value="answers" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs">
-            <FileText className="w-4 h-4 text-blue-600" />
-            Câu trả lời ({candidateAnswers.length})
+        <TabsList className="grid grid-cols-3 w-full max-w-xl bg-slate-100 p-1.5 rounded-2xl">
+          <TabsTrigger value="answers" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs rounded-xl py-2">
+            <FileText className="w-4 h-4 text-[#1657c1]" />
+            <span>Câu trả lời ({candidateAnswers.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs">
+          <TabsTrigger value="profile" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs rounded-xl py-2">
             <User className="w-4 h-4 text-purple-600" />
-            Hồ sơ ứng viên
+            <span>Hồ sơ chi tiết</span>
           </TabsTrigger>
-          <TabsTrigger value="evaluation" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs">
+          <TabsTrigger value="evaluation" className="gap-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-xs rounded-xl py-2">
             <Star className="w-4 h-4 text-amber-500" />
-            Phiếu chấm & Giải trình
+            <span>Phiếu chấm & Giải trình</span>
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: CÂU TRẢ LỜI ĐƠN ỨNG TUYỂN */}
         <TabsContent value="answers" className="space-y-4 pt-3">
-          {/* Submission Info Banner */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/90 to-indigo-50/70 border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-            <div>
-              <div className="text-xs font-bold text-blue-900 uppercase tracking-wide">
-                Đơn Ứng Tuyển Đại Sứ Sinh Viên iSSAC — Đợt Tuyển Quân Mới
-              </div>
-              <div className="text-xs text-blue-700 mt-0.5">
-                Ứng viên: <strong className="text-blue-950 font-bold">{profile?.full_name}</strong> · Ban đăng ký: <strong className="text-blue-950 font-bold">{dept?.name}</strong>
-              </div>
+          <div className="flex items-center justify-between px-1">
+            <div className="text-sm font-bold text-slate-800">
+              Chi tiết bài làm từng câu hỏi tuyển quân ({candidateAnswers.length} câu)
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-[11px] text-gray-500">Giờ gửi hệ thống ghi nhận:</div>
-                <div className="text-xs font-mono font-black text-blue-900 flex items-center justify-end gap-1">
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  {timeStr} · {dateStr}
-                </div>
-              </div>
-              {profile?.cv_url && (
-                <a 
-                  href={profile.cv_url} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-2xs"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Mở CV
-                </a>
-              )}
+            <div className="text-xs text-slate-500 font-medium">
+              Ban ứng tuyển: <strong className="text-[#1657c1]">{dept?.name}</strong>
             </div>
           </div>
 
           {/* List of answers */}
           <div className="space-y-4">
             {candidateAnswers.map((item) => (
-              <Card key={item.question_id} className="border shadow-xs overflow-hidden transition-all hover:border-blue-200">
-                <CardHeader className="py-3 px-5 bg-gray-50/80 border-b flex flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5 shadow-2xs">
-                      {item.question_order}
+              <Card key={item.question_id} className="border border-slate-200/90 shadow-2xs rounded-2xl overflow-hidden transition-all hover:border-blue-300">
+                <CardHeader className="py-4 px-5 sm:px-6 bg-slate-50/70 border-b border-slate-100 flex flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#1657c1] text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5 shadow-2xs">
+                      Câu {item.question_order}
                     </span>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[10px] font-semibold bg-white text-gray-600 border-gray-200">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Badge variant="outline" className="text-[10px] font-bold bg-white text-slate-600 border-slate-200">
                           {item.category_label}
                         </Badge>
                         {item.question_type === 'multiple_choice' && (
-                          <Badge className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
                             Trắc nghiệm
                           </Badge>
                         )}
                         {item.question_type === 'long_text' && (
-                          <Badge className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge className="text-[10px] font-bold bg-blue-50 text-[#1657c1] border-blue-200">
                             Tự luận chi tiết
                           </Badge>
                         )}
                         {item.question_type === 'link' && (
-                          <Badge className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge className="text-[10px] font-bold bg-purple-50 text-purple-800 border-purple-200">
                             Hồ sơ đính kèm
                           </Badge>
                         )}
                       </div>
-                      <CardTitle className="text-sm font-bold text-gray-900 leading-snug">
+                      <CardTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
                         {item.question_text}
                       </CardTitle>
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="p-5 sm:p-6 space-y-3.5">
                   {/* Options selection for multiple choice */}
                   {item.options && item.options.length > 0 && (
                     <div className="space-y-1.5 pb-2">
-                      <div className="text-xs font-semibold text-gray-500 mb-1">Lựa chọn của ứng viên:</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        Lựa chọn của ứng viên:
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {item.options.map((opt, i) => {
                           const isSelected = opt === item.selected_option
                           return (
                             <div 
                               key={i} 
-                              className={`p-2.5 rounded-lg text-xs flex items-center gap-2 border transition-colors ${
+                              className={`p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2.5 border transition-all ${
                                 isSelected 
-                                  ? 'bg-emerald-50 border-emerald-300 font-bold text-emerald-900' 
-                                  : 'bg-gray-50/50 border-gray-200 text-gray-500 opacity-70'
+                                  ? 'bg-emerald-50/80 border-emerald-300 font-bold text-emerald-950 shadow-2xs' 
+                                  : 'bg-slate-50/40 border-slate-200 text-slate-500 opacity-75'
                               }`}
                             >
                               <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-emerald-600 text-white' : 'border border-gray-300'
+                                isSelected ? 'bg-emerald-600 text-white' : 'border border-slate-300'
                               }`}>
                                 {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                               </div>
@@ -314,44 +374,62 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
                   )}
 
                   {/* Main Answer text container */}
-                  <div className="p-4 rounded-xl bg-blue-50/30 border border-blue-100 text-sm text-gray-800 leading-relaxed">
-                    <div className="text-xs font-bold text-blue-900 mb-1 uppercase tracking-wide">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/30 border border-blue-100/80 text-slate-800 leading-relaxed">
+                    <div className="text-[11px] font-bold text-[#1657c1] mb-1.5 uppercase tracking-wider">
                       Nội dung trả lời từ ứng viên:
                     </div>
-                    <div className="whitespace-pre-line text-xs sm:text-sm text-gray-800 font-normal leading-relaxed">
-                      "{item.answer_text}"
+                    <div className="whitespace-pre-line text-sm sm:text-[15px] text-slate-900 font-normal leading-relaxed">
+                      {item.answer_text ? item.answer_text : <span className="text-slate-400 italic">Chưa có câu trả lời</span>}
                     </div>
-                  </div>
 
-                  {/* Attachment links */}
-                  {item.question_type === 'link' && (
-                    <div className="pt-2 flex flex-wrap gap-2">
-                      {profile?.cv_url && (
-                        <a 
-                          href={profile.cv_url} 
-                          target="_blank" 
+                    {/* Auto-detect Google Drive / Portfolio / External URLs */}
+                    {(() => {
+                      const text = item.answer_text || ''
+                      const matches = text.match(/(https?:\/\/[^\s"'<>]+)/g) || []
+                      if (matches.length === 0) return null
+                      return (
+                        <div className="mt-3 pt-3 border-t border-blue-100 flex flex-wrap gap-2">
+                          {matches.map((url: string, idx: number) => {
+                            const isDrive = url.includes('drive.google.com') || url.includes('docs.google.com')
+                            const isCanva = url.includes('canva.com')
+                            return (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                                  isDrive
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    : isCanva
+                                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                }`}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                {isDrive ? 'Mở Google Drive đính kèm' : isCanva ? 'Mở Canva Portfolio' : 'Mở liên kết đính kèm'}
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+
+                    {/* File URL directly attached */}
+                    {(item as any).file_url && (
+                      <div className="mt-3 pt-3 border-t border-blue-100 flex flex-wrap gap-2">
+                        <a
+                          href={(item as any).file_url}
+                          target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-2xs"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
-                          <FileText className="w-4 h-4 text-blue-600" />
-                          Xem CV ứng viên trực tuyến
-                          <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Mở tệp đính kèm câu trả lời
                         </a>
-                      )}
-                      {profile?.facebook_url && (
-                        <a 
-                          href={profile.facebook_url} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-2xs"
-                        >
-                          <Globe className="w-4 h-4 text-indigo-600" />
-                          Trang Facebook cá nhân
-                          <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-                        </a>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -362,40 +440,41 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
         <TabsContent value="profile" className="space-y-4 pt-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Personal credentials */}
-            <Card className="shadow-xs border">
-              <CardHeader className="py-3 px-5 border-b bg-gray-50/70">
-                <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
+            <Card className="shadow-2xs border border-slate-200/90 rounded-2xl overflow-hidden">
+              <CardHeader className="py-3.5 px-5 border-b border-slate-100 bg-slate-50/70">
+                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#1657c1]" />
                   Thông tin nhân khẩu học & Liên hệ
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-3.5 text-xs sm:text-sm">
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Họ và tên</span>
-                  <span className="font-bold text-gray-900">{profile?.full_name}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Họ và tên</span>
+                  <span className="font-bold text-slate-900">{profile?.full_name}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Mã số sinh viên (MSSV)</span>
-                  <span className="font-mono font-bold text-gray-900">{profile?.student_id || 'Chưa cập nhật'}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Mã số sinh viên (MSSV)</span>
+                  <span className="font-mono font-bold text-slate-900">{profile?.student_id || 'Chưa cập nhật'}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Email trường (VNU)</span>
-                  <span className="font-mono text-gray-800">{profile?.email}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Email trường (VNU)</span>
+                  <span className="font-mono font-semibold text-slate-800">{profile?.email}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Số điện thoại liên hệ</span>
-                  <span className="font-semibold text-gray-900">{profile?.phone || '—'}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Số điện thoại liên hệ</span>
+                  <span className="font-mono font-bold text-slate-900">{profile?.phone || '—'}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Giới tính</span>
-                  <span className="font-semibold text-gray-900">{profile?.gender || '—'}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Giới tính</span>
+                  <span className="font-semibold text-slate-900">{profile?.gender || '—'}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-gray-500">Facebook cá nhân</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-500 font-medium">Facebook cá nhân</span>
                   <span className="text-blue-600 truncate max-w-[200px]">
-                    {profile?.facebook_url ? (
-                      <a href={profile.facebook_url} target="_blank" rel="noreferrer" className="underline hover:text-blue-800">
-                        {profile.facebook_url}
+                    {facebookUrl ? (
+                      <a href={facebookUrl} target="_blank" rel="noreferrer" className="underline hover:text-blue-800 inline-flex items-center gap-1 font-semibold">
+                        {facebookUrl}
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     ) : 'Chưa cập nhật'}
                   </span>
@@ -404,41 +483,41 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
             </Card>
 
             {/* Academic details */}
-            <Card className="shadow-xs border">
-              <CardHeader className="py-3 px-5 border-b bg-gray-50/70">
-                <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <Card className="shadow-2xs border border-slate-200/90 rounded-2xl overflow-hidden">
+              <CardHeader className="py-3.5 px-5 border-b border-slate-100 bg-slate-50/70">
+                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-purple-600" />
                   Học vụ & Nguyện vọng CLB
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-3.5 text-xs sm:text-sm">
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Trường đào tạo</span>
-                  <span className="font-bold text-gray-900">Trường Quốc tế - ĐHQGHN (VNU-IS)</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Trường đào tạo</span>
+                  <span className="font-bold text-slate-900">Trường Quốc tế - ĐHQGHN (VNU-IS)</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Ngành học chuyên ngành</span>
-                  <span className="font-bold text-blue-900">{profile?.major || '—'}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Ngành học chuyên ngành</span>
+                  <span className="font-bold text-slate-900">{profile?.major || '—'}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Đợt tuyển quân</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Đợt tuyển quân</span>
                   <Badge className="bg-purple-50 text-purple-800 border-purple-200 font-bold">
-                    {profile?.cohort || 'K23'}
+                    {profile?.cohort || 'K22'}
                   </Badge>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Điểm GPA tích lũy</span>
-                  <span className="font-black text-amber-600 font-mono text-sm">
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Điểm GPA tích lũy</span>
+                  <span className="font-bold text-amber-600 font-mono text-sm">
                     {profile?.gpa ? `${profile.gpa}/4.00` : '—'}
                   </span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Ban đăng ký (NV1)</span>
-                  <span className="font-bold text-gray-900">{dept?.name}</span>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Ban đăng ký (NV1)</span>
+                  <span className="font-bold text-[#1657c1]">{dept?.name}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-gray-500">Thời gian nộp đơn</span>
-                  <span className="font-mono text-xs text-gray-700 font-bold">
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-500 font-medium">Thời gian nộp đơn</span>
+                  <span className="font-mono text-xs text-slate-700 font-bold">
                     {timeStr} · {dateStr}
                   </span>
                 </div>
@@ -447,19 +526,57 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
           </div>
 
           {/* Bio statement */}
-          <Card className="shadow-xs border">
-            <CardHeader className="py-3 px-5 border-b bg-gray-50/70">
-              <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
+          <Card className="shadow-2xs border border-slate-200/90 rounded-2xl overflow-hidden">
+            <CardHeader className="py-3.5 px-5 border-b border-slate-100 bg-slate-50/70">
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-emerald-600" />
                 Giới thiệu bản thân & Điểm mạnh cá nhân
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5">
-              <p className="text-xs sm:text-sm text-gray-800 leading-relaxed italic bg-emerald-50/40 p-4 rounded-xl border border-emerald-200/60">
+              <p className="text-xs sm:text-sm text-slate-800 leading-relaxed italic bg-emerald-50/40 p-4 rounded-xl border border-emerald-200/60">
                 "{profile?.bio || 'Ứng viên chưa cập nhật phần giới thiệu bản thân.'}"
               </p>
             </CardContent>
           </Card>
+
+          {/* Kênh kết nối Facebook cá nhân */}
+          {facebookUrl && (
+            <Card className="shadow-xs border border-blue-200 bg-blue-50/20">
+              <CardHeader className="py-3 px-5 border-b bg-blue-50/60">
+                <CardTitle className="text-sm font-bold text-blue-950 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-600" />
+                  Kênh kết nối Facebook cá nhân của ứng viên
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-blue-100 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-900">
+                        Facebook chính thức của ứng viên
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate max-w-[280px] sm:max-w-[450px]">
+                        {facebookUrl}
+                      </div>
+                    </div>
+                  </div>
+                  <a
+                    href={facebookUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs shrink-0"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Mở trang Facebook cá nhân
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* TAB 3: PHIẾU CHẤM ĐIỂM & GIẢI TRÌNH */}
@@ -530,7 +647,7 @@ export default async function CandidateDetailPage({ params }: { params: { id: st
 
               {/* Action Button */}
               <div className="flex justify-end">
-                <Link href={`/admin/evaluation/${params.id}`}>
+                <Link href={`/admin/evaluation/${id}`}>
                   <Button variant="gold" size="sm" className="gap-1.5 font-bold">
                     <Star className="w-4 h-4" /> Mở giao diện chấm điểm & chỉnh sửa
                   </Button>

@@ -113,19 +113,19 @@ export default function MemberAboutPage() {
             </p>
           </div>
 
-          {/* Card 3: VÀNG - Chứng nhận & LOR */}
+          {/* Card 3: VÀNG - Chứng nhận, Điểm rèn luyện & Việc làm */}
           <div className="rounded-2xl bg-amber-50/70 border-2 border-[#fdc455] p-5 space-y-2 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-950 bg-[#fdc455] uppercase tracking-wide px-2.5 py-0.5 rounded">
-                Chứng nhận & Học thuật
+                Chứng nhận & Sự nghiệp
               </span>
-              <span className="text-xs font-semibold text-amber-900">Hồ sơ xin việc & Học bổng</span>
+              <span className="text-xs font-semibold text-amber-900">Điểm rèn luyện & Thực tập</span>
             </div>
             <h4 className="text-base font-bold text-slate-900 pt-1">
-              Chứng nhận chính thức & Thư giới thiệu (LOR)
+              Chứng nhận xuất sắc & Giới thiệu việc làm, thực tập
             </h4>
             <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
-              Cộng điểm rèn luyện tối đa theo quy chế, nhận <strong>Chứng nhận Đại sứ Sinh viên chính thức</strong> từ Trường Quốc tế - ĐHQGHN và cơ hội nhận <strong>Thư giới thiệu</strong> từ Ban Giám hiệu phục vụ học bổng du học và xin việc.
+              Bên cạnh việc được công nhận và cộng <strong>điểm rèn luyện</strong> qua các hoạt động của CLB, thành viên còn được cấp <strong>Giấy chứng nhận có thành tích xuất sắc trong quá trình tư vấn tuyển sinh</strong>, hơn nữa được ưu tiên <strong>giới thiệu việc làm và chỗ thực tập</strong>.
             </p>
           </div>
 
@@ -237,7 +237,7 @@ export default function MemberAboutPage() {
                   Chức năng chính
                 </div>
                 <p className="text-slate-600 leading-relaxed text-justify">
-                  Cố vấn học thuật, định hướng ngành nghề, trực tiếp đại diện hình ảnh Nhà trường trong các chuyến đi tư vấn tuyển sinh dài vài ngày tại các tỉnh, thành phố trực thuộc Trung ương (TP. Hà Nội, TP. Hải Phòng, Quảng Ninh,...) và chủ trì tổ chức các đại sự kiện quy mô lớn.
+                  Làm việc CTV cho thầy cô cán bộ Phòng Tuyển sinh và Truyền thông, định hướng ngành nghề, trực tiếp đại diện hình ảnh Nhà trường trong các chuyến đi tư vấn tuyển sinh dài vài ngày tại các tỉnh, thành phố trực thuộc Trung ương (TP. Hà Nội, TP. Hải Phòng, Quảng Ninh,...) và chủ trì tổ chức các đại sự kiện quy mô lớn.
                 </p>
               </div>
 
@@ -246,10 +246,10 @@ export default function MemberAboutPage() {
                   Nhiệm vụ cụ thể
                 </div>
                 <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed text-justify">
+                  <li>Làm việc CTV hỗ trợ các thầy cô cán bộ Phòng Tuyển sinh và Truyền thông Nhà trường.</li>
                   <li>Trực tiếp tham gia chuyến đi tư vấn tuyển sinh dài vài ngày tại các tỉnh, thành phố trực thuộc Trung ương (TP. Hà Nội, TP. Hải Phòng, Quảng Ninh,...).</li>
                   <li>Lên ý tưởng, xây dựng kịch bản và trực tiếp điều phối các đại sự kiện của Trường (Event Coordinator).</li>
                   <li>Tư vấn ngành học, giải đáp thông tin chương trình đào tạo liên kết quốc tế và học bổng.</li>
-                  <li>Tổ chức các buổi tọa đàm, workshop rèn luyện kỹ năng học tập và thích ứng cho sinh viên.</li>
                 </ul>
               </div>
             </div>

@@ -30,7 +30,7 @@ export function getCandidatePassword(email: string): string {
 }
 
 export function setCandidatePassword(email: string, newPass: string): void {
-  if (!email || typeof window === "undefined") return
+  if (!email || !newPass || typeof window === "undefined") return
   const stored = getStoredCredentials()
   const key = email.toLowerCase().trim()
   stored[key] = newPass.trim()

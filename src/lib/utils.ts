@@ -57,7 +57,7 @@ export function formatTime(time: string | null | undefined): string {
 }
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
-  draft: 'Bản nháp',
+  draft: 'Chưa làm đơn',
   submitted: 'Đã nộp đơn',
   received: 'Đã nhận đơn',
   reviewing: 'Đang xét duyệt',
@@ -71,17 +71,17 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
 }
 
 export const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  submitted: 'bg-blue-100 text-blue-700',
-  received: 'bg-blue-100 text-blue-700',
-  reviewing: 'bg-yellow-100 text-yellow-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  interview_scheduled: 'bg-purple-100 text-purple-700',
-  interviewed: 'bg-indigo-100 text-indigo-700',
-  evaluating: 'bg-orange-100 text-orange-700',
-  evaluated: 'bg-teal-100 text-teal-700',
-  finalized: 'bg-green-100 text-green-700',
+  draft: 'bg-amber-50 text-amber-800 border-amber-200/90',
+  submitted: 'bg-blue-50 text-blue-700 border-blue-200',
+  received: 'bg-blue-50 text-blue-700 border-blue-200',
+  reviewing: 'bg-amber-50 text-amber-700 border-amber-200',
+  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  rejected: 'bg-rose-50 text-rose-700 border-rose-200',
+  interview_scheduled: 'bg-purple-50 text-purple-700 border-purple-200',
+  interviewed: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  evaluating: 'bg-orange-50 text-orange-700 border-orange-200',
+  evaluated: 'bg-teal-50 text-teal-700 border-teal-200',
+  finalized: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
 export const DEPARTMENT_COLORS: Record<string, string> = {
@@ -151,4 +151,57 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
   link.href = URL.createObjectURL(blob)
   link.download = `${filename}_${new Date().toISOString().slice(0,10)}.csv`
   link.click()
+}
+
+/**
+ * Định dạng mã hồ sơ ứng viên chuẩn: ISSAC-01, ISSAC-02...
+ */
+export function formatCandidateCode(index: number): string {
+  const num = Math.max(1, index)
+  return `ISSAC-${num.toString().padStart(2, '0')}`
+}
+
+/**
+ * Cấp mã hồ sơ ứng viên ISSAC-01, ISSAC-02... lần lượt theo thời gian ứng tuyển (chronological order)
+ */
+export function buildCandidateCodeMap(
+  applications: Array<{ id: string; submitted_at?: string | null; created_at?: string }>
+): Record<string, string> {
+  if (!applications || applications.length === 0) return {}
+
+  // Sắp xếp tăng dần theo thời gian nộp (nếu không có submitted_at thì lấy created_at)
+  const sorted = [...applications].sort((a, b) => {
+    const timeA = new Date(a.submitted_at || a.created_at || 0).getTime()
+    const timeB = new Date(b.submitted_at || b.created_at || 0).getTime()
+    return timeA - timeB
+  })
+
+  const map: Record<string, string> = {}
+  sorted.forEach((app, idx) => {
+    map[app.id] = formatCandidateCode(idx + 1)
+  })
+  return map
+}
+
+/**
+ * Lấy mã hồ sơ ISSAC-XX cho một ứng viên cụ thể từ danh sách tổng
+ */
+export function getCandidateCode(
+  applicationId: string,
+  allApplications: Array<{ id: string; submitted_at?: string | null; created_at?: string }>
+): string {
+  if (!allApplications || allApplications.length === 0) return 'ISSAC-01'
+
+  const sorted = [...allApplications].sort((a, b) => {
+    const timeA = new Date(a.submitted_at || a.created_at || 0).getTime()
+    const timeB = new Date(b.submitted_at || b.created_at || 0).getTime()
+    return timeA - timeB
+  })
+
+  const index = sorted.findIndex(a => a.id === applicationId)
+  if (index === -1) {
+    // Nếu ứng viên mới nhất
+    return formatCandidateCode(sorted.length + 1)
+  }
+  return formatCandidateCode(index + 1)
 }

@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,47 +11,208 @@ import {
   Loader2, CheckCircle2, FolderArchive, ArrowDownToLine,
   FileCheck, Sparkles, ClipboardCheck
 } from 'lucide-react'
-import { formatDate, formatDateTime, exportToCSV, APPLICATION_STATUS_LABELS, RESULT_LABELS } from '@/lib/utils'
+import { formatDate, formatDateTime, exportToCSV, APPLICATION_STATUS_LABELS, buildCandidateCodeMap } from '@/lib/utils'
+import { getStoredSystemSettings } from '@/lib/system-settings'
 import { type ApplicationStatus } from '@/types/database'
-import { MOCK_CANDIDATES } from '@/lib/mock-data'
 
 export default function ExportPage() {
   const supabase = createClient()
   const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
 
+  // Real-time statistics state
+  const [stats, setStats] = useState({
+    totalCandidates: 0,
+    totalDepartments: 3,
+    quota: 15,
+    passCandidates: 0,
+    evaluatedCount: 0,
+    totalAnswers: 0,
+    loading: true,
+  })
+
+  const getDynamicQuota = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const direct = localStorage.getItem('issac_recruitment_quota')
+        if (direct) {
+          const parsedDirect = parseInt(direct, 10)
+          if (!isNaN(parsedDirect) && parsedDirect > 0) return parsedDirect
+        }
+        const saved = localStorage.getItem('issac_system_settings')
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.recruitment_quota) {
+            const p = parseInt(parsed.recruitment_quota, 10)
+            if (!isNaN(p) && p > 0) return p
+          }
+        }
+      } catch {}
+    }
+    const s = getStoredSystemSettings()
+    if (s.recruitment_quota) {
+      const p = parseInt(s.recruitment_quota, 10)
+      if (!isNaN(p) && p > 0) return p
+    }
+    return 15
+  }, [])
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const quotaVal = getDynamicQuota()
+
+      const [
+        { count: appCount },
+        { count: evalCount },
+        { count: answersCount },
+        { data: rankingsData },
+        { count: deptCount },
+        { data: settingsData },
+        { data: appsData },
+      ] = await Promise.all([
+        supabase.from('applications').select('*', { count: 'exact', head: true }),
+        supabase.from('evaluations').select('*', { count: 'exact', head: true }),
+        supabase.from('application_answers').select('*', { count: 'exact', head: true }),
+        supabase.from('candidate_rankings').select('result, final_score, rank_number'),
+        supabase.from('departments').select('*', { count: 'exact', head: true }).neq('slug', 'chu-nhiem'),
+        supabase.from('system_settings').select('key, value').eq('key', 'recruitment_quota').maybeSingle(),
+        supabase.from('applications').select('id, status'),
+      ])
+
+      let finalQuota = quotaVal
+      if (settingsData && settingsData.value) {
+        const p = parseInt(settingsData.value, 10)
+        if (!isNaN(p) && p > 0) finalQuota = p
+      }
+
+      const totalApps = appCount ?? 0
+      
+      const approvedFromApps = (appsData || []).filter((a: any) => {
+        let st = a.status
+        if (typeof window !== 'undefined') {
+          const localSt = localStorage.getItem(`issac_app_status_${a.id}`)
+          if (localSt) st = localSt
+        }
+        return st === 'approved' || st === 'finalized'
+      }).length
+
+      const passFromRankings = (rankingsData || []).filter((r: any) => r.result === 'pass').length
+      const passCount = Math.max(approvedFromApps, passFromRankings)
+
+      setStats({
+        totalCandidates: totalApps,
+        totalDepartments: deptCount ?? 3,
+        quota: finalQuota,
+        passCandidates: passCount,
+        evaluatedCount: evalCount ?? 0,
+        totalAnswers: answersCount ?? 0,
+        loading: false,
+      })
+    } catch (err) {
+      console.error('Lỗi tải thống kê xuất dữ liệu:', err)
+      setStats(prev => ({ ...prev, loading: false }))
+    }
+  }, [supabase, getDynamicQuota])
+
+  // Lắng nghe dữ liệu thời gian thực (Real-time) từ Supabase + Local events + BroadcastChannel
+  useEffect(() => {
+    fetchStats()
+
+    const channel = supabase
+      .channel('admin-export-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'candidate_rankings' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'application_answers' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, () => fetchStats())
+      .subscribe()
+
+    const handleLocalUpdate = () => {
+      fetchStats()
+    }
+
+    window.addEventListener('issac_system_settings_updated', handleLocalUpdate)
+    window.addEventListener('issac_eval_updated', handleLocalUpdate)
+    window.addEventListener('issac_candidate_approved', handleLocalUpdate)
+    window.addEventListener('issac_results_published', handleLocalUpdate)
+    window.addEventListener('storage', handleLocalUpdate)
+
+    let bc: BroadcastChannel | null = null
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      bc = new BroadcastChannel('issac_eval_channel')
+      bc.onmessage = () => {
+        fetchStats()
+      }
+    }
+
+    return () => {
+      supabase.removeChannel(channel)
+      window.removeEventListener('issac_system_settings_updated', handleLocalUpdate)
+      window.removeEventListener('issac_eval_updated', handleLocalUpdate)
+      window.removeEventListener('issac_candidate_approved', handleLocalUpdate)
+      window.removeEventListener('issac_results_published', handleLocalUpdate)
+      window.removeEventListener('storage', handleLocalUpdate)
+      if (bc) bc.close()
+    }
+  }, [fetchStats, supabase])
+
+  // 1. XUẤT HỒ SƠ ỨNG VIÊN TỔNG THỂ (DỮ LIỆU THẬT TỪ SUPABASE)
   const exportCandidates = async () => {
     setLoading('candidates')
     try {
-      const { data } = await supabase
+      const { data: apps } = await supabase
         .from('applications')
         .select(`
-          id, status, submitted_at, created_at,
-          profiles!applications_user_id_fkey(full_name, email, student_id, phone, university, major, cohort, gender),
+          id, user_id, status, submitted_at, created_at,
           departments!applications_department_id_fkey(name),
           candidate_rankings(final_score, rank_number, result)
         `)
         .order('created_at', { ascending: false })
 
-      const sourceList = (data && data.length > 0) ? data : MOCK_CANDIDATES
+      if (!apps || apps.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Hiện tại chưa có hồ sơ ứng viên nào để xuất.', variant: 'destructive' })
+        return
+      }
 
-      const rows = sourceList.map((a: any, i: number) => ({
-        'STT': i + 1,
-        'Họ và tên': (a.profiles as any)?.full_name || '',
-        'Email': (a.profiles as any)?.email || '',
-        'MSSV': (a.profiles as any)?.student_id || '',
-        'Số điện thoại': (a.profiles as any)?.phone || '',
-        'Trường': (a.profiles as any)?.university || 'Trường Quốc tế - ĐHQGHN (VNU-IS)',
-        'Ngành học': (a.profiles as any)?.major || '',
-        'Khóa': (a.profiles as any)?.cohort || '',
-        'Giới tính': (a.profiles as any)?.gender || '',
-        'Ban ứng tuyển': (a.departments as any)?.name || '',
-        'Trạng thái': (APPLICATION_STATUS_LABELS[a.status as ApplicationStatus] ?? a.status),
-        'Điểm phỏng vấn': (a.candidate_rankings as any)?.final_score != null ? Number((a.candidate_rankings as any).final_score).toFixed(1) : 'Chưa chấm',
-        'Xếp hạng': (a.candidate_rankings as any)?.rank_number ?? '-',
-        'Kết quả BCN': (a.candidate_rankings as any)?.result === 'pass' ? 'Pass' : (a.candidate_rankings as any)?.result === 'waitlist' ? 'Dự bị' : 'Trượt',
-        'Thời gian nộp đơn (Giờ VN)': formatDateTime(a.submitted_at || a.created_at),
-      }))
+      const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
+      let profilesMap: Record<string, any> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, student_id, phone, university, major, cohort, gender, high_school, date_of_birth, address')
+          .in('id', userIds)
+        if (profs) {
+          profs.forEach((p: any) => { profilesMap[p.id] = p })
+        }
+      }
+
+      const codeMap = buildCandidateCodeMap(apps)
+
+      const rows = apps.map((a: any, i: number) => {
+        const p = profilesMap[a.user_id] || {}
+        const r = Array.isArray(a.candidate_rankings) ? a.candidate_rankings[0] : a.candidate_rankings
+        return {
+          'STT': i + 1,
+          'Mã hồ sơ': codeMap[a.id] || `ISSAC-${String(i + 1).padStart(2, '0')}`,
+          'Họ và tên': p.full_name || '',
+          'MSSV': p.student_id || '',
+          'Email': p.email || '',
+          'Số điện thoại': p.phone || '',
+          'Khóa': p.cohort || 'K22',
+          'Ngành học': p.major || '',
+          'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
+          'Trường THPT': p.high_school || '',
+          'Ngày sinh': p.date_of_birth || '',
+          'Giới tính': p.gender || '',
+          'Link Facebook': p.address || '',
+          'Ban ứng tuyển (NV1)': (a.departments as any)?.name || '',
+          'Trạng thái đơn': (APPLICATION_STATUS_LABELS[a.status as ApplicationStatus] ?? a.status),
+          'Điểm phỏng vấn (/10)': r?.final_score != null ? Number(r.final_score).toFixed(1) : 'Chưa chấm',
+          'Xếp hạng CLB': r?.rank_number ? `#${r.rank_number}` : '-',
+          'Kết quả BCN': r?.result === 'pass' ? 'Pass' : r?.result === 'waitlist' ? 'Dự bị' : r?.result === 'fail' ? 'Trượt' : 'Đang xét',
+          'Thời gian gửi đơn (Giờ VN)': formatDateTime(a.submitted_at || a.created_at),
+        }
+      })
 
       exportToCSV(rows, `danh_sach_ung_vien_issac_${new Date().toISOString().slice(0, 10)}`)
       toast({
@@ -65,39 +227,54 @@ export default function ExportPage() {
     }
   }
 
+  // 2. XUẤT BẢNG XẾP HẠNG TUYỂN CHỌN (DỮ LIỆU THẬT TỪ SUPABASE)
   const exportRankings = async () => {
     setLoading('rankings')
     try {
-      const { data } = await supabase
+      const { data: rankings } = await supabase
         .from('candidate_rankings')
-        .select('*, applications!inner(profiles:user_id(full_name, email, student_id), departments!applications_department_id_fkey(name))')
-        .order('rank_number', { ascending: true, nullsFirst: false })
+        .select(`
+          id, rank_number, final_score, result, application_id,
+          applications(id, user_id, departments!applications_department_id_fkey(name))
+        `)
+        .order('final_score', { ascending: false, nullsFirst: false })
 
-      const sourceList = (data && data.length > 0)
-        ? data
-        : MOCK_CANDIDATES.map(c => ({
-            rank_number: c.candidate_rankings.rank_number,
-            applications: {
-              profiles: c.profiles,
-              departments: c.departments,
-            },
-            final_score: c.candidate_rankings.final_score,
-            result: c.candidate_rankings.result,
-            evaluator: c.evaluator,
-            dept_recommendation: c.evaluation_data.dept_recommendation,
-          }))
+      if (!rankings || rankings.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Hiện tại chưa có bảng xếp hạng nào để xuất.', variant: 'destructive' })
+        return
+      }
 
-      const rows = sourceList.map((r: any) => ({
-        'Hạng toàn CLB': r.rank_number || '',
-        'Họ và tên': (r.applications as any)?.profiles?.full_name || '',
-        'MSSV': (r.applications as any)?.profiles?.student_id || '',
-        'Email': (r.applications as any)?.profiles?.email || '',
-        'Ban ứng tuyển': (r.applications as any)?.departments?.name || '',
-        'Điểm PV (/10)': r.final_score != null ? Number(r.final_score).toFixed(1) : '',
-        'Người chấm': r.evaluator?.name || 'Giám khảo phụ trách',
-        'Đề xuất của Ban': r.dept_recommendation === 'pass' ? 'Pass' : r.dept_recommendation === 'waitlist' ? 'Dự bị' : 'Trượt',
-        'Quyết định BCN': r.result === 'pass' ? 'Pass' : r.result === 'waitlist' ? 'Dự bị' : 'Trượt',
-      }))
+      const userIds = Array.from(new Set(
+        rankings.map((r: any) => (r.applications as any)?.user_id).filter(Boolean)
+      ))
+
+      let profilesMap: Record<string, any> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, student_id, phone, major, cohort')
+          .in('id', userIds)
+        if (profs) {
+          profs.forEach((p: any) => { profilesMap[p.id] = p })
+        }
+      }
+
+      const rows = rankings.map((r: any, idx: number) => {
+        const app = r.applications as any
+        const p = app?.user_id ? profilesMap[app.user_id] : null
+        return {
+          'Thứ hạng toàn CLB': r.rank_number ? `#${r.rank_number}` : `#${idx + 1}`,
+          'Họ và tên': p?.full_name || '',
+          'MSSV': p?.student_id || '',
+          'Khóa': p?.cohort || 'K22',
+          'Ngành học': p?.major || '',
+          'Email': p?.email || '',
+          'Số điện thoại': p?.phone || '',
+          'Ban ứng tuyển': app?.departments?.name || '',
+          'Điểm phỏng vấn (/10)': r.final_score != null ? Number(r.final_score).toFixed(1) : '',
+          'Quyết định BCN': r.result === 'pass' ? 'Pass (Chính thức)' : r.result === 'waitlist' ? 'Dự bị' : r.result === 'fail' ? 'Trượt' : 'Đang xét',
+        }
+      })
 
       exportToCSV(rows, `bang_xep_hang_issac_${new Date().toISOString().slice(0, 10)}`)
       toast({
@@ -112,40 +289,52 @@ export default function ExportPage() {
     }
   }
 
+  // 3. XUẤT PHIẾU ĐÁNH GIÁ & LÝ GIẢI ĐIỂM (DỮ LIỆU THẬT TỪ SUPABASE)
   const exportEvaluations = async () => {
     setLoading('evals')
     try {
-      const { data } = await supabase
+      const { data: evals } = await supabase
         .from('evaluations')
-        .select('*, applications!inner(profiles:user_id(full_name, student_id), departments!applications_department_id_fkey(name)), profiles:interviewer_id(full_name)')
-        .eq('status', 'submitted')
+        .select(`
+          id, total_score, dept_recommendation, score_justification, strengths, weaknesses, submitted_at,
+          application_id, interviewer_id,
+          applications(user_id, departments!applications_department_id_fkey(name))
+        `)
+        .order('created_at', { ascending: false })
 
-      const sourceList = (data && data.length > 0)
-        ? data
-        : MOCK_CANDIDATES.map(c => ({
-            applications: {
-              profiles: c.profiles,
-              departments: c.departments,
-            },
-            evaluator: c.evaluator,
-            total_score: (c.evaluation_data as any)?.total_score ?? c.candidate_rankings?.final_score,
-            recommendation: c.evaluation_data.dept_recommendation,
-            score_justification: c.evaluation_data.score_justification,
-            submitted_at: (c.evaluation_data as any)?.evaluated_at ?? '2026-09-08',
-          }))
+      if (!evals || evals.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Hiện tại chưa có phiếu đánh giá nào trong hệ thống.', variant: 'destructive' })
+        return
+      }
 
-      const rows = sourceList.map((e: any, idx: number) => ({
-        'STT': idx + 1,
-        'Ứng viên': (e.applications as any)?.profiles?.full_name || '',
-        'MSSV': (e.applications as any)?.profiles?.student_id || '',
-        'Ban ứng tuyển': (e.applications as any)?.departments?.name || '',
-        'Giám khảo chấm': e.evaluator?.name || (e.profiles as any)?.full_name || '',
-        'Email giám khảo': e.evaluator?.email || '',
-        'Tổng điểm PV (/10)': e.total_score != null ? Number(e.total_score).toFixed(1) : '',
-        'Đề xuất của Ban': e.recommendation === 'pass' ? 'Pass' : e.recommendation === 'waitlist' ? 'Dự bị' : 'Trượt',
-        'Lý giải điểm số': e.score_justification || e.overall_comment || '',
-        'Thời gian chấm': e.submitted_at ? formatDateTime(e.submitted_at) : '2026-09-08',
-      }))
+      const candidateUserIds = Array.from(new Set(evals.map((e: any) => (e.applications as any)?.user_id).filter(Boolean)))
+      const interviewerIds = Array.from(new Set(evals.map((e: any) => e.interviewer_id).filter(Boolean)))
+      const allIds = Array.from(new Set([...candidateUserIds, ...interviewerIds]))
+
+      let profilesMap: Record<string, any> = {}
+      if (allIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, student_id, email').in('id', allIds)
+        if (profs) profs.forEach((p: any) => { profilesMap[p.id] = p })
+      }
+
+      const rows = evals.map((e: any, idx: number) => {
+        const candidateProfile = (e.applications as any)?.user_id ? profilesMap[(e.applications as any).user_id] : null
+        const interviewerProfile = e.interviewer_id ? profilesMap[e.interviewer_id] : null
+        return {
+          'STT': idx + 1,
+          'Ứng viên': candidateProfile?.full_name || '',
+          'MSSV': candidateProfile?.student_id || '',
+          'Ban ứng tuyển': (e.applications as any)?.departments?.name || '',
+          'Giám khảo chấm': interviewerProfile?.full_name || 'Hội đồng phỏng vấn',
+          'Email giám khảo': interviewerProfile?.email || '',
+          'Tổng điểm phỏng vấn': e.total_score != null ? Number(e.total_score).toFixed(1) : '',
+          'Đề xuất của Ban': e.dept_recommendation === 'pass' ? 'Pass' : e.dept_recommendation === 'waitlist' ? 'Dự bị' : e.dept_recommendation === 'fail' ? 'Trượt' : 'Đang đánh giá',
+          'Lý giải chi tiết cho điểm': e.score_justification || '',
+          'Điểm mạnh nổi bật': e.strengths || '',
+          'Điểm cần cải thiện': e.weaknesses || '',
+          'Thời gian nộp phiếu': e.submitted_at ? formatDateTime(e.submitted_at) : 'Chưa nộp chính thức',
+        }
+      })
 
       exportToCSV(rows, `phieu_danh_gia_pv_issac_${new Date().toISOString().slice(0, 10)}`)
       toast({
@@ -160,47 +349,49 @@ export default function ExportPage() {
     }
   }
 
+  // 4. XUẤT CÂU TRẢ LỜI & BÀI ĐƠN ỨNG TUYỂN (DỮ LIỆU THẬT TỪ SUPABASE)
   const exportAnswers = async () => {
     setLoading('answers')
     try {
-      const { data } = await supabase
+      const { data: answers } = await supabase
         .from('application_answers')
-        .select('*, questions(question_text, sort_order), applications!inner(profiles:user_id(full_name, student_id), departments!applications_department_id_fkey(name))')
-        .order('applications!inner(created_at)', { ascending: false })
+        .select(`
+          *,
+          questions(question_text, sort_order),
+          applications(user_id, departments!applications_department_id_fkey(name))
+        `)
+        .order('created_at', { ascending: false })
 
-      const sourceList = (data && data.length > 0)
-        ? data
-        : MOCK_CANDIDATES.flatMap(c => [
-            {
-              applications: { profiles: c.profiles, departments: c.departments },
-              questions: { question_text: 'Bạn biết đến iSSAC qua kênh thông tin nào?' },
-              answer_text: 'Fanpage CLB Đại sứ Sinh viên iSSAC',
-            },
-            {
-              applications: { profiles: c.profiles, departments: c.departments },
-              questions: { question_text: 'Mục tiêu lớn nhất của bạn khi ứng tuyển trở thành Đại sứ sinh viên iSSAC?' },
-              answer_text: 'Phát triển kỹ năng giao tiếp, đại diện hình ảnh sinh viên quốc tế năng động và lan tỏa giá trị văn hóa VNU-IS.',
-            },
-            {
-              applications: { profiles: c.profiles, departments: c.departments },
-              questions: { question_text: `Câu hỏi chuyên môn ứng tuyển vào ${c.departments.name}` },
-              answer_text: 'Đã có kinh nghiệm tham gia các hoạt động ngoại khóa, sẵn sàng cống hiến và đồng hành cùng các sự kiện lớn của trường.',
-            }
-          ])
+      if (!answers || answers.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Hiện tại chưa có câu trả lời phỏng vấn nào.', variant: 'destructive' })
+        return
+      }
 
-      const rows = sourceList.map((a: any, i: number) => ({
-        'STT': i + 1,
-        'Ứng viên': (a.applications as any)?.profiles?.full_name || '',
-        'MSSV': (a.applications as any)?.profiles?.student_id || '',
-        'Ban ứng tuyển': (a.applications as any)?.departments?.name || '',
-        'Câu hỏi': (a.questions as any)?.question_text || '',
-        'Câu trả lời': a.answer_text || (Array.isArray(a.answer_options) ? (a.answer_options as string[]).join('; ') : '') || '',
-      }))
+      const userIds = Array.from(new Set(answers.map((a: any) => (a.applications as any)?.user_id).filter(Boolean)))
+      let profilesMap: Record<string, any> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, student_id').in('id', userIds)
+        if (profs) profs.forEach((p: any) => { profilesMap[p.id] = p })
+      }
 
-      exportToCSV(rows, `cau_tra_loi_don_issac_${new Date().toISOString().slice(0, 10)}`)
+      const rows = answers.map((a: any, i: number) => {
+        const app = a.applications as any
+        const p = app?.user_id ? profilesMap[app.user_id] : null
+        return {
+          'STT': i + 1,
+          'Ứng viên': p?.full_name || '',
+          'MSSV': p?.student_id || '',
+          'Ban ứng tuyển': app?.departments?.name || '',
+          'Nội dung câu hỏi': (a.questions as any)?.question_text || 'Câu hỏi chuyên môn',
+          'Câu trả lời chi tiết': a.answer_text || (Array.isArray(a.answer_options) ? a.answer_options.join(', ') : ''),
+          'Đường dẫn file đính kèm / Portfolio': a.file_url || '',
+        }
+      })
+
+      exportToCSV(rows, `cau_tra_loi_ung_vien_issac_${new Date().toISOString().slice(0, 10)}`)
       toast({
         title: `Đã xuất ${rows.length} câu trả lời đơn ứng tuyển!`,
-        description: 'Toàn bộ nội dung trả lời tự luận và trắc nghiệm của thí sinh.',
+        description: 'Tệp CSV gồm đầy đủ câu trả lời phỏng vấn theo từng ban chuyên môn.',
         variant: 'success'
       } as Parameters<typeof toast>[0])
     } catch {
@@ -210,6 +401,7 @@ export default function ExportPage() {
     }
   }
 
+  // Xuất trọn bộ 4 tệp cùng lúc
   const exportAllBundle = async () => {
     setLoading('all')
     try {
@@ -221,7 +413,7 @@ export default function ExportPage() {
       await new Promise(r => setTimeout(r, 400))
       await exportAnswers()
       toast({
-        title: 'Đã xuất toàn bộ 4 tệp dữ liệu!',
+        title: '✅ Đã xuất toàn bộ 4 tệp dữ liệu!',
         description: 'Tất cả các báo cáo tuyển quân iSSAC 2026 đã được tải xuống máy.',
         variant: 'success'
       } as Parameters<typeof toast>[0])
@@ -231,170 +423,204 @@ export default function ExportPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-10">
-      {/* Header — sạch sẽ, đẳng cấp */}
+    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-12 font-sans">
+      {/* Header — Hiện đại, chuyên nghiệp */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Download className="w-6 h-6 text-[#1559c5]" />
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+            <Download className="w-7 h-7 text-[#1559c5]" />
             Trung Tâm Xuất Dữ Liệu
           </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            Trích xuất dữ liệu hồ sơ, điểm số và bảng xếp hạng chuẩn Microsoft Excel & Google Sheets (Real-time)
+          </p>
         </div>
 
         <Button
           onClick={exportAllBundle}
           disabled={loading !== null}
-          className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl h-9 px-4 shadow-sm gap-2 text-xs"
+          className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-2xl h-10 px-5 shadow-sm gap-2 text-xs sm:text-sm cursor-pointer"
         >
           {loading === 'all' ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <FolderArchive className="w-3.5 h-3.5" />
+            <FolderArchive className="w-4 h-4" />
           )}
           <span>Xuất tất cả dữ liệu (4 tệp)</span>
         </Button>
       </div>
 
-      {/* KPI Overview Cards */}
+      {/* KPI Overview Cards — DỮ LIỆU THẬT TỪ SUPABASE ĐỒNG BỘ REAL-TIME */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         {[
-          { label: 'Tổng số hồ sơ', val: '18 ứng viên', sub: 'Toàn bộ 3 ban', icon: Users, color: 'text-[#1559c5]', bg: 'bg-blue-50' },
-          { label: 'Chỉ tiêu tuyển chọn', val: '15 thành viên', sub: 'TOP Pass chính thức', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Phiếu chấm điểm', val: '18/18 phiếu', sub: 'Đã hoàn tất 100%', icon: ClipboardCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Chuẩn định dạng', val: 'Excel CSV', sub: 'Mã hóa UTF-8 BOM', icon: FileSpreadsheet, color: 'text-purple-600', bg: 'bg-purple-50' },
+          {
+            label: 'Tổng số hồ sơ',
+            val: stats.loading ? 'Đang tải...' : `${stats.totalCandidates} ứng viên`,
+            sub: `Toàn bộ ${stats.totalDepartments} ban`,
+            icon: Users,
+            color: 'text-[#1559c5]',
+            bg: 'bg-blue-50'
+          },
+          {
+            label: 'Chỉ tiêu tuyển chọn',
+            val: stats.loading ? 'Đang tải...' : `${stats.quota} thành viên`,
+            sub: `${stats.passCandidates} ứng viên Pass chính thức`,
+            icon: Trophy,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50'
+          },
+          {
+            label: 'Phiếu chấm điểm',
+            val: stats.loading ? 'Đang tải...' : `${stats.evaluatedCount} phiếu`,
+            sub: stats.totalCandidates > 0
+              ? `${Math.min(100, Math.round((stats.evaluatedCount / stats.totalCandidates) * 100))}% đã đánh giá`
+              : 'Chưa có đơn nộp',
+            icon: ClipboardCheck,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50'
+          },
+          {
+            label: 'Chuẩn định dạng',
+            val: 'Excel CSV',
+            sub: 'Mã hóa UTF-8 BOM',
+            icon: FileSpreadsheet,
+            color: 'text-purple-600',
+            bg: 'bg-purple-50'
+          },
         ].map((s, idx) => (
-          <Card key={idx} className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+          <Card key={idx} className="border border-slate-200/90 rounded-2xl shadow-2xs bg-white">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+              <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-medium text-gray-500">{s.label}</div>
-                <div className="text-sm font-black text-gray-900 leading-tight truncate">{s.val}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{s.sub}</div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</div>
+                <div className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate mt-0.5">{s.val}</div>
+                <div className="text-[10px] text-slate-500 font-medium mt-0.5 truncate">{s.sub}</div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* 4 Modern Export Cards (2x2 Balanced Grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 4 Thematic Export Cards (2x2 Grid) — Exact style of Image 2 (Blue & Gold dual-tone) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {[
           {
             key: 'candidates',
+            tag: 'HỒ SƠ ỨNG VIÊN',
+            subtext: `${stats.totalCandidates} hồ sơ`,
             title: 'Hồ sơ Ứng viên Tổng thể',
-            tag: '18 hồ sơ',
-            tagColor: 'bg-blue-50 text-[#1559c5] border-blue-200',
-            desc: 'Xuất toàn bộ danh sách thí sinh với thông tin cá nhân, liên hệ, MSSV, trường, chuyên ngành, ban đăng ký, điểm phỏng vấn và trạng thái trúng tuyển.',
-            icon: Users,
-            iconBg: 'bg-blue-50 text-[#1559c5]',
+            desc: 'Danh sách toàn bộ ứng viên kèm thông tin cá nhân, liên hệ, ban NV1, điểm số phỏng vấn và trạng thái xét duyệt.',
             action: exportCandidates,
-            fields: '15 cột dữ liệu: STT, Họ tên, Email, MSSV, SĐT, Trường, Ban, Điểm PV, Xếp hạng, Kết quả...',
+            theme: 'blue',
           },
           {
             key: 'rankings',
+            tag: 'BẢNG XẾP HẠNG',
+            subtext: `Chỉ tiêu ${stats.quota} (${stats.passCandidates} Pass)`,
             title: 'Bảng Xếp Hạng Tuyển Chọn',
-            tag: 'TOP 15 Pass',
-            tagColor: 'bg-amber-50 text-amber-800 border-amber-200',
-            desc: 'Xuất bảng xếp hạng chính thức từ cao xuống thấp, phân loại chi tiết ứng viên Pass, Dự bị và Trượt kèm quyết định phê chuẩn từ Ban Chủ nhiệm.',
-            icon: Trophy,
-            iconBg: 'bg-amber-50 text-amber-600',
+            desc: 'Xếp hạng điểm phỏng vấn toàn CLB từ cao xuống thấp, phân loại chi tiết Pass, Dự bị và Trượt theo quyết định BCN.',
             action: exportRankings,
-            fields: '9 cột dữ liệu: Thứ hạng CLB, Họ tên, MSSV, Ban, Điểm TB (/10), Người chấm, Đề xuất, Quyết định BCN...',
+            theme: 'gold',
           },
           {
             key: 'evals',
+            tag: 'ĐÁNH GIÁ PHỎNG VẤN',
+            subtext: `${stats.evaluatedCount} phiếu chấm`,
             title: 'Phiếu Đánh Giá & Lý Giải Điểm',
-            tag: '18 phiếu chấm',
-            tagColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-            desc: 'Xuất chi tiết toàn bộ biên bản phỏng vấn, điểm số từng tiêu chí, tài khoản giám khảo chấm, lý giải nguyên nhân cho điểm và hướng đề xuất.',
-            icon: ClipboardList,
-            iconBg: 'bg-emerald-50 text-emerald-600',
+            desc: 'Biên bản phỏng vấn chi tiết, điểm số từng tiêu chí, tài khoản giám khảo chấm và nhận xét điểm mạnh, điểm cần cải thiện.',
             action: exportEvaluations,
-            fields: '10 cột dữ liệu: Ứng viên, MSSV, Ban, Giám khảo chấm, Email, Điểm số, Lý giải điểm chi tiết, Đề xuất...',
+            theme: 'blue',
           },
           {
             key: 'answers',
+            tag: 'ĐƠN & CÂU HỎI',
+            subtext: `${stats.totalAnswers} câu trả lời`,
             title: 'Câu Trả Lời & Bài Đơn Ứng Tuyển',
-            tag: 'Đơn đăng ký',
-            tagColor: 'bg-purple-50 text-purple-800 border-purple-200',
-            desc: 'Xuất toàn bộ câu trả lời tự luận, câu hỏi trắc nghiệm, động lực tham gia và link portfolio sản phẩm của ứng viên ứng tuyển vào từng Ban.',
-            icon: FileSpreadsheet,
-            iconBg: 'bg-purple-50 text-purple-600',
+            desc: 'Tổng hợp câu trả lời tự luận, câu hỏi trắc nghiệm chuyên môn từng Ban và đường dẫn portfolio sản phẩm ứng viên.',
             action: exportAnswers,
-            fields: '6 cột dữ liệu: STT, Ứng viên, MSSV, Ban ứng tuyển, Nội dung câu hỏi, Câu trả lời chi tiết...',
+            theme: 'gold',
           },
-        ].map(item => (
-          <Card
-            key={item.key}
-            className="border border-gray-200 rounded-2xl bg-white hover:border-[#1559c5]/40 hover:shadow-md transition-all flex flex-col justify-between"
-          >
-            <CardContent className="p-5 flex flex-col h-full justify-between">
+        ].map(item => {
+          const isBlue = item.theme === 'blue'
+          return (
+            <div
+              key={item.key}
+              className={`rounded-2xl p-6 transition-all flex flex-col justify-between shadow-2xs hover:shadow-md ${
+                isBlue
+                  ? 'border-2 border-[#1657c1] bg-white'
+                  : 'border-2 border-[#fdc455] bg-[#fffdf5]'
+              }`}
+            >
               <div>
-                {/* Header of card */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-xl ${item.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                      {loading === item.key ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <item.icon className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm">{item.title}</h3>
-                      <div className="text-[11px] text-gray-400 font-mono mt-0.5">Tệp CSV (Excel UTF-8)</div>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={`text-[11px] font-bold px-2.5 py-0.5 ${item.tagColor}`}>
+                {/* Header Tag & Subtext */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <span
+                    className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md inline-flex items-center ${
+                      isBlue
+                        ? 'bg-[#1657c1] text-white'
+                        : 'bg-[#fdc455] text-amber-950'
+                    }`}
+                  >
                     {item.tag}
-                  </Badge>
+                  </span>
+                  <span
+                    className={`text-xs font-bold ${
+                      isBlue ? 'text-[#1657c1]' : 'text-amber-800'
+                    }`}
+                  >
+                    {item.subtext}
+                  </span>
                 </div>
+
+                {/* Heading */}
+                <h3 className="font-bold text-gray-900 text-lg mb-2">
+                  {item.title}
+                </h3>
 
                 {/* Description */}
-                <p className="text-xs text-gray-600 leading-relaxed mb-3">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   {item.desc}
                 </p>
-
-                {/* Fields summary */}
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 mb-4 text-[11px] text-gray-500 font-mono">
-                  {item.fields}
-                </div>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Sẵn sàng tải xuống
+              {/* Action Footer */}
+              <div className="pt-4 mt-6 border-t border-slate-200/70 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Sẵn sàng kết xuất
                 </span>
                 <Button
                   size="sm"
                   onClick={item.action}
                   disabled={loading !== null}
-                  className="bg-[#1559c5] hover:bg-[#0f449e] text-white font-bold rounded-xl h-8 px-3.5 text-xs shadow-sm gap-1.5"
+                  className={`font-bold rounded-xl h-9 px-4 text-xs shadow-xs gap-1.5 cursor-pointer transition-all ${
+                    isBlue
+                      ? 'bg-[#1657c1] hover:bg-[#11469e] text-white'
+                      : 'bg-[#fdc455] hover:bg-[#f5b83d] text-amber-950'
+                  }`}
                 >
                   {loading === item.key ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <ArrowDownToLine className="w-3.5 h-3.5" />
                   )}
-                  <span>Xuất CSV</span>
+                  <span>Xuất tệp CSV</span>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          )
+        })}
       </div>
 
       {/* Modern Notice Strip */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs text-gray-600">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>Tương thích hoàn toàn với <strong>Microsoft Excel</strong> và <strong>Google Sheets</strong> (Mã hóa UTF-8 with BOM chuẩn tiếng Việt, không bị lỗi font dấu).</span>
         </div>
-        <div className="text-gray-400 font-mono text-[11px] whitespace-nowrap">
-          Cập nhật dữ liệu thời gian thực
+        <div className="text-slate-500 font-mono text-[11px] font-semibold whitespace-nowrap">
+          Đồng bộ thời gian thực từ Supabase
         </div>
       </div>
     </div>

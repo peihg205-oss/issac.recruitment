@@ -13,14 +13,15 @@ import {
 import { CandidateAccountModal } from "@/components/admin/candidate-account-modal"
 import { isCandidateDeleted } from "@/lib/candidate-account-manager"
 import Link from 'next/link'
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV } from '@/lib/utils'
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV, buildCandidateCodeMap } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { type ApplicationStatus } from '@/types/database'
-import { MOCK_CANDIDATES, MOCK_DEPARTMENTS } from '@/lib/mock-data'
+import { MOCK_DEPARTMENTS, MOCK_CANDIDATES } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
 interface Candidate {
   id: string
+  user_id?: string
   status: ApplicationStatus
   submitted_at: string | null
   created_at: string
@@ -58,25 +59,65 @@ export default function CandidatesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [{ data: apps }, { data: depts }] = await Promise.all([
+      const [{ data: apps }, { data: depts }, { data: allProfiles }] = await Promise.all([
         supabase
           .from('applications')
           .select(`
-            id, status, submitted_at, created_at,
-            profiles!applications_user_id_fkey(full_name, email, student_id, phone),
+            id, user_id, department_id, status, submitted_at, created_at,
             departments!applications_department_id_fkey(name, slug),
             candidate_rankings(rank_number, final_score, result)
           `)
           .order('created_at', { ascending: false }),
-        supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem')
+        supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
+        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, created_at')
       ])
+
+      let candidateList: Candidate[] = []
       if (apps && apps.length > 0) {
-        setCandidates((apps as unknown as Candidate[]) || [])
+        const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
+        let profilesMap: Record<string, any> = {}
+        if (allProfiles && allProfiles.length > 0) {
+          allProfiles.forEach((p: any) => { profilesMap[p.id] = p })
+        } else if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, student_id, phone, major, cohort')
+            .in('id', userIds)
+          if (profs) {
+            profs.forEach((p: any) => { profilesMap[p.id] = p })
+          }
+        }
+        candidateList = apps.map((a: any) => ({
+          ...a,
+          profiles: profilesMap[a.user_id] || { full_name: 'Ứng viên', email: '', student_id: '' }
+        })) as unknown as Candidate[]
+
+        // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn
+        if (allProfiles && allProfiles.length > 0) {
+          const appUserIds = new Set(apps.map((a: any) => a.user_id))
+          const unsubmittedProfiles = allProfiles.filter((p: any) => !appUserIds.has(p.id) && p.role !== 'admin')
+          unsubmittedProfiles.forEach((p: any) => {
+            candidateList.push({
+              id: `reg-${p.id}`,
+              user_id: p.id,
+              status: 'draft',
+              submitted_at: null,
+              created_at: p.created_at || new Date().toISOString(),
+              profiles: p,
+              departments: { name: 'Chưa chọn ban', slug: 'unassigned' },
+              candidate_rankings: null,
+            })
+          })
+        }
       } else {
-        setCandidates(MOCK_CANDIDATES as unknown as Candidate[])
+        // Fallback demo/mock data (bao gồm cả ứng viên đã nộp đơn và người mới đăng ký chưa làm đơn)
+        candidateList = MOCK_CANDIDATES as unknown as Candidate[]
       }
+
+      setCandidates(candidateList)
       setDepartments(depts && depts.length > 0 ? depts : MOCK_DEPARTMENTS)
-    } catch {
+    } catch (err) {
+      console.error('Error fetching candidates:', err)
       setCandidates(MOCK_CANDIDATES as unknown as Candidate[])
       setDepartments(MOCK_DEPARTMENTS)
     } finally {
@@ -84,7 +125,19 @@ export default function CandidatesPage() {
     }
   }, [supabase])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+    const channel = supabase
+      .channel('admin-candidates-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
+        fetchData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchData, supabase])
 
   const handleStatusChange = async (appId: string, newStatus: ApplicationStatus) => {
     setUpdating(appId)
@@ -96,9 +149,82 @@ export default function CandidatesPage() {
         .from('applications')
         .update({ status: newStatus })
         .eq('id', appId)
-    } catch {
-      // Ignore in demo mode
-    }
+
+      const target = candidates.find(c => c.id === appId)
+      if (target && target.user_id) {
+        let title = 'Cập nhật trạng thái hồ sơ'
+        let message = `Hồ sơ ứng tuyển của bạn đã chuyển sang trạng thái "${APPLICATION_STATUS_LABELS[newStatus]}".`
+        let action_url = '/member/dashboard'
+
+        if (newStatus === 'approved') {
+          title = 'Chúc mừng! Hồ sơ của bạn đã được Duyệt'
+          message = 'Hội đồng tuyển quân đã thông qua hồ sơ vòng 1 của bạn. Bạn đã đủ điều kiện tham gia vòng phỏng vấn tiếp theo!'
+          action_url = '/member/interview'
+        } else if (newStatus === 'interview_scheduled') {
+          title = 'Đã có lịch phỏng vấn chính thức'
+          message = 'Lịch phỏng vấn của bạn đã được sắp xếp. Vui lòng vào xem thời gian và phòng phỏng vấn.'
+          action_url = '/member/interview'
+        } else if (newStatus === 'finalized') {
+          title = 'Kết quả tuyển quân chính thức'
+          message = 'Hội đồng tuyển quân đã công bố kết quả tuyển chọn. Nhấn để tra cứu kết quả của bạn.'
+          action_url = '/member/result'
+        } else if (newStatus === 'rejected') {
+          title = 'Thông báo về hồ sơ ứng tuyển'
+          message = 'Cảm ơn bạn đã quan tâm ứng tuyển vào iSSAC. Rất tiếc hồ sơ đợt này chưa phù hợp.'
+          action_url = '/member/dashboard'
+        }
+
+        await supabase.from('notifications').insert({
+          user_id: target.user_id,
+          title,
+          message,
+          type: newStatus === 'approved' || newStatus === 'finalized' ? 'success' : newStatus === 'rejected' ? 'error' : 'info',
+          action_url,
+          is_read: false,
+        })
+
+        if (typeof window !== 'undefined') {
+          const notifPayload = {
+            id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            user_id: target.user_id,
+            title,
+            message,
+            type: newStatus === 'approved' || newStatus === 'finalized' ? 'success' : newStatus === 'rejected' ? 'error' : 'info',
+            action_url,
+            is_read: false,
+            created_at: new Date().toISOString()
+          }
+          const userNotifsKey = `issac_user_notifs_${target.user_id}`
+          const existing = JSON.parse(localStorage.getItem(userNotifsKey) || '[]')
+          localStorage.setItem(userNotifsKey, JSON.stringify([notifPayload, ...existing]))
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`issac_app_status_${appId}`, newStatus)
+        if (target && target.user_id) {
+          localStorage.setItem(`issac_app_status_user_${target.user_id}`, newStatus)
+        }
+        localStorage.setItem('issac_last_eval_update', Date.now().toString())
+
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('issac_eval_channel')
+          bc.postMessage({
+            type: 'candidate_status_changed',
+            candidateId: appId,
+            userId: target?.user_id,
+            newStatus,
+            timestamp: Date.now()
+          })
+          bc.close()
+        }
+
+        window.dispatchEvent(new CustomEvent('issac_candidate_approved', {
+          detail: { candidateId: appId, newStatus }
+        }))
+        window.dispatchEvent(new CustomEvent('issac_eval_updated'))
+      }
+    } catch {}
 
     setUpdating(null)
     toast({
@@ -109,19 +235,21 @@ export default function CandidatesPage() {
   }
 
   // Tất cả các Ban đều xem được danh sách ứng viên toàn CLB
-  const filtered = candidates
-    .filter(c => {
-      const p = c.profiles
-      const matchesSearch = !search ||
-        p?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        p?.email?.toLowerCase().includes(search.toLowerCase()) ||
-        p?.student_id?.toLowerCase().includes(search.toLowerCase())
+  const filtered = candidates.filter(c => {
+    const p = c.profiles
+    const q = search.toLowerCase()
+    const matchSearch = !search ||
+      p?.full_name?.toLowerCase().includes(q) ||
+      p?.email?.toLowerCase().includes(q) ||
+      p?.student_id?.toLowerCase().includes(q)
+    const matchDept = deptFilter === 'all' || c.departments?.slug === deptFilter
+    const matchStatus = statusFilter === 'all' || c.status === statusFilter
+    return matchSearch && matchDept && matchStatus
+  })
 
-      const matchesDept = deptFilter === 'all' || c.departments?.slug === deptFilter
-      const matchesStatus = statusFilter === 'all' || c.status === statusFilter
-      return matchesSearch && matchesDept && matchesStatus
-    })
-    .sort((a, b) => {
+  const codeMap = buildCandidateCodeMap(candidates)
+  
+  filtered.sort((a, b) => {
       if (sortBy === 'name') {
         const cmp = (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || '')
         return sortDir === 'asc' ? cmp : -cmp
@@ -162,6 +290,38 @@ export default function CandidatesPage() {
             <Users className="w-6 h-6 text-blue-600" />
             Hồ sơ Ứng viên ({filtered.length})
           </h1>
+          <div className="flex items-center gap-2 flex-wrap mt-2.5">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                statusFilter === 'all'
+                  ? 'bg-[#1657c1] text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Tất cả: {candidates.length}
+            </button>
+            <button
+              onClick={() => setStatusFilter('submitted')}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                statusFilter === 'submitted'
+                  ? 'bg-[#1657c1] text-white shadow-2xs'
+                  : 'bg-blue-50 text-[#1657c1] hover:bg-blue-100 border border-blue-200'
+              }`}
+            >
+              Đã nộp đơn: {candidates.filter(c => c.status !== 'draft').length}
+            </button>
+            <button
+              onClick={() => setStatusFilter(statusFilter === 'draft' ? 'all' : 'draft')}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === 'draft'
+                  ? 'bg-amber-500 text-white shadow-2xs ring-2 ring-amber-300'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/90'
+              }`}
+            >
+              Chưa làm đơn: {candidates.filter(c => c.status === 'draft').length}
+            </button>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
@@ -273,10 +433,15 @@ export default function CandidatesPage() {
 
                   return (
                     <tr key={c.id} className="hover:bg-blue-50/40 transition-colors">
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-gray-900">{p?.full_name || 'Ứng viên'}</div>
-                        <div className="text-xs text-gray-500">{p?.email}</div>
-                        <div className="text-xs text-gray-400">MSSV: {p?.student_id || 'Chưa cập nhật'} • {p?.phone}</div>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="font-semibold text-gray-900 whitespace-nowrap">{p?.full_name || 'Ứng viên'}</span>
+                          <span className="text-[11px] font-mono text-slate-400 font-normal whitespace-nowrap">
+                            ({codeMap[c.id] || 'ISSAC-01'})
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 whitespace-nowrap">{p?.email}</div>
+                        <div className="text-xs text-gray-400 whitespace-nowrap">MSSV: {p?.student_id || 'Chưa cập nhật'} • {p?.phone}</div>
                       </td>
                       <td className="px-4 py-3.5">
                         <span className="font-medium text-gray-800">{c.departments?.name}</span>
@@ -288,9 +453,10 @@ export default function CandidatesPage() {
                           <span>{formatFullTimestamp(c.submitted_at || c.created_at).timeStr}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${APPLICATION_STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {APPLICATION_STATUS_LABELS[c.status] || c.status}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap border shadow-2xs ${APPLICATION_STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-800'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.status === 'draft' ? 'bg-amber-500' : c.status === 'finalized' || c.status === 'approved' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                          <span>{APPLICATION_STATUS_LABELS[c.status] || c.status}</span>
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-center">

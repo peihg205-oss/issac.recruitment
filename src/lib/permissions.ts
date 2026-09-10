@@ -13,17 +13,17 @@ export interface EvaluatorAccountInfo {
 export const EVALUATOR_ACCOUNTS: Record<AdminRoleType, EvaluatorAccountInfo> = {
   'chu-nhiem': {
     id: 'adm-bcn',
-    name: 'Trần Phương Linh',
+    name: 'Nguyễn Thị Hồng Hân',
     email: 'ambassadors.club@vnuis.edu.vn',
     title: 'Chủ nhiệm CLB iSSAC',
     departmentName: 'Ban Chủ nhiệm',
     role: 'chu-nhiem',
-    avatarInitial: 'L',
+    avatarInitial: 'H',
   },
   'truyen-thong': {
     id: 'adm-tt',
     name: 'Vũ Đình Hải',
-    email: 'dinhhai.issac@vnu.edu.vn',
+    email: 'truyenthong@issac.vnu.edu.vn',
     title: 'Phó Ban Truyền thông',
     departmentName: 'Ban Truyền thông',
     role: 'truyen-thong',
@@ -32,7 +32,7 @@ export const EVALUATOR_ACCOUNTS: Record<AdminRoleType, EvaluatorAccountInfo> = {
   'tu-van': {
     id: 'adm-tv',
     name: 'Lê Hải Yến',
-    email: 'haiyen.issac@vnu.edu.vn',
+    email: 'tuvan@issac.vnu.edu.vn',
     title: 'Trưởng Ban Tư vấn',
     departmentName: 'Ban Tư vấn',
     role: 'tu-van',
@@ -41,7 +41,7 @@ export const EVALUATOR_ACCOUNTS: Record<AdminRoleType, EvaluatorAccountInfo> = {
   'nhan-su': {
     id: 'adm-ns',
     name: 'Phạm Minh Đức',
-    email: 'minhduc.issac@vnu.edu.vn',
+    email: 'nhansu@issac.vnu.edu.vn',
     title: 'Trưởng Ban Nhân sự',
     departmentName: 'Ban Nhân sự',
     role: 'nhan-su',
@@ -67,7 +67,7 @@ export interface AdminRoleConfig {
 export const ADMIN_ROLE_CONFIGS: Record<AdminRoleType, AdminRoleConfig> = {
   'chu-nhiem': {
     slug: 'chu-nhiem',
-    label: 'Trần Phương Linh',
+    label: 'Nguyễn Thị Hồng Hân',
     shortLabel: 'Chủ nhiệm CLB iSSAC',
     departmentName: 'Toàn bộ CLB',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',

@@ -2,59 +2,95 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { MemberSidebar } from "@/components/shared/member-sidebar"
+import { MemberNotificationBell } from "@/components/shared/member-notification-bell"
 import { Sparkles, Home } from "lucide-react"
 
-function formatStudentInfo(major?: string, studentId?: string): string {
-  let majorCode = 'MIS'
-  if (major) {
-    const match = major.match(/\(([^)]+)\)/)
-    if (match) {
-      majorCode = match[1].trim()
-    } else if (major.includes('Hệ thống thông tin')) {
-      majorCode = 'MIS'
-    } else if (major.length <= 6) {
-      majorCode = major.trim()
-    }
+function formatStudentInfo({
+  cohort,
+  studentId,
+}: {
+  cohort?: string | null
+  studentId?: string | null
+  deptName?: string | null
+}): string {
+  const cleanCohort = cohort?.trim()
+  const cleanId = studentId?.trim()
+
+  // 1. Có cả Khóa và MSSV (VD: "K22 - 23070691")
+  if (cleanCohort && cleanId) {
+    return `${cleanCohort} - ${cleanId}`
   }
-  const id = studentId || '23087833'
-  return majorCode + " - " + id
+
+  // 2. Chỉ có MSSV
+  if (cleanId) {
+    return `MSSV: ${cleanId}`
+  }
+
+  // 3. Chỉ có Khóa
+  if (cleanCohort) {
+    return `${cleanCohort} - Ứng viên`
+  }
+
+  // 4. Mặc định khi chưa điền thông tin
+  return 'Ứng viên Gen 3'
 }
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const cookieStore = await cookies()
-  
-  let userProfile = {
-    full_name: 'Nguyễn Hà Phương',
-    email: 'phuong.nguyen@vnu.edu.vn',
-    student_id: '23087833',
-    major: 'MIS',
+
+  let userProfile: {
+    full_name: string
+    email: string
+    student_id: string | null
+    cohort: string | null
+    avatar_url: string | null
+    role: string
+    deptName: string | null
+  } = {
+    full_name: 'Ứng viên',
+    email: '',
+    student_id: null,
+    cohort: null,
     avatar_url: null,
     role: 'applicant',
+    deptName: null,
   }
 
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email, avatar_url, role, student_id, major')
-        .eq('id', user.id)
-        .single()
-      if (profile) {
-        userProfile = {
-          ...userProfile,
-          ...(profile as any),
-        }
-      } else {
-        userProfile.email = user.email || userProfile.email
+      const [{ data: profile }, { data: app }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('full_name, email, avatar_url, role, student_id, cohort')
+          .eq('id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('applications')
+          .select('departments!applications_department_id_fkey(name)')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      ])
+
+      userProfile = {
+        full_name: profile?.full_name || user.user_metadata?.full_name || 'Ứng viên',
+        email: profile?.email || user.email || '',
+        student_id: profile?.student_id || null,
+        cohort: profile?.cohort || null,
+        avatar_url: profile?.avatar_url || null,
+        role: profile?.role || 'applicant',
+        deptName: (Array.isArray(app?.departments) ? (app.departments[0] as any)?.name : (app?.departments as any)?.name) || null,
       }
     }
-  } catch {
-    // Fallback to demo candidate
+  } catch (err) {
+    console.error('Error loading member layout profile:', err)
   }
 
-  const studentDisplay = formatStudentInfo(userProfile.major, userProfile.student_id)
+  const studentDisplay = formatStudentInfo({
+    cohort: userProfile.cohort,
+    studentId: userProfile.student_id,
+    deptName: userProfile.deptName,
+  })
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
@@ -87,24 +123,27 @@ export default async function MemberLayout({ children }: { children: React.React
               <Home className="w-4.5 h-4.5" />
             </Link>
 
+            {/* Realtime Notification Bell */}
+            <MemberNotificationBell />
+
             {/* User Card in the Top Right Corner */}
-          <Link
-            href="/member/profile"
-            className="flex items-center gap-3 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 transition-all group"
-            title="Xem hồ sơ cá nhân"
-          >
-            <div className="w-9 h-9 rounded-full bg-[#1657c1] flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0">
-              {userProfile.full_name?.charAt(0)?.toUpperCase() || 'N'}
-            </div>
-            <div className="text-left min-w-0 pr-1">
-              <div className="font-bold text-slate-900 text-xs sm:text-sm truncate group-hover:text-[#1657c1] transition-colors">
-                {userProfile.full_name || 'Nguyễn Hà Phương'}
+            <Link
+              href="/member/profile"
+              className="flex items-center gap-3 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 transition-all group"
+              title="Xem và cập nhật hồ sơ cá nhân"
+            >
+              <div className="w-9 h-9 rounded-full bg-[#1657c1] flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0">
+                {userProfile.full_name?.charAt(0)?.toUpperCase() || 'U'}
               </div>
-              <div className="text-[11px] font-semibold text-slate-600 truncate">
-                {studentDisplay}
+              <div className="text-left min-w-0 pr-1">
+                <div className="font-bold text-slate-900 text-xs sm:text-sm truncate group-hover:text-[#1657c1] transition-colors">
+                  {userProfile.full_name}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-600 truncate">
+                  {studentDisplay}
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
           </div>
         </header>
 

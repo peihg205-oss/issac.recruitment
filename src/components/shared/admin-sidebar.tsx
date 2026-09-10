@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -22,7 +23,7 @@ const navItems: NavItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'main' },
   { href: '/admin/candidates', label: 'Hồ sơ Ứng viên', icon: Users, group: 'main' },
   { href: '/admin/evaluation', label: 'Chấm điểm PV', icon: CheckSquare, group: 'main' },
-  { href: '/admin/ranking', label: 'Bảng xếp hạng (Top 15)', icon: Trophy, group: 'main' },
+  { href: '/admin/ranking', label: 'Bảng xếp hạng', icon: Trophy, group: 'main' },
   { href: '/admin/interviews', label: 'Lịch phỏng vấn', icon: Calendar, group: 'main' },
   { href: '/admin/questions', label: 'Ngân hàng câu hỏi', icon: FileQuestion, group: 'tools' },
   { href: '/admin/admin-users', label: 'Cấp tài khoản Ban', icon: ShieldCheck, group: 'tools', superAdminOnly: true },
@@ -35,6 +36,28 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
   const router = useRouter()
   const supabase = createClient()
 
+  const [activeRole, setActiveRole] = useState<AdminRoleType>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+      if (match && match[1] in ADMIN_ROLE_CONFIGS) {
+        return match[1] as AdminRoleType
+      }
+    }
+    return (user?.admin_role && user.admin_role in ADMIN_ROLE_CONFIGS ? user.admin_role : 'chu-nhiem') as AdminRoleType
+  })
+
+  useEffect(() => {
+    const readRole = () => {
+      const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+      if (match && match[1] in ADMIN_ROLE_CONFIGS) {
+        setActiveRole(match[1] as AdminRoleType)
+      } else if (user?.admin_role && user.admin_role in ADMIN_ROLE_CONFIGS) {
+        setActiveRole(user.admin_role as AdminRoleType)
+      }
+    }
+    readRole()
+  }, [user?.admin_role, pathname])
+
   const handleSignOut = async () => {
     // Clear demo cookie if any
     document.cookie = 'issac_admin_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -43,10 +66,11 @@ export function AdminSidebar({ user }: { user: { full_name?: string; email?: str
     router.refresh()
   }
 
-  const roleKey = (user?.admin_role && user.admin_role in ADMIN_ROLE_CONFIGS ? user.admin_role : 'chu-nhiem') as AdminRoleType
+  const roleKey = activeRole
   const currentConfig = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS['chu-nhiem']
   const acc = EVALUATOR_ACCOUNTS[roleKey] || EVALUATOR_ACCOUNTS['chu-nhiem']
-  const isSuper = currentConfig.isSuperAdmin
+  // Chỉ duy nhất Ban Chủ nhiệm mới có quyền Super Admin xem Cấp tài khoản và Cài đặt hệ thống
+  const isSuper = roleKey === 'chu-nhiem' && currentConfig.isSuperAdmin
 
   const mainItems = navItems.filter(n => n.group === 'main')
   const toolItems = navItems.filter(n => n.group === 'tools')

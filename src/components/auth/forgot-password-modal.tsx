@@ -86,9 +86,8 @@ export function ForgotPasswordModal({ open, onOpenChange, defaultEmail = "" }: F
                 <div className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-[#1657c1] transition-colors truncate">
                   Fanpage CLB Đại sứ Sinh viên VNU-IS
                 </div>
-                <div className="text-[11px] text-blue-700 font-bold truncate mt-0.5 flex items-center gap-1">
-                  <span>Nhắn tin đến Admin Page qua Messenger</span>
-                  <span>→</span>
+                <div className="text-[11px] text-blue-700 font-bold truncate mt-0.5">
+                  Nhắn tin đến Admin Page qua Messenger
                 </div>
               </div>
             </div>

@@ -50,7 +50,7 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
 
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="px-3 pt-3 pb-1 space-y-1">
         {navItems.map(item => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
@@ -72,15 +72,38 @@ export function MemberSidebar({ user }: MemberSidebarProps) {
         })}
       </nav>
 
+      {/* Mascot ISARIS Illustration in the middle empty space */}
+      <div className="flex-1 px-4 py-2 flex items-center justify-center my-auto min-h-[140px]">
+        <Link
+          href="/member/about"
+          title="Gặp gỡ Mascot ISARIS - CLB Đại sứ Sinh viên iSSAC"
+          className="group block w-full max-w-[200px] mx-auto transition-all duration-300 hover:scale-[1.04] active:scale-[0.98] focus:outline-none"
+        >
+          <Image
+            src="/isaris-mascot.png"
+            alt="Mascot ISARIS - CLB Đại sứ Sinh viên iSSAC"
+            width={400}
+            height={440}
+            className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            priority
+          />
+        </Link>
+      </div>
+
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-slate-200 space-y-1">
+      <div className="px-3 py-3 border-t border-slate-200 space-y-1 mt-auto shrink-0">
         <Link href="/member/notifications"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-all">
-          <Bell size={18} className="text-gray-400" />
-          Thông báo
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+            pathname === '/member/notifications'
+              ? "bg-[#1559c5] text-white shadow-sm font-bold"
+              : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+          )}>
+          <Bell size={18} className={pathname === '/member/notifications' ? "text-white" : "text-gray-400"} />
+          <span className="flex-1">Thông báo</span>
         </Link>
         <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all">
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer">
           <LogOut size={18} />
           Đăng xuất
         </button>

@@ -4,7 +4,7 @@ import {
   Users, FileText, CheckCircle, Clock, Calendar,
   ClipboardList, Trophy, TrendingUp, BarChart3, Star
 } from 'lucide-react'
-import { MOCK_CANDIDATES, MOCK_DEPARTMENTS, MOCK_INTERVIEW_SLOTS } from '@/lib/mock-data'
+import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
 
   try {
     const [appsRes, evalsRes, ranksRes, deptsRes, ivwsRes, settRes] = await Promise.all([
-      supabase.from('applications').select('id, status, department_id, departments(name, slug)'),
+      supabase.from('applications').select('id, status, department_id, departments!applications_department_id_fkey(name, slug)'),
       supabase.from('evaluations').select('id, status, total_score'),
       supabase.from('candidate_rankings').select('id, result, final_score, rank_number').order('rank_number', { ascending: true }),
       supabase.from('departments').select('id, name, slug, color').neq('slug', 'chu-nhiem'),
@@ -31,15 +31,14 @@ export default async function AdminDashboardPage() {
     departments = deptsRes.data
     interviews = ivwsRes.data
     settings = settRes.data
-  } catch {
-    // Demo fallback
+  } catch (err) {
+    console.error('Error fetching dashboard data:', err)
   }
 
-  // Fallback to rich mock data if empty
-  const isUsingMock = !applications || applications.length === 0
-  const apps: any[] = (applications && applications.length > 0) ? applications : MOCK_CANDIDATES
-  const depts = (!departments || departments.length === 0) ? MOCK_DEPARTMENTS : departments
-  const ranks: any[] = (rankings && rankings.length > 0) ? rankings : MOCK_CANDIDATES.map(c => c.candidate_rankings)
+  // Real data only, no mock candidate fallback
+  const apps: any[] = applications || []
+  const depts = (departments && departments.length > 0) ? departments : MOCK_DEPARTMENTS
+  const ranks: any[] = rankings || []
   const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
 
   const statusCounts = {
@@ -57,13 +56,11 @@ export default async function AdminDashboardPage() {
   }
 
   const evalStats = {
-    total: isUsingMock ? 18 : (evaluations?.length || 0),
-    submitted: isUsingMock ? 18 : (evaluations?.filter(e => e.status === 'submitted').length || 0),
-    avgScore: isUsingMock
-      ? (MOCK_CANDIDATES.reduce((acc, c) => acc + (c.candidate_rankings?.final_score || 0), 0) / MOCK_CANDIDATES.length).toFixed(1)
-      : (evaluations && evaluations.length > 0
-          ? (evaluations.reduce((acc, e) => acc + (e.total_score || 0), 0) / evaluations.length).toFixed(1)
-          : '0.0'),
+    total: evaluations?.length || 0,
+    submitted: evaluations?.filter(e => e.status === 'submitted').length || 0,
+    avgScore: evaluations && evaluations.length > 0
+      ? (evaluations.reduce((acc, e) => acc + (e.total_score || 0), 0) / evaluations.length).toFixed(1)
+      : '0.0',
   }
 
   const rankStats = {
@@ -82,14 +79,14 @@ export default async function AdminDashboardPage() {
   }))
 
   const summaryCards = [
-    { label: 'Tổng hồ sơ', value: statusCounts.total, icon: Users, color: 'bg-blue-50', iconColor: 'text-blue-600', accent: 'border-l-blue-600' },
-    { label: 'Chờ duyệt', value: statusCounts.submitted + statusCounts.received + statusCounts.reviewing, icon: Clock, color: 'bg-amber-50', iconColor: 'text-amber-600', accent: 'border-l-amber-500' },
-    { label: 'Đã duyệt hồ sơ', value: statusCounts.approved + statusCounts.interview_scheduled, icon: CheckCircle, color: 'bg-green-50', iconColor: 'text-green-600', accent: 'border-l-green-500' },
-    { label: 'Lịch phỏng vấn', value: isUsingMock ? MOCK_INTERVIEW_SLOTS.length : (interviews?.length || 0), icon: Calendar, color: 'bg-purple-50', iconColor: 'text-purple-600', accent: 'border-l-purple-500' },
-    { label: 'Đã hoàn thành PV', value: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, icon: Users, color: 'bg-indigo-50', iconColor: 'text-indigo-600', accent: 'border-l-indigo-500' },
-    { label: 'Đã chấm điểm', value: evalStats.submitted, icon: ClipboardList, color: 'bg-teal-50', iconColor: 'text-teal-600', accent: 'border-l-teal-500' },
-    { label: 'TOP 15 Pass', value: rankStats.pass, icon: Trophy, color: 'bg-emerald-50', iconColor: 'text-emerald-600', accent: 'border-l-emerald-500' },
-    { label: 'Điểm TB phỏng vấn', value: `${evalStats.avgScore}/10`, icon: Star, color: 'bg-orange-50', iconColor: 'text-orange-600', accent: 'border-l-orange-500' },
+    { label: 'Tổng hồ sơ', value: statusCounts.total, icon: Users },
+    { label: 'Chờ duyệt', value: statusCounts.submitted + statusCounts.received + statusCounts.reviewing, icon: Clock },
+    { label: 'Đã duyệt hồ sơ', value: statusCounts.approved + statusCounts.interview_scheduled, icon: CheckCircle },
+    { label: 'Lịch phỏng vấn', value: interviews?.length || 0, icon: Calendar },
+    { label: 'Đã hoàn thành PV', value: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, icon: Users },
+    { label: 'Đã chấm điểm', value: evalStats.submitted, icon: ClipboardList },
+    { label: 'Pass', value: rankStats.pass, icon: Trophy },
+    { label: 'Điểm TB phỏng vấn', value: `${evalStats.avgScore}/10`, icon: Star },
   ]
 
   return (
@@ -108,23 +105,34 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Key Metrics — Viền xen kẽ Xanh & Vàng chuẩn style Ảnh 2 (bàn cờ so le hàng 1 và hàng 2) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card, i) => (
-          <Card key={i} className={`border-l-4 ${card.accent} shadow-sm hover:shadow-md transition-shadow`}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">{card.label}</div>
-                  <div className="text-2xl font-black text-gray-900">{card.value}</div>
-                </div>
-                <div className={`w-10 h-10 ${card.color} rounded-xl flex items-center justify-center`}>
-                  <card.icon className={`w-5 h-5 ${card.iconColor}`} />
-                </div>
+        {summaryCards.map((card, i) => {
+          // Hàng 1 (i = 0-3): Xanh, Vàng, Xanh, Vàng
+          // Hàng 2 (i = 4-7): Vàng, Xanh, Vàng, Xanh (bắt đầu từ Vàng)
+          const row = Math.floor(i / 4)
+          const isBlue = row % 2 === 0 ? i % 2 === 0 : i % 2 !== 0
+          return (
+            <div
+              key={i}
+              className={`rounded-2xl p-4 sm:p-5 bg-white shadow-2xs hover:shadow-md transition-all border-2 flex items-center justify-between ${
+                isBlue ? 'border-[#1657c1]' : 'border-[#fdc455]'
+              }`}
+            >
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-1">{card.label}</div>
+                <div className="text-2xl font-black text-gray-900">{card.value}</div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
+                  isBlue ? 'bg-blue-50 text-[#1657c1]' : 'bg-amber-50 text-amber-600'
+                }`}
+              >
+                <card.icon className="w-5 h-5" />
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -143,7 +151,7 @@ export default async function AdminDashboardPage() {
                 { label: 'Đã duyệt hồ sơ', count: statusCounts.approved + statusCounts.interview_scheduled + statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, color: 'bg-green-500' },
                 { label: 'Đã phỏng vấn', count: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, color: 'bg-purple-500' },
                 { label: 'Đã có điểm số', count: evalStats.submitted, color: 'bg-teal-500' },
-                { label: 'Trúng tuyển Top 15', count: rankStats.pass, color: 'bg-amber-500' },
+                { label: `Trúng tuyển Top ${quota}`, count: rankStats.pass, color: 'bg-amber-500' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-28 text-xs text-gray-600 text-right font-medium">{item.label}</div>
@@ -222,9 +230,9 @@ export default async function AdminDashboardPage() {
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Chỉ tiêu tuyển chọn', value: `${quota} thành viên`, desc: 'Chỉ tiêu phê duyệt TOP 15' },
+              { label: 'Chỉ tiêu tuyển chọn', value: `${quota} thành viên`, desc: `Chỉ tiêu phê duyệt TOP ${quota}` },
               { label: 'Số ban tuyển quân', value: '3 Ban chuyên môn', desc: 'Ban Truyền thông, Ban Tư vấn, Ban Nhân sự' },
-              { label: 'Điểm sàn phỏng vấn', value: '8.0 / 10.0', desc: 'Ngưỡng xét vào Top 15' },
+              { label: 'Điểm sàn phỏng vấn', value: '8.0 / 10.0', desc: `Ngưỡng xét vào Top ${quota}` },
               { label: 'Hình thức phỏng vấn', value: 'Online & Offline', desc: 'Trường Quốc tế VNU-IS / Google Meet' },
             ].map((item, i) => (
               <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">

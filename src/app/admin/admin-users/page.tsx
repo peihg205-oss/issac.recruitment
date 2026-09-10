@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,6 +23,7 @@ import {
   rejectChangeRequest,
   type AdminChangeRequest
 } from "@/lib/admin-account-manager"
+import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from "@/lib/permissions"
 
 interface AdminUser {
   id: string
@@ -37,7 +40,7 @@ interface AdminUser {
 const DEPT_INFO = {
   "chu-nhiem": {
     name: "Ban Chủ nhiệm",
-    desc: "Toàn quyền quản lý hệ thống, duyệt Top 15 và chấm điểm cả 3 ban",
+    desc: "Toàn quyền quản lý hệ thống, phê duyệt kết quả trúng tuyển và chấm điểm cả 3 ban",
     color: "bg-amber-50 text-amber-900 border-amber-300",
     icon: Crown,
   },
@@ -114,7 +117,10 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
 
 export default function AdminUsersPage() {
   const { toast } = useToast()
+  const router = useRouter()
 
+  const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
+  const [roleChecked, setRoleChecked] = useState(false)
   const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ACCOUNTS)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showResetModal, setShowResetModal] = useState(false)
@@ -124,32 +130,6 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
   const [changeRequests, setChangeRequests] = useState<AdminChangeRequest[]>([])
 
-  const loadRequests = () => {
-    setChangeRequests(getAdminRequests())
-  }
-
-  useEffect(() => {
-    loadRequests()
-  }, [])
-
-  const handleApproveReq = (id: string) => {
-    approveChangeRequest(id)
-    loadRequests()
-    toast({
-      title: "✅ Đã phê duyệt yêu cầu",
-      description: "Tên và chức vụ của Ban đã được cập nhật thành công.",
-    })
-  }
-
-  const handleRejectReq = (id: string) => {
-    rejectChangeRequest(id)
-    loadRequests()
-    toast({
-      title: "Đã từ chối yêu cầu",
-      description: "Yêu cầu thay đổi thông tin đã bị từ chối.",
-    })
-  }
-
   // Form tạo tài khoản mới
   const [form, setForm] = useState({
     full_name: "",
@@ -157,6 +137,10 @@ export default function AdminUsersPage() {
     password: "",
     admin_role: "truyen-thong" as "chu-nhiem" | "truyen-thong" | "tu-van" | "nhan-su",
   })
+
+  const loadRequests = useCallback(() => {
+    setChangeRequests(getAdminRequests())
+  }, [])
 
   const loadAllAdmins = useCallback(() => {
     let list = [...INITIAL_ACCOUNTS]
@@ -179,7 +163,60 @@ export default function AdminUsersPage() {
     setAdmins(list)
   }, [])
 
-  useEffect(() => { loadAllAdmins() }, [loadAllAdmins])
+  useEffect(() => {
+    const match = document.cookie.match(/issac_admin_role=([^;]+)/)
+    const role = (match && match[1] in ADMIN_ROLE_CONFIGS) ? (match[1] as AdminRoleType) : 'chu-nhiem'
+    setActiveRole(role)
+    setRoleChecked(true)
+  }, [])
+
+  useEffect(() => {
+    loadRequests()
+  }, [loadRequests])
+
+  useEffect(() => {
+    loadAllAdmins()
+  }, [loadAllAdmins])
+
+  // Chặn truy cập nếu không phải Ban Chủ nhiệm (sau khi tất cả React hooks đã được gọi)
+  if (roleChecked && activeRole !== 'chu-nhiem') {
+    return (
+      <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
+        <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900">Giới hạn quyền quản trị Ban Chủ nhiệm</h2>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            Chức năng <strong>Cấp tài khoản Ban</strong> và quản trị mật khẩu chỉ dành riêng cho Ban Chủ nhiệm CLB iSSAC. Bạn đang đăng nhập với tư cách Ban chuyên môn.
+          </p>
+        </div>
+        <Link href="/admin/dashboard">
+          <Button className="bg-[#1559c5] hover:bg-blue-800 text-white font-bold rounded-xl text-xs h-10 px-5 shadow-sm">
+            Quay về Dashboard
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  const handleApproveReq = (id: string) => {
+    approveChangeRequest(id)
+    loadRequests()
+    toast({
+      title: "✅ Đã phê duyệt yêu cầu",
+      description: "Tên và chức vụ của Ban đã được cập nhật thành công.",
+    })
+  }
+
+  const handleRejectReq = (id: string) => {
+    rejectChangeRequest(id)
+    loadRequests()
+    toast({
+      title: "Đã từ chối yêu cầu",
+      description: "Yêu cầu thay đổi thông tin đã bị từ chối.",
+    })
+  }
 
   const handleCreateAccount = async () => {
     if (!form.full_name || !form.email || !form.password) {

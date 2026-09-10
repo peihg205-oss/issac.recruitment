@@ -28,12 +28,28 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
 
       if (!user) {
         // Demo mode simulation
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('issac_results_published', 'true')
+          localStorage.setItem('issac_last_eval_update', Date.now().toString())
+          if ('BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('issac_eval_channel')
+            bc.postMessage({
+              type: 'results_published',
+              published: true,
+              quota,
+              timestamp: Date.now(),
+            })
+            bc.close()
+          }
+          window.dispatchEvent(new CustomEvent('issac_results_published'))
+        }
+
         setTimeout(() => {
           setLoading(false)
           setShowDialog(false)
           setPublished(true)
           toast({
-            title: '✅ Đã công bố kết quả TOP 15!',
+            title: `✅ Đã công bố kết quả tuyển chọn TOP ${quota}!`,
             description: `Hệ thống đã tự động duyệt TOP ${quota} ứng viên điểm cao nhất thành Pass và gửi thông báo.`,
             variant: 'success'
           } as Parameters<typeof toast>[0])
@@ -74,22 +90,54 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
         }
       }
 
+      // Realtime cross-tab sync
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('issac_results_published', 'true')
+        localStorage.setItem('issac_last_eval_update', Date.now().toString())
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('issac_eval_channel')
+          bc.postMessage({
+            type: 'results_published',
+            published: true,
+            quota,
+            timestamp: Date.now(),
+          })
+          bc.close()
+        }
+        window.dispatchEvent(new CustomEvent('issac_results_published'))
+      }
+
       setLoading(false)
       setShowDialog(false)
       setPublished(true)
       toast({
         title: '✅ Kết quả đã được công bố!',
-        description: 'Đã gửi thông báo chính thức đến toàn bộ ứng viên.',
+        description: `Đã gửi thông báo chính thức danh sách TOP ${quota} đến toàn bộ ứng viên.`,
         variant: 'success'
       } as Parameters<typeof toast>[0])
       router.refresh()
     } catch {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('issac_results_published', 'true')
+        localStorage.setItem('issac_last_eval_update', Date.now().toString())
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('issac_eval_channel')
+          bc.postMessage({
+            type: 'results_published',
+            published: true,
+            quota,
+            timestamp: Date.now(),
+          })
+          bc.close()
+        }
+        window.dispatchEvent(new CustomEvent('issac_results_published'))
+      }
       setLoading(false)
       setShowDialog(false)
       setPublished(true)
       toast({
         title: '✅ Đã hoàn tất công bố!',
-        description: 'Kết quả TOP 15 đã được ghi nhận.',
+        description: `Kết quả TOP ${quota} đã được ghi nhận và đồng bộ.`,
         variant: 'success'
       } as Parameters<typeof toast>[0])
     }
@@ -99,7 +147,7 @@ export default function FinalizeButton({ quota, published: initialPublished, tot
     return (
       <div className="flex items-center gap-2 bg-emerald-100 border border-emerald-300 rounded-xl px-4 py-2 text-emerald-800 text-sm font-bold shadow-sm">
         <CheckCircle className="w-4 h-4 text-emerald-600" />
-        Kết quả TOP 15 đã công bố
+        Kết quả TOP {quota} đã công bố
       </div>
     )
   }

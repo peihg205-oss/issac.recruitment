@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { getStoredSystemSettings } from '@/lib/system-settings'
 
 const QUESTION_TYPES: Record<string, string> = {
   short_text: 'Văn bản ngắn',
@@ -72,6 +73,50 @@ export default function QuestionsPage() {
 
   const isSuperAdmin = activeRole === 'chu-nhiem'
   const userDeptObj = departments.find(d => d.slug === activeRole)
+  const [isQuestionsPublished, setIsQuestionsPublished] = useState(true)
+
+  useEffect(() => {
+    const s = getStoredSystemSettings()
+    setIsQuestionsPublished(s.questions_published !== 'false')
+
+    const onUpdate = () => {
+      const cur = getStoredSystemSettings()
+      setIsQuestionsPublished(cur.questions_published !== 'false')
+    }
+    window.addEventListener('issac_system_settings_updated', onUpdate)
+    window.addEventListener('storage', onUpdate)
+    return () => {
+      window.removeEventListener('issac_system_settings_updated', onUpdate)
+      window.removeEventListener('storage', onUpdate)
+    }
+  }, [])
+
+  const handleTogglePublish = async () => {
+    const next = !isQuestionsPublished
+    setIsQuestionsPublished(next)
+    const settings = getStoredSystemSettings()
+    settings.questions_published = next ? 'true' : 'false'
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('issac_system_settings', JSON.stringify(settings))
+      window.dispatchEvent(new Event('issac_system_settings_updated'))
+    }
+
+    try {
+      await supabase.from('system_settings').upsert({
+        key: 'questions_published',
+        value: next ? 'true' : 'false',
+        label: 'Công khai bộ câu hỏi & Cho phép làm đơn',
+        value_type: 'boolean',
+      }, { onConflict: 'key' })
+    } catch {}
+
+    toast({
+      title: next ? '✅ Đã công khai bộ câu hỏi' : '🔒 Đã tạm khóa bộ câu hỏi',
+      description: next
+        ? 'Ứng viên đã có thể điền câu hỏi ứng tuyển trong kỳ tuyển quân.'
+        : 'Ứng viên chỉ có thể cập nhật thông tin cá nhân và chưa được làm đơn.',
+    })
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -88,12 +133,24 @@ export default function QuestionsPage() {
     } catch {}
   }, [supabase])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+    const channel = supabase
+      .channel('admin-questions-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
+        fetchData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchData, supabase])
 
   const openCreate = () => {
     setEditQ(null)
     setForm({
-      department_id: isSuperAdmin ? '' : (userDeptObj?.id || 'dept-1'),
+      department_id: isSuperAdmin ? '' : (userDeptObj?.id || ''),
       question_text: '',
       question_type: 'long_text',
       placeholder: '',
@@ -127,47 +184,77 @@ export default function QuestionsPage() {
     }
 
     setSaving(true)
-    const assignedDeptId = isSuperAdmin ? (form.department_id || null) : (userDeptObj?.id || 'dept-1')
+    const assignedDeptId = isSuperAdmin ? (form.department_id || null) : (userDeptObj?.id || null)
     const assignedDept = departments.find(d => d.id === assignedDeptId)
 
-    if (editQ) {
-      setQuestions(prev => prev.map(q => q.id === editQ.id ? {
-        ...q,
-        question_text: form.question_text,
-        question_type: form.question_type,
-        department_id: assignedDeptId,
-        departments: assignedDept,
-        is_required: form.is_required,
-      } : q))
-      toast({ title: 'Đã lưu thay đổi' } as Parameters<typeof toast>[0])
-    } else {
-      const newQuestion = {
-        id: `q-${Date.now()}`,
-        department_id: assignedDeptId,
-        departments: assignedDept,
-        question_text: form.question_text,
-        question_type: form.question_type,
-        is_required: form.is_required,
-        sort_order: questions.length + 1,
-        question_options: [],
-      }
-      setQuestions(prev => [...prev, newQuestion])
-      toast({ title: 'Đã thêm câu hỏi mới' } as Parameters<typeof toast>[0])
-    }
+    try {
+      if (editQ) {
+        const { error } = await supabase
+          .from('questions')
+          .update({
+            question_text: form.question_text,
+            question_type: form.question_type,
+            department_id: assignedDeptId,
+            placeholder: form.placeholder || null,
+            is_required: form.is_required,
+          })
+          .eq('id', editQ.id)
 
-    setSaving(false)
-    setShowForm(false)
+        if (error) throw error
+
+        setQuestions(prev => prev.map(q => q.id === editQ.id ? {
+          ...q,
+          question_text: form.question_text,
+          question_type: form.question_type,
+          department_id: assignedDeptId,
+          departments: assignedDept,
+          placeholder: form.placeholder || '',
+          is_required: form.is_required,
+        } : q))
+        toast({ title: 'Đã lưu thay đổi vào cơ sở dữ liệu' } as Parameters<typeof toast>[0])
+      } else {
+        const { data: newQ, error } = await supabase
+          .from('questions')
+          .insert({
+            department_id: assignedDeptId,
+            question_text: form.question_text,
+            question_type: form.question_type,
+            placeholder: form.placeholder || null,
+            is_required: form.is_required,
+            sort_order: questions.length + 1,
+            is_active: true,
+          })
+          .select('*, question_options(id, option_text, sort_order)')
+          .single()
+
+        if (error) throw error
+
+        setQuestions(prev => [...prev, { ...newQ, departments: assignedDept }])
+        toast({ title: 'Đã thêm câu hỏi mới thành công' } as Parameters<typeof toast>[0])
+      }
+      setShowForm(false)
+    } catch (err: any) {
+      toast({ title: 'Lỗi lưu câu hỏi', description: err.message, variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleDelete = (q: any) => {
+  const handleDelete = async (q: any) => {
     if (!isSuperAdmin && q.departments?.slug !== activeRole && q.department_id !== userDeptObj?.id) {
       toast({ title: 'Không có quyền xóa câu hỏi này', variant: 'destructive' })
       return
     }
 
     if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
-      setQuestions(prev => prev.filter(item => item.id !== q.id))
-      toast({ title: 'Đã xóa câu hỏi' } as Parameters<typeof toast>[0])
+      try {
+        const { error } = await supabase.from('questions').delete().eq('id', q.id)
+        if (error) throw error
+        setQuestions(prev => prev.filter(item => item.id !== q.id))
+        toast({ title: 'Đã xóa câu hỏi khỏi cơ sở dữ liệu' } as Parameters<typeof toast>[0])
+      } catch (err: any) {
+        toast({ title: 'Lỗi xóa câu hỏi', description: err.message, variant: 'destructive' })
+      }
     }
   }
 
@@ -180,18 +267,53 @@ export default function QuestionsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl">
-      {/* Header — sạch sẽ, không note rườm rà */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <HelpCircle className="w-6 h-6 text-[#1559c5]" />
             Quản lý Câu hỏi
           </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Thiết lập câu hỏi chung toàn CLB và câu hỏi chuyên môn của từng Ban
+          </p>
         </div>
 
-        <Button onClick={openCreate} className="gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-medium rounded-xl shadow-sm">
-          <Plus className="w-4 h-4" /> Thêm câu hỏi
-        </Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          {isSuperAdmin && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isQuestionsPublished}
+              onClick={handleTogglePublish}
+              className={`flex items-center gap-3 px-4 py-1.5 rounded-full border-2 text-xs font-bold transition-all cursor-pointer shadow-xs select-none ${
+                isQuestionsPublished
+                  ? 'bg-emerald-50/90 text-emerald-900 border-[#1559c5] hover:bg-emerald-100/80'
+                  : 'bg-[#fffdf5] text-amber-950 border-[#1559c5] hover:bg-amber-50'
+              }`}
+              title={isQuestionsPublished ? 'Bộ câu hỏi đang công khai. Nhấn để tạm khóa.' : 'Bộ câu hỏi đang tạm khóa. Nhấn để công khai.'}
+            >
+              <span>Bộ câu hỏi</span>
+              
+              {/* Toggle Switch */}
+              <span
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
+                  isQuestionsPublished ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+                    isQuestionsPublished ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </span>
+            </button>
+          )}
+
+          <Button onClick={openCreate} className="gap-2 bg-[#1559c5] hover:bg-[#0f449e] text-white font-medium rounded-xl shadow-sm">
+            <Plus className="w-4 h-4" /> Thêm câu hỏi
+          </Button>
+        </div>
       </div>
 
       {/* Filter Tabs — Xem danh sách đầy đủ tất cả các ban */}

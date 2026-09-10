@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
-import { MOCK_CANDIDATES } from '@/lib/mock-data'
 import RankingManager from './RankingManager'
 
 export default async function RankingPage() {
@@ -11,7 +10,7 @@ export default async function RankingPage() {
   const activeRole = (cookieStore.get('issac_admin_role')?.value as AdminRoleType) || 'chu-nhiem'
   let isSuperAdmin = activeRole === 'chu-nhiem'
 
-  let rankings: any[] | null = null
+  let candidates: any[] = []
   let settings: any[] | null = null
 
   try {
@@ -25,10 +24,9 @@ export default async function RankingPage() {
       supabase
         .from('candidate_rankings')
         .select(`
-          *,
-          applications!inner(
-            id, status,
-            profiles:user_id(full_name, student_id, email, phone, major, cohort),
+          id, rank_number, final_score, result, application_id,
+          applications(
+            id, user_id, status,
             departments!applications_department_id_fkey(name, slug)
           )
         `)
@@ -38,23 +36,33 @@ export default async function RankingPage() {
         .select('key, value')
         .in('key', ['recruitment_quota', 'results_published'])
     ])
-    rankings = ranksRes.data
+    
     settings = settsRes.data
-  } catch {
-    // Demo fallback
-  }
+    const rankings = ranksRes.data
 
-  const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
-  const published = settings?.find(s => s.key === 'results_published')?.value === 'true'
+    if (rankings && rankings.length > 0) {
+      const userIds = Array.from(new Set(
+        rankings.map((r: any) => (r.applications as any)?.user_id).filter(Boolean)
+      ))
 
-  // Map to RankingCandidate structure
-  const candidates = (rankings && rankings.length > 0)
-    ? rankings.map(r => {
+      let profilesMap: Record<string, any> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, student_id, email, phone, major, cohort')
+          .in('id', userIds)
+        if (profs) {
+          profs.forEach((p: any) => { profilesMap[p.id] = p })
+        }
+      }
+
+      candidates = rankings.map((r: any) => {
         const app = r.applications as any
+        const p = app?.user_id ? profilesMap[app.user_id] : null
         return {
-          id: app.id,
-          profiles: app.profiles,
-          departments: app.departments,
+          id: app?.id || r.application_id,
+          profiles: p || { full_name: 'Ứng viên', email: '', student_id: '' },
+          departments: app?.departments,
           candidate_rankings: {
             rank_number: r.rank_number,
             final_score: r.final_score,
@@ -62,7 +70,13 @@ export default async function RankingPage() {
           }
         }
       })
-    : MOCK_CANDIDATES
+    }
+  } catch (err) {
+    console.error('Error fetching rankings:', err)
+  }
+
+  const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
+  const published = settings?.find(s => s.key === 'results_published')?.value === 'true'
 
   return (
     <RankingManager

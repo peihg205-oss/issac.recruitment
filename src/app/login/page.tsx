@@ -12,12 +12,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
-import { isCandidateDeleted } from "@/lib/candidate-account-manager"
+import { isCandidateDeleted, setCandidatePassword } from "@/lib/candidate-account-manager"
 import { useSystemSettings } from "@/lib/system-settings"
 import {
   Eye, EyeOff, LogIn, Loader2, Home,
   GraduationCap, ShieldCheck, UserCheck, Calendar,
-  FileEdit, Users, Award
+  FileEdit, Users, Award, AlertCircle
 } from "lucide-react"
 
 const schema = z.object({
@@ -26,9 +26,12 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string; password?: string }> = {
-  "ambassadors.club@vnuis.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm CLB iSSAC", password: "ISSAC2026@tuyenquan" },
-  "bcn@issac.vnu.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm (Dự phòng)", password: "ISSAC2026@tuyenquan" },
+// BCN password is read from env var BCN_ADMIN_PASSWORD (fallback to default for dev)
+const getBcnPassword = () => process.env.NEXT_PUBLIC_BCN_ADMIN_PASSWORD || "ISSAC2026@tuyenquan"
+
+const SYSTEM_ADMIN_ROLES: Record<string, { role: string; name: string; useBcnPassword?: boolean }> = {
+  "ambassadors.club@vnuis.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm CLB iSSAC", useBcnPassword: true },
+  "bcn@issac.vnu.edu.vn": { role: "chu-nhiem", name: "Ban Chủ nhiệm (Dự phòng)", useBcnPassword: true },
   "truyenthong@issac.vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
   "dinhhai.issac@vnu.edu.vn": { role: "truyen-thong", name: "Ban Truyền thông" },
   "tuvan@issac.vnu.edu.vn": { role: "tu-van", name: "Ban Tư vấn" },
@@ -45,7 +48,8 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showForgotModal, setShowForgotModal] = useState(false)
-  const supabase = createClient()
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
+  const [resendingEmail, setResendingEmail] = useState(false)
   const { timeline } = useSystemSettings()
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
@@ -64,31 +68,76 @@ function LoginForm() {
 
   const handleTabChange = (type: "candidate" | "admin") => {
     setLoginType(type)
+    setUnconfirmedEmail(null)
+    if (type === "candidate") {
+      document.cookie = "issac_admin_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0"
+    }
     reset()
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return
+    setResendingEmail(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: unconfirmedEmail,
+        options: {
+          emailRedirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/login`,
+        },
+      })
+      if (error) {
+        toast({
+          title: "Không thể gửi email",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Đã gửi lại email xác nhận",
+          description: `Vui lòng kiểm tra hộp thư (kể cả Spam) của ${unconfirmedEmail}.`,
+        })
+      }
+    } catch (err: any) {
+      toast({
+        title: "Lỗi kết nối",
+        description: err.message || "Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setResendingEmail(false)
+    }
   }
 
   const onSubmit = async (values: FormData) => {
     setLoading(true)
+    setUnconfirmedEmail(null)
+    const supabase = createClient()
 
     // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
     if (loginType === "admin") {
       const emailLower = values.email.toLowerCase().trim()
+      const bcnPassword = getBcnPassword()
 
-      // 1. Tài khoản cố định Ban Chủ nhiệm CLB iSSAC
-      if (emailLower === "ambassadors.club@vnuis.edu.vn") {
-        if (values.password !== "ISSAC2026@tuyenquan") {
+      // 1. Kiểm tra tài khoản hệ thống (BCN & các ban)
+      const matchedAdmin = SYSTEM_ADMIN_ROLES[emailLower]
+      if (matchedAdmin) {
+        const expectedPassword = matchedAdmin.useBcnPassword ? bcnPassword : null
+        if (expectedPassword && values.password !== expectedPassword) {
           setLoading(false)
           toast({
             title: "Mật khẩu không chính xác",
-            description: "Mật khẩu tài khoản cố định Ban Chủ nhiệm không đúng.",
+            description: "Email hoặc mật khẩu không chính xác.",
             variant: "destructive",
           })
           return
         }
-        document.cookie = "issac_admin_role=chu-nhiem; path=/; max-age=2592000"
+        // Set cookie với SameSite=Lax để hoạt động tốt trên Vercel
+        document.cookie = `issac_admin_role=${matchedAdmin.role}; path=/; max-age=2592000; SameSite=Lax`
         toast({
           title: "Đăng nhập thành công",
-          description: "Chào mừng Ban Chủ nhiệm CLB iSSAC! Đang chuyển vào cổng quản trị...",
+          description: `Chào mừng ${matchedAdmin.name}! Đang chuyển vào cổng quản trị...`,
           variant: "success",
         } as Parameters<typeof toast>[0])
         router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
@@ -96,7 +145,7 @@ function LoginForm() {
         return
       }
 
-      // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới
+      // 2. Kiểm tra tài khoản admin do Ban Chủ nhiệm tạo mới (lưu trong localStorage)
       if (typeof window !== "undefined") {
         const createdRaw = localStorage.getItem("issac_created_admins")
         if (createdRaw) {
@@ -123,10 +172,10 @@ function LoginForm() {
                   })
                   return
                 }
-                document.cookie = "issac_admin_role=" + found.admin_role + "; path=/; max-age=2592000"
+                document.cookie = `issac_admin_role=${found.admin_role}; path=/; max-age=2592000; SameSite=Lax`
                 toast({
                   title: "Đăng nhập thành công",
-                  description: "Chào mừng " + found.full_name + "! Đang chuyển vào cổng quản trị...",
+                  description: `Chào mừng ${found.full_name}! Đang chuyển vào cổng quản trị...`,
                   variant: "success"
                 } as Parameters<typeof toast>[0])
                 router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
@@ -138,28 +187,7 @@ function LoginForm() {
         }
       }
 
-      // 3. Kiểm tra tài khoản cán bộ quản trị hệ thống mặc định
-      const matchedAdmin = SYSTEM_ADMIN_ROLES[emailLower]
-      if (matchedAdmin) {
-        if (matchedAdmin.password && matchedAdmin.password !== values.password) {
-          setLoading(false)
-          toast({
-            title: "Mật khẩu không chính xác",
-            description: "Email hoặc mật khẩu không chính xác.",
-            variant: "destructive"
-          })
-          return
-        }
-        document.cookie = "issac_admin_role=" + matchedAdmin.role + "; path=/; max-age=2592000"
-        toast({
-          title: "Đăng nhập thành công",
-          description: "Đang chuyển vào cổng quản lý với quyền " + matchedAdmin.name + "...",
-          variant: "success"
-        } as Parameters<typeof toast>[0])
-        router.push(searchParams.get("redirectedFrom") || "/admin/dashboard")
-        router.refresh()
-        return
-      }
+      // Không tìm thấy tài khoản admin phù hợp → thử Supabase Auth
     }
 
     // XỬ LÝ ĐĂNG NHẬP ỨNG VIÊN
@@ -185,18 +213,49 @@ function LoginForm() {
     setLoading(false)
 
     if (error) {
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        setUnconfirmedEmail(values.email)
+      }
+      const getErrorMessage = (msg: string) => {
+        if (msg === 'Invalid login credentials') return 'Email hoặc mật khẩu không chính xác'
+        if (msg.toLowerCase().includes('email not confirmed')) return 'Email chưa được xác nhận. Vui lòng kiểm tra hộp thư (kể cả Spam) và click vào link xác nhận.'
+        if (msg === 'Too many requests') return 'Đăng nhập quá nhiều lần. Vui lòng thử lại sau vài phút.'
+        if (msg.includes('User not found')) return 'Tài khoản không tồn tại. Vui lòng đăng ký.'
+        if (msg.includes('Invalid email')) return 'Địa chỉ email không hợp lệ.'
+        if (msg.includes('Password')) return 'Mật khẩu không đúng định dạng.'
+        return msg
+      }
       toast({
-        title: "Đăng nhập thất bại",
-        description: error.message === "Invalid login credentials"
-          ? "Email hoặc mật khẩu không chính xác"
-          : error.message,
-        variant: "destructive"
+        title: 'Đăng nhập thất bại',
+        description: getErrorMessage(error.message),
+        variant: 'destructive'
       })
       return
     }
 
     if (!authData.user) return
 
+    // Lưu mật khẩu thực tế đang hoạt động của tài khoản ứng viên
+    if (loginType === "candidate") {
+      setCandidatePassword(values.email, values.password)
+
+      // Xóa triệt để cookie admin nếu có sót lại từ phiên đăng nhập trước
+      document.cookie = "issac_admin_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0"
+
+      toast({ title: "Đăng nhập thành công", variant: "success" } as Parameters<typeof toast>[0])
+
+      // Nếu param redirectedFrom trỏ tới trang admin, bỏ qua và luôn đưa ứng viên về /member/dashboard
+      const redirectTo = searchParams.get("redirectedFrom")
+      if (redirectTo && redirectTo.startsWith("/member")) {
+        router.push(redirectTo)
+      } else {
+        router.push("/member/dashboard")
+      }
+      router.refresh()
+      return
+    }
+
+    // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN)
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, admin_role")
@@ -205,8 +264,8 @@ function LoginForm() {
 
     const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
 
-    // Kiểm tra đúng tab
-    if (loginType === "admin" && !isAdmin) {
+    // Kiểm tra đúng quyền quản trị
+    if (!isAdmin) {
       toast({
         title: "Không có quyền quản trị",
         description: "Tài khoản của bạn là Ứng viên. Vui lòng chuyển sang tab Đăng nhập Ứng viên.",
@@ -215,19 +274,16 @@ function LoginForm() {
       return
     }
 
-    if (profile?.admin_role) {
-      document.cookie = "issac_admin_role=" + profile.admin_role + "; path=/; max-age=2592000"
-    }
+    const targetAdminRole = profile?.admin_role || "chu-nhiem"
+    document.cookie = "issac_admin_role=" + targetAdminRole + "; path=/; max-age=2592000"
 
     toast({ title: "Đăng nhập thành công", variant: "success" } as Parameters<typeof toast>[0])
 
     const redirectTo = searchParams.get("redirectedFrom")
-    if (redirectTo) {
+    if (redirectTo && redirectTo.startsWith("/admin")) {
       router.push(redirectTo)
-    } else if (isAdmin) {
-      router.push("/admin/dashboard")
     } else {
-      router.push("/member/dashboard")
+      router.push("/admin/dashboard")
     }
     router.refresh()
   }
@@ -279,9 +335,9 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-[#fdc455]/20 text-[#fdc455] font-black text-xs flex items-center justify-center shrink-0">
                     01
                   </div>
-                  <span className="font-bold text-white text-xs">{timeline.round1.name}</span>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round1.name}</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
                   {timeline.round1.dateBadge}
                 </span>
               </div>
@@ -292,9 +348,9 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-blue-400/20 text-blue-200 font-black text-xs flex items-center justify-center shrink-0">
                     02
                   </div>
-                  <span className="font-bold text-white text-xs">{timeline.round2.name}</span>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round2.name}</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
                   {timeline.round2.dateBadge}
                 </span>
               </div>
@@ -305,9 +361,9 @@ function LoginForm() {
                   <div className="w-7 h-7 rounded-lg bg-emerald-400/20 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0">
                     03
                   </div>
-                  <span className="font-bold text-white text-xs">{timeline.round3.name}</span>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round3.name}</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-emerald-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-emerald-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
                   {timeline.round3.dateBadge}
                 </span>
               </div>
@@ -379,6 +435,35 @@ function LoginForm() {
                   : "Dành cho Ban Chủ nhiệm và Ban Giám khảo chấm điểm, xét duyệt hồ sơ."}
               </p>
             </div>
+
+            {unconfirmedEmail && (
+              <div className="p-4 mb-5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 animate-slide-up">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1.5 flex-1">
+                    <p className="font-bold text-amber-950">Email chưa được kích hoạt</p>
+                    <p className="text-amber-800 leading-relaxed">
+                      Supabase đã gửi thư xác thực đến <b>{unconfirmedEmail}</b>. Hãy mở hộp thư (và thư rác Spam) để bấm link kích hoạt trước khi đăng nhập.
+                    </p>
+                    <div className="pt-1 flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={resendingEmail}
+                        onClick={handleResendConfirmation}
+                        className="h-8 px-3 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg cursor-pointer transition-all"
+                      >
+                        {resendingEmail ? (
+                          <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Đang gửi...</>
+                        ) : (
+                          "Gửi lại link xác nhận email"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
               <div className="space-y-1.5">

@@ -67,12 +67,19 @@ export function CandidateAccountModal({
   const [copiedMsg, setCopiedMsg] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
+  const [isEditingCurrentPass, setIsEditingCurrentPass] = useState(false)
+  const [editedCurrentPass, setEditedCurrentPass] = useState("")
+
   const email = candidate?.profiles?.email || ""
   const fullName = candidate?.profiles?.full_name || "Ứng viên"
+  const studentId = candidate?.profiles?.student_id || ""
 
   useEffect(() => {
     if (email) {
-      setCurrentPassword(getCandidatePassword(email))
+      const pass = getCandidatePassword(email)
+      setCurrentPassword(pass)
+      setEditedCurrentPass(pass)
+      setIsEditingCurrentPass(false)
       setNewPassword("")
       setShowPassword(false)
       setShowDeleteConfirm(false)
@@ -89,6 +96,25 @@ export function CandidateAccountModal({
       description: "Mật khẩu của ứng viên đã được lưu vào bộ nhớ tạm.",
     })
     setTimeout(() => setCopiedPass(false), 2000)
+  }
+
+  const handleSaveEditedCurrentPassword = () => {
+    if (!editedCurrentPass.trim() || editedCurrentPass.length < 6) {
+      toast({
+        title: "Mật khẩu không hợp lệ",
+        description: "Mật khẩu phải có tối thiểu 6 ký tự.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setCandidatePassword(email, editedCurrentPass.trim())
+    setCurrentPassword(editedCurrentPass.trim())
+    setIsEditingCurrentPass(false)
+    toast({
+      title: "✅ Đã đồng bộ mật khẩu hiện tại",
+      description: `Đã cập nhật mật khẩu hoạt động cho ứng viên ${fullName}.`,
+    })
   }
 
   const handleGenerateRandomPass = () => {
@@ -108,6 +134,7 @@ export function CandidateAccountModal({
 
     setCandidatePassword(email, newPassword.trim())
     setCurrentPassword(newPassword.trim())
+    setEditedCurrentPass(newPassword.trim())
     setNewPassword("")
     toast({
       title: "✅ Đã đổi mật khẩu thành công",
@@ -141,80 +168,134 @@ export function CandidateAccountModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl">
+      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-slate-200 shadow-2xl">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
               <Key className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold text-white">
+              <DialogTitle className="text-base sm:text-lg font-black text-white tracking-tight">
                 Quản lý Tài khoản & Mật khẩu
               </DialogTitle>
-              <DialogDescription className="text-xs text-blue-200/90 mt-0.5">
-                Ứng viên: <strong>{fullName}</strong> ({candidate.departments?.name || "Ban ứng tuyển"})
+              <DialogDescription className="text-xs text-blue-200/90 mt-0.5 font-medium">
+                Cấp phát, đặt lại mật khẩu và bảo mật hồ sơ ứng viên
               </DialogDescription>
             </div>
           </div>
         </div>
 
-        <div className="p-5 space-y-5 text-left text-sm max-h-[75vh] overflow-y-auto">
-          {/* Account info card */}
-          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                Email đăng nhập
-              </span>
-              <Badge className="bg-blue-100 text-[#1657c1] border-blue-200 text-[10px] font-bold">
+        <div className="p-5 sm:p-6 space-y-5 text-left text-sm max-h-[75vh] overflow-y-auto">
+          {/* Candidate Dossier Info Card - Hiện TÊN ỨNG VIÊN NỔI BẬT */}
+          <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200/80 space-y-3 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1657c1] to-blue-700 text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                  {fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Ứng viên
+                  </div>
+                  <div className="font-black text-base text-slate-900 leading-tight">
+                    {fullName}
+                  </div>
+                  <div className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-1.5 font-medium">
+                    <span>MSSV: <strong className="font-mono text-slate-800">{studentId || 'Chưa cập nhật'}</strong></span>
+                    <span>•</span>
+                    <span className="text-[#1657c1] font-semibold">{candidate.departments?.name || "Ban ứng tuyển"}</span>
+                  </div>
+                </div>
+              </div>
+              <Badge className="bg-blue-100 text-[#1657c1] border-blue-200 text-[10px] font-black shrink-0 px-2 py-0.5">
                 Ứng viên Member
               </Badge>
             </div>
-            <div className="font-mono text-sm font-semibold text-slate-900 break-all">
-              {email}
+
+            <div className="pt-2.5 border-t border-slate-200/80 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Email đăng nhập:</span>
+              <span className="font-mono font-bold text-slate-900 break-all">{email}</span>
             </div>
           </div>
 
-          {/* Current Password Section */}
+          {/* Current Password Section - Có chế độ xem & sửa trực tiếp */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold text-slate-700">
                 Mật khẩu đăng nhập hiện tại
               </Label>
-              <span className="text-[11px] text-slate-500">
-                (Khởi tạo/đã cấp)
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={currentPassword}
-                  readOnly
-                  className="font-mono text-sm bg-slate-50 font-bold text-slate-900 pr-10 border-slate-300"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyPassword}
-                className="h-10 px-3 text-xs gap-1.5 font-semibold shrink-0"
+                onClick={() => {
+                  if (isEditingCurrentPass) {
+                    setIsEditingCurrentPass(false)
+                    setEditedCurrentPass(currentPassword)
+                  } else {
+                    setIsEditingCurrentPass(true)
+                    setEditedCurrentPass(currentPassword)
+                  }
+                }}
+                className="text-[11px] text-[#1657c1] hover:underline font-bold"
               >
-                {copiedPass ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedPass ? "Đã chép" : "Copy"}</span>
-              </Button>
+                {isEditingCurrentPass ? "Hủy chỉnh sửa" : "Sửa mật khẩu hiện tại"}
+              </button>
             </div>
+
+            {isEditingCurrentPass ? (
+              <div className="space-y-2 bg-blue-50/60 p-3 rounded-xl border border-blue-200">
+                <div className="text-[11px] text-slate-600">
+                  Nhập mật khẩu thực tế đang dùng của ứng viên nếu muốn đồng bộ thủ công:
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    value={editedCurrentPass}
+                    onChange={e => setEditedCurrentPass(e.target.value)}
+                    className="font-mono text-sm bg-white font-bold text-slate-900"
+                    placeholder="Mật khẩu hiện tại..."
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveEditedCurrentPassword}
+                    className="bg-[#1657c1] hover:bg-blue-800 text-white text-xs font-bold shrink-0"
+                  >
+                    Lưu
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={currentPassword}
+                    readOnly
+                    className="font-mono text-sm bg-slate-50 font-bold text-slate-900 pr-10 border-slate-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPassword}
+                  className="h-10 px-3 text-xs gap-1.5 font-semibold shrink-0"
+                >
+                  {copiedPass ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedPass ? "Đã chép" : "Copy"}</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Quick Copy Message to send Candidate via Page/Mail */}

@@ -13,6 +13,48 @@ export const DEFAULT_SYSTEM_SETTINGS_MAP: Record<string, string> = {
   results_published: "false",
   scoring_method: "weighted",
   auto_sync_evaluations: "true",
+  questions_published: "true",
+}
+
+export function isRecruitmentOpen(settingsMap?: Record<string, string>): {
+  isOpen: boolean
+  isUpcoming: boolean
+  isClosed: boolean
+  isQuestionsPublished: boolean
+  startDate: string
+  endDate: string
+  message: string
+} {
+  const settings = settingsMap || getStoredSystemSettings()
+  const rStart = settings.recruitment_start || "2026-09-10"
+  const rEnd = settings.recruitment_end || "2026-09-20"
+  const isQPub = (settings.questions_published ?? "true") === "true"
+
+  const now = new Date()
+  const todayStr = now.toISOString().split("T")[0]
+
+  const isUpcoming = todayStr < rStart
+  const isClosed = todayStr > rEnd
+  const isDateValid = !isUpcoming && !isClosed
+
+  let message = ""
+  if (isUpcoming) {
+    message = `Hiện tại ban tuyển quân chưa mở đơn ứng tuyển, vui lòng check lại thông tin và đọc thông tin câu lạc bộ để chọn ban đúng với bản thân, và đừng quên theo dõi trang mạng xã hội để cập nhật thông tin tuyển quân sớm nhất của CLB nha!`
+  } else if (isClosed) {
+    message = `Kỳ tuyển quân đã kết thúc thời hạn nhận đơn vào ngày ${formatDayMonth(rEnd)}.`
+  } else if (!isQPub) {
+    message = `Hiện tại ban tuyển quân chưa mở đơn ứng tuyển, vui lòng check lại thông tin và đọc thông tin câu lạc bộ để chọn ban đúng với bản thân, và đừng quên theo dõi trang mạng xã hội để cập nhật thông tin tuyển quân sớm nhất của CLB nha!`
+  }
+
+  return {
+    isOpen: isDateValid && isQPub,
+    isUpcoming,
+    isClosed,
+    isQuestionsPublished: isQPub,
+    startDate: rStart,
+    endDate: rEnd,
+    message,
+  }
 }
 
 export function formatDayMonth(dateStr?: string | null): string {
@@ -101,7 +143,7 @@ export function computeRecruitmentTimeline(settingsMap?: Record<string, string>)
     },
     round3: {
       id: 3,
-      name: "Vòng 3: Công bố kết quả Top 15",
+      name: "Vòng 3: Công bố kết quả chính thức",
       date: r3Date,
       dateBadge: formatDayMonth(r3Date),
       isCurrent: isR3,
@@ -110,8 +152,8 @@ export function computeRecruitmentTimeline(settingsMap?: Record<string, string>)
 }
 
 export function useSystemSettings() {
-  const [settings, setSettings] = useState<Record<string, string>>(getStoredSystemSettings)
-  const [timeline, setTimeline] = useState<RecruitmentTimeline>(() => computeRecruitmentTimeline(getStoredSystemSettings()))
+  const [settings, setSettings] = useState<Record<string, string>>(() => DEFAULT_SYSTEM_SETTINGS_MAP)
+  const [timeline, setTimeline] = useState<RecruitmentTimeline>(() => computeRecruitmentTimeline(DEFAULT_SYSTEM_SETTINGS_MAP))
 
   const refresh = useCallback(async () => {
     const local = getStoredSystemSettings()
@@ -128,7 +170,8 @@ export function useSystemSettings() {
             remoteMap[s.key] = s.value
           }
         })
-        const merged = { ...local, ...remoteMap }
+        // Merge: Defaults -> Remote Supabase -> Local Admin Overrides
+        const merged = { ...DEFAULT_SYSTEM_SETTINGS_MAP, ...remoteMap, ...local }
         if (typeof window !== "undefined") {
           localStorage.setItem("issac_system_settings", JSON.stringify(merged))
         }

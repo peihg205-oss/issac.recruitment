@@ -83,7 +83,19 @@ export function getAdminAccounts(): Record<AdminRoleType, AdminAccountInfo> {
   }
 
   if (parsed && typeof parsed === "object") {
-    return { ...defaults, ...parsed }
+    const merged = { ...defaults, ...parsed }
+    // Sanitize any stale dummy emails from previous cookies
+    const staleEmails: Record<string, string> = {
+      "dinhhai.issac@vnu.edu.vn": "truyenthong@issac.vnu.edu.vn",
+      "haiyen.issac@vnu.edu.vn": "tuvan@issac.vnu.edu.vn",
+      "minhduc.issac@vnu.edu.vn": "nhansu@issac.vnu.edu.vn",
+    }
+    for (const key of Object.keys(merged) as AdminRoleType[]) {
+      if (merged[key] && staleEmails[merged[key].email]) {
+        merged[key].email = staleEmails[merged[key].email]
+      }
+    }
+    return merged
   }
 
   return defaults

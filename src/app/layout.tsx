@@ -11,13 +11,19 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: 'iSSAC - VNU-IS Ambassadors Club | Câu lạc bộ Đại sứ Sinh viên',
+  title: 'iSSAC - CLB Đại sứ Sinh viên VNUIS',
   description: 'iSSAC - Kết nối, lan tỏa và truyền cảm hứng. Cổng thông tin và tuyển chọn thành viên chính thức Câu lạc bộ Đại sứ Sinh viên Trường Quốc tế - ĐHQGHN.',
   keywords: ['iSSAC', 'VNU-IS', 'Ambassadors Club', 'CLB Đại sứ Sinh viên', 'tuyển thành viên', 'Trường Quốc tế ĐHQGHN'],
+  icons: {
+    icon: '/issac-logo.png',
+    shortcut: '/issac-logo.png',
+    apple: '/issac-logo.png',
+  },
   openGraph: {
-    title: 'iSSAC - Câu lạc bộ Đại sứ Sinh viên VNU-IS',
+    title: 'iSSAC - CLB Đại sứ Sinh viên VNUIS',
     description: 'Bridge to Success - Kết nối, lan tỏa và truyền cảm hứng',
     type: 'website',
+    images: ['/issac-logo.png'],
   },
 }
 

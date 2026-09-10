@@ -450,19 +450,46 @@ export default function AdminUsersPage() {
     })
   }
 
-  const handleDeleteAccount = (id: string) => {
+  const handleDeleteAccount = async (admin: AdminUser) => {
+    if (admin.is_fixed) {
+      toast({
+        title: "Tài khoản cố định",
+        description: "Tài khoản master cố định của hệ thống không thể xóa.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa tài khoản "${admin.full_name}" (${admin.email}) khỏi hệ thống tuyển quân?`)) {
+      return
+    }
+
+    // 1. Xóa / Gỡ bỏ trong database Supabase profiles
+    try {
+      const supabase = createClient()
+      await supabase.from("profiles").delete().ilike("email", admin.email)
+      if (admin.id && !admin.id.startsWith("adm-")) {
+        await supabase.from("profiles").delete().eq("id", admin.id)
+      }
+    } catch (e) {
+      console.warn("Delete profile error:", e)
+    }
+
+    // 2. Cập nhật state & LocalStorage
     setAdmins(prev => {
-      const updated = prev.filter(a => a.id !== id)
+      const updated = prev.filter(a => a.id !== admin.id && a.email.toLowerCase() !== admin.email.toLowerCase())
       if (typeof window !== "undefined") {
         localStorage.setItem("issac_created_admins", JSON.stringify(updated))
         document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
       }
       return updated
     })
+
     toast({
-      title: "Đã xóa tài khoản",
-      description: "Tài khoản này đã bị loại bỏ khỏi hệ thống tuyển quân.",
-    })
+      title: "✅ Đã xóa tài khoản",
+      description: `Đã xóa tài khoản ${admin.full_name} (${admin.email}) khỏi hệ thống.`,
+      variant: "success",
+    } as Parameters<typeof toast>[0])
   }
 
   const handleOpenResetModal = (admin: AdminUser) => {
@@ -601,11 +628,11 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600 uppercase text-xs border-b">
                 <tr>
-                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[220px]">Tài khoản / Người đại diện</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[340px]">Tài khoản / Người đại diện</th>
                   <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Ban được phân công</th>
                   <th className="py-3.5 px-4 whitespace-nowrap min-w-[130px]">Mật khẩu</th>
                   <th className="py-3.5 px-4 whitespace-nowrap min-w-[110px]">Trạng thái</th>
-                  <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[260px]">Thao tác</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[280px]">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -614,24 +641,23 @@ export default function AdminUsersPage() {
                   const DeptIcon = dept.icon
                   const isVisiblePw = showPasswords[admin.id]
                   const displayPass = admin.password || (admin.email === "ambassadors.club@vnuis.edu.vn" || admin.email === "bcn@issac.vnu.edu.vn" ? "ISSAC2026@tuyenquan" : "••••••••")
+                  const displayTitle = admin.title || (admin.admin_role === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : `Cán bộ ${dept.name}`)
 
                   return (
                     <tr key={admin.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-gray-900 flex flex-wrap items-center gap-1.5">
-                          <span>{admin.full_name}</span>
-                          {admin.title && (
-                            <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 whitespace-nowrap">
-                              {admin.title}
-                            </span>
-                          )}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-bold text-gray-900 flex items-center gap-2 whitespace-nowrap flex-nowrap">
+                          <span className="whitespace-nowrap">{admin.full_name}</span>
+                          <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 whitespace-nowrap shrink-0">
+                            {displayTitle}
+                          </span>
                           {admin.is_fixed && (
-                            <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1.5 py-0 font-bold whitespace-nowrap">
+                            <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1.5 py-0 font-bold whitespace-nowrap shrink-0">
                               Cố định
                             </Badge>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 font-mono">{admin.email}</div>
+                        <div className="text-xs text-gray-500 font-mono mt-0.5">{admin.email}</div>
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap">
@@ -702,15 +728,15 @@ export default function AdminUsersPage() {
                             </Button>
                           )}
 
-                          {!admin.is_fixed && admin.id.startsWith("adm-") && admin.id.length > 8 && (
+                          {!admin.is_fixed && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteAccount(admin.id)}
-                              className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => handleDeleteAccount(admin)}
+                              className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 font-bold"
                               title="Xóa tài khoản này"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa
                             </Button>
                           )}
                         </div>

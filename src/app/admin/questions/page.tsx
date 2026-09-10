@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock, Sparkles, Layers } from 'lucide-react'
+import { HelpCircle, Plus, Edit2, Trash2, Loader2, Lock } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 import { getStoredSystemSettings } from '@/lib/system-settings'
@@ -299,7 +299,6 @@ export default function QuestionsPage() {
               : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Layers className="w-3.5 h-3.5" />
           <span>Tất cả</span>
           <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-black ${
             deptFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
@@ -316,7 +315,6 @@ export default function QuestionsPage() {
               : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>Câu hỏi chung (Toàn CLB)</span>
           <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-black ${
             deptFilter === 'general' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
@@ -354,11 +352,8 @@ export default function QuestionsPage() {
       {/* Description banner for Common Questions */}
       {deptFilter === 'general' && (
         <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-4 text-xs sm:text-sm text-amber-950 flex items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
-            <span>
-              <strong>Lưu ý:</strong> Câu hỏi chung sẽ được áp dụng bắt buộc cho <strong>toàn bộ ứng viên</strong> khi nộp đơn, bất kể ứng viên chọn Ban chuyên môn nào.
-            </span>
+          <div>
+            <strong>Lưu ý:</strong> Câu hỏi chung sẽ được áp dụng cho <strong>toàn bộ ứng viên</strong> khi nộp đơn, bất kể ứng viên chọn Ban chuyên môn nào.
           </div>
           <Button
             size="sm"
@@ -413,7 +408,7 @@ export default function QuestionsPage() {
 
                       {isGeneral ? (
                         <Badge className="text-[11px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
-                          🌟 Câu hỏi chung (Toàn CLB)
+                          Câu hỏi chung (Toàn CLB)
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[11px] font-bold border-blue-200 text-[#1559c5] bg-blue-50/50">
@@ -487,7 +482,7 @@ export default function QuestionsPage() {
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="common" className="font-bold text-amber-900">
-                      🌟 Câu hỏi chung (Toàn CLB - Tất cả ứng viên)
+                      Câu hỏi chung (Toàn CLB - Tất cả ứng viên)
                     </SelectItem>
                     {departments.map(d => (
                       <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>

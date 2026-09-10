@@ -15,7 +15,7 @@ import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { useSystemSettings, isRecruitmentOpen, formatDayMonth } from '@/lib/system-settings'
 import { fetchAllQuestions, subscribeQuestionsChange, type QuestionItem } from '@/lib/questions-manager'
-import { Sparkles, Layers, MessageSquareText } from 'lucide-react'
+import { Layers } from 'lucide-react'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
 interface Question { id: string; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
@@ -866,9 +866,8 @@ const SOCIAL_CHANNELS = [
             <div className="border-b border-slate-100 pb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#fdc455] text-amber-950 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Phần A: Câu hỏi chung toàn CLB</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#fdc455] text-amber-950">
+                    Phần A: Câu hỏi chung toàn CLB
                   </span>
                   <span className="text-xs font-bold text-slate-500 hidden sm:inline">
                     • Bắt buộc cho tất cả ứng viên iSSAC
@@ -1116,9 +1115,8 @@ const SOCIAL_CHANNELS = [
 
             {/* Khối xem lại Câu hỏi chung */}
             <div className="space-y-3 pt-2">
-              <div className="text-xs font-bold uppercase tracking-wider text-amber-950 bg-amber-100/70 border border-amber-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                <span>Phần A: Câu hỏi chung toàn CLB</span>
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-950 bg-amber-100/70 border border-amber-200 px-3 py-1.5 rounded-xl inline-block">
+                Phần A: Câu hỏi chung toàn CLB
               </div>
               {commonQuestions.map((q, i) => (
                 <div key={q.id} className="border-l-4 border-[#fdc455] pl-4 py-2 space-y-1 bg-amber-50/20 rounded-r-xl">

@@ -75,7 +75,8 @@ export default async function RankingPage() {
     console.error('Error fetching rankings:', err)
   }
 
-  const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
+  const cookieQuota = cookieStore.get('issac_recruitment_quota')?.value
+  const quota = parseInt(cookieQuota || settings?.find(s => s.key === 'recruitment_quota')?.value || '15', 10)
   const published = settings?.find(s => s.key === 'results_published')?.value === 'true'
 
   return (

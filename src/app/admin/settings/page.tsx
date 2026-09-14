@@ -35,15 +35,20 @@ const DEFAULT_SYSTEM_SETTINGS: Setting[] = [
   { id: 'set-4', key: 'interview_end', value: '2026-09-25', label: 'Ngày kết thúc phỏng vấn', description: 'Hạn chót hoàn thành các ca phỏng vấn và nhập điểm', value_type: 'date' },
   { id: 'set-5', key: 'result_announcement', value: '2026-09-28', label: 'Ngày công bố kết quả', description: 'Thời gian công bố danh sách trúng tuyển ra ngoài', value_type: 'date' },
 
-  // Chỉ tiêu & Kết quả
+  // Chấm điểm & Quy chế
   { id: 'set-6', key: 'recruitment_quota', value: '15', label: 'Chỉ tiêu tuyển chọn (Top CLB)', description: 'Số lượng ứng viên chính thức trúng tuyển đợt này theo quy chế', value_type: 'number' },
   { id: 'set-7', key: 'allow_second_department', value: 'true', label: 'Cho phép đăng ký Nguyện vọng 2', description: 'Ứng viên có thể chọn thêm ban phụ trong hồ sơ ứng tuyển', value_type: 'boolean' },
   { id: 'set-8', key: 'max_applications_per_user', value: '1', label: 'Số đơn tối đa mỗi ứng viên', description: 'Số lần ứng tuyển tối đa cho mỗi tài khoản sinh viên', value_type: 'number' },
   { id: 'set-9', key: 'results_published', value: 'false', label: 'Công bố kết quả tuyển quân ra ngoài', description: 'Khi Bật, ứng viên có thể tra cứu kết quả Pass/Dự bị/Trượt tại trang cá nhân', value_type: 'boolean' },
 
   // Chấm điểm & Quy chế
+  { id: 'set-13', key: 'interview_min_score', value: '8.0', label: 'Điểm sàn phỏng vấn', description: 'Điểm tối thiểu để vào Top CLB (thang điểm 10). Hiển thị tại trang Thống kê.', value_type: 'number' },
   { id: 'set-10', key: 'scoring_method', value: 'weighted', label: 'Phương pháp tính điểm phỏng vấn', description: 'Thang điểm 10 chuẩn hóa theo 4 tiêu chí cốt lõi của iSSAC', value_type: 'string' },
   { id: 'set-11', key: 'auto_sync_evaluations', value: 'true', label: 'Tự động đồng bộ sang Bảng xếp hạng', description: 'Cập nhật điểm trung bình ngay khi Giám khảo nộp phiếu chấm', value_type: 'boolean' },
+
+  // Thông số tổ chức phỏng vấn
+  { id: 'set-14', key: 'interview_format', value: 'Online & Offline', label: 'Hình thức phỏng vấn', description: 'Phương thức tổ chức phỏng vấn (Online & Offline, Trực tiếp, hoặc Trực tuyến)', value_type: 'string' },
+  { id: 'set-15', key: 'interview_location', value: 'Trường Quốc tế VNU-IS / Google Meet', label: 'Địa điểm / Nền tảng phỏng vấn', description: 'Địa điểm phòng phỏng vấn hoặc đường link họp trực tuyến', value_type: 'string' },
 ]
 
 const SETTING_GROUPS = [
@@ -52,7 +57,7 @@ const SETTING_GROUPS = [
     label: 'Kỳ tuyển quân',
     subLabel: 'Lịch trình nộp đơn, làm bài và tổ chức phỏng vấn',
     icon: Calendar,
-    keys: ['recruitment_start', 'recruitment_end', 'questions_published', 'interview_start', 'interview_end', 'result_announcement'],
+    keys: ['recruitment_start', 'recruitment_end', 'questions_published', 'interview_start', 'interview_end', 'result_announcement', 'interview_format', 'interview_location'],
   },
   {
     key: 'quota',
@@ -64,9 +69,9 @@ const SETTING_GROUPS = [
   {
     key: 'scoring',
     label: 'Chấm điểm & Quy chế',
-    subLabel: 'Quy chế tính điểm và đồng bộ dữ liệu xếp hạng',
+    subLabel: 'Điểm sàn phỏng vấn, quy chế tính điểm và đồng bộ dữ liệu',
     icon: BarChart3,
-    keys: ['scoring_method', 'auto_sync_evaluations'],
+    keys: ['interview_min_score', 'scoring_method', 'auto_sync_evaluations'],
   },
 ]
 
@@ -174,6 +179,11 @@ export default function SettingsPage() {
       localStorage.setItem('issac_system_settings', JSON.stringify(valMap))
       if (valMap['recruitment_quota']) {
         localStorage.setItem('issac_recruitment_quota', valMap['recruitment_quota'])
+        document.cookie = `issac_recruitment_quota=${valMap['recruitment_quota']}; path=/; max-age=31536000; SameSite=Lax`
+      }
+      if (valMap['interview_min_score']) {
+        localStorage.setItem('issac_interview_min_score', valMap['interview_min_score'])
+        document.cookie = `issac_interview_min_score=${valMap['interview_min_score']}; path=/; max-age=31536000; SameSite=Lax`
       }
       if (valMap['results_published']) {
         localStorage.setItem('issac_results_published', valMap['results_published'])
@@ -197,11 +207,16 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      // 1. Immediately persist to localStorage
+      // 1. Immediately persist to localStorage & cookies
       if (typeof window !== 'undefined') {
         localStorage.setItem('issac_system_settings', JSON.stringify(values))
         if (values['recruitment_quota'] !== undefined) {
           localStorage.setItem('issac_recruitment_quota', values['recruitment_quota'])
+          document.cookie = `issac_recruitment_quota=${values['recruitment_quota']}; path=/; max-age=31536000; SameSite=Lax`
+        }
+        if (values['interview_min_score'] !== undefined) {
+          localStorage.setItem('issac_interview_min_score', values['interview_min_score'])
+          document.cookie = `issac_interview_min_score=${values['interview_min_score']}; path=/; max-age=31536000; SameSite=Lax`
         }
         if (values['results_published'] !== undefined) {
           localStorage.setItem('issac_results_published', values['results_published'])
@@ -246,13 +261,17 @@ export default function SettingsPage() {
         value: values[s.key] !== undefined ? values[s.key] : s.value
       })))
 
-      // 5. Try Supabase update if connected and permitted
+      // 5. Try Supabase upsert so any new setting key is saved/created
       const { data: { user } } = await supabase.auth.getUser()
       for (const key of Object.keys(values)) {
         await supabase
           .from('system_settings')
-          .update({ value: values[key], updated_by: user?.id, updated_at: new Date().toISOString() })
-          .eq('key', key)
+          .upsert({ 
+            key, 
+            value: values[key], 
+            updated_by: user?.id, 
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'key' })
       }
       if (user?.id) {
         await supabase.from('audit_logs').insert({ user_id: user.id, action: 'UPDATE_SETTINGS', description: 'Updated system settings' })

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { parseDeletedCandidateIdsFromCookie } from '@/lib/candidate-account-manager'
+import { RecruitmentStatsCard } from './RecruitmentStatsCard'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
@@ -28,7 +29,7 @@ export default async function AdminDashboardPage() {
       supabase.from('candidate_rankings').select('id, application_id, result, final_score, rank_number').order('rank_number', { ascending: true }),
       supabase.from('departments').select('id, name, slug, color').neq('slug', 'chu-nhiem'),
       supabase.from('interviews').select('id, application_id, status'),
-      supabase.from('system_settings').select('key, value').in('key', ['recruitment_quota', 'recruitment_end', 'interview_end', 'result_announcement'])
+      supabase.from('system_settings').select('key, value')
     ])
     applications = appsRes.data
     evaluations = evalsRes.data
@@ -50,7 +51,18 @@ export default async function AdminDashboardPage() {
   const filteredEvals = rawEvals.filter(e => !e.application_id || !deletedIds.includes(e.application_id))
   const rawIvws: any[] = interviews || []
   const filteredIvws = rawIvws.filter(i => !i.application_id || !deletedIds.includes(i.application_id))
-  const quota = parseInt(settings?.find(s => s.key === 'recruitment_quota')?.value || '15')
+
+  const cookieQuota = cookieStore.get('issac_recruitment_quota')?.value
+  const quota = parseInt(cookieQuota || settings?.find(s => s.key === 'recruitment_quota')?.value || '15', 10)
+
+  const cookieMinScore = cookieStore.get('issac_interview_min_score')?.value
+  const minScore = cookieMinScore || settings?.find(s => s.key === 'interview_min_score')?.value || '8.0'
+
+  const interviewFormat = settings?.find(s => s.key === 'interview_format')?.value || 'Online & Offline'
+  const interviewLocation = settings?.find(s => s.key === 'interview_location')?.value || 'Trường Quốc tế VNU-IS / Google Meet'
+
+  const deptCount = depts.length
+  const deptNames = depts.map((d: any) => d.name).join(', ')
 
   const statusCounts = {
     total: apps.length,
@@ -231,30 +243,14 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Recruitment Status */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-blue-600" />
-            Thông số đợt tuyển iSSAC 2026
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Chỉ tiêu tuyển chọn', value: `${quota} thành viên`, desc: `Chỉ tiêu phê duyệt TOP ${quota}` },
-              { label: 'Số ban tuyển quân', value: '3 Ban chuyên môn', desc: 'Ban Truyền thông, Ban Tư vấn, Ban Nhân sự' },
-              { label: 'Điểm sàn phỏng vấn', value: '8.0 / 10.0', desc: `Ngưỡng xét vào Top ${quota}` },
-              { label: 'Hình thức phỏng vấn', value: 'Online & Offline', desc: 'Trường Quốc tế VNU-IS / Google Meet' },
-            ].map((item, i) => (
-              <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="text-lg font-black text-blue-800">{item.value}</div>
-                <div className="text-sm font-semibold text-gray-900 mt-0.5">{item.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{item.desc}</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <RecruitmentStatsCard
+        initialQuota={quota}
+        initialMinScore={minScore}
+        initialFormat={interviewFormat}
+        initialLocation={interviewLocation}
+        deptCount={deptCount}
+        deptNames={deptNames}
+      />
     </div>
   )
 }

@@ -105,21 +105,71 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const submissionTimestamp = appData.submitted_at || appData.created_at
   const { dateStr, timeStr } = formatFullTimestamp(submissionTimestamp)
 
-  // Candidate answers (Real Supabase answers if available, otherwise mock)
-  const candidateAnswers = (answers && answers.length > 0)
-    ? answers.map((ans, idx) => ({
+  // Candidate answers (Priority 1: review_note payload, Priority 2: application_answers table, Priority 3: mock)
+  let candidateAnswers: any[] = []
+
+  if (appData?.review_note) {
+    try {
+      const parsed = JSON.parse(appData.review_note)
+      if (parsed && Array.isArray(parsed.answers) && parsed.answers.length > 0) {
+        candidateAnswers = parsed.answers.map((ans: any, idx: number) => ({
+          question_id: ans.question_id || `q-${idx}`,
+          question_order: ans.question_order ?? idx + 1,
+          is_common: ans.is_common ?? (ans.category_label?.includes('chung') || !ans.department_id),
+          category_label: ans.category_label || (ans.is_common ? 'Câu hỏi chung (Toàn CLB)' : `Chuyên môn Ban ${dept?.name || ''}`),
+          question_type: ans.question_type || 'long_text',
+          question_text: ans.question_text || 'Câu hỏi',
+          answer_text: ans.answer_text,
+          file_url: ans.file_url,
+          options: ans.options || (ans.answer_options as string[]) || [],
+          selected_option: ans.selected_option || ans.answer_text || (Array.isArray(ans.answer_options) ? ans.answer_options.join(', ') : ''),
+          is_submitted: true,
+        }))
+      }
+    } catch {}
+  }
+
+  if (candidateAnswers.length === 0 && answers && answers.length > 0) {
+    const isGeneralQuestion = (text: string) => {
+      const t = (text || '').toLowerCase()
+      return t.includes('biết đến issac') || 
+             t.includes('kênh nào') || 
+             t.includes('mục tiêu') || 
+             t.includes('bao nhiêu giờ') || 
+             t.includes('phẩm chất') || 
+             t.includes('cam kết') ||
+             t.includes('đóng góp cho issac')
+    }
+
+    candidateAnswers = answers.map((ans, idx) => {
+      const qText = (ans.questions as any)?.question_text || 'Câu hỏi'
+      const isCommon = !(ans.questions as any)?.department_id || isGeneralQuestion(qText)
+      return {
         question_id: ans.question_id || ans.id,
         question_order: (ans.questions as any)?.sort_order ?? idx + 1,
-        category_label: 'Câu hỏi tuyển quân',
+        is_common: isCommon,
+        category_label: isCommon ? 'Câu hỏi chung (Toàn CLB)' : `Chuyên môn Ban ${dept?.name || ''}`,
         question_type: (ans.questions as any)?.question_type || 'long_text',
-        question_text: (ans.questions as any)?.question_text || 'Câu hỏi',
+        question_text: qText,
         answer_text: ans.answer_text,
         file_url: ans.file_url,
         options: (ans.answer_options as string[]) || [],
         selected_option: ans.answer_text || (Array.isArray(ans.answer_options) ? ans.answer_options.join(', ') : ''),
         is_submitted: true,
-      }))
-    : getCandidateApplicationAnswers(id)
+      }
+    })
+  }
+
+  if (candidateAnswers.length === 0) {
+    candidateAnswers = getCandidateApplicationAnswers(id).map(a => ({
+      ...a,
+      is_common: a.category === 'general',
+      category_label: a.category === 'general' ? 'Câu hỏi chung (Toàn CLB)' : `Chuyên môn Ban ${dept?.name || ''}`
+    }))
+  }
+
+  const commonAnswers = candidateAnswers.filter(a => a.is_common)
+  const deptAnswers = candidateAnswers.filter(a => !a.is_common)
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in pb-12 font-sans">
@@ -294,146 +344,301 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         </TabsList>
 
         {/* TAB 1: CÂU TRẢ LỜI ĐƠN ỨNG TUYỂN */}
-        <TabsContent value="answers" className="space-y-4 pt-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="text-sm font-bold text-slate-800">
-              Chi tiết bài làm từng câu hỏi tuyển quân ({candidateAnswers.length} câu)
+        <TabsContent value="answers" className="space-y-6 pt-3">
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1657c1] flex items-center justify-center font-bold">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-slate-900">
+                  Tổng hợp bài làm ứng tuyển ({candidateAnswers.length} câu)
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Gồm <strong>{commonAnswers.length} câu hỏi chung toàn CLB</strong> và <strong>{deptAnswers.length} câu chuyên môn Ban {dept?.name}</strong>
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-slate-500 font-medium">
-              Ban ứng tuyển: <strong className="text-[#1657c1]">{dept?.name}</strong>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-100 text-[#1657c1] border-blue-200 text-xs font-bold px-3 py-1">
+                {commonAnswers.length} Câu hỏi chung
+              </Badge>
+              <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs font-bold px-3 py-1">
+                {deptAnswers.length} Câu chuyên môn
+              </Badge>
             </div>
           </div>
 
-          {/* List of answers */}
-          <div className="space-y-4">
-            {candidateAnswers.map((item) => (
-              <Card key={item.question_id} className="border border-slate-200/90 shadow-2xs rounded-2xl overflow-hidden transition-all hover:border-blue-300">
-                <CardHeader className="py-4 px-5 sm:px-6 bg-slate-50/70 border-b border-slate-100 flex flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-3.5">
-                    <span className="px-2.5 py-1 rounded-lg bg-[#1657c1] text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5 shadow-2xs">
-                      Câu {item.question_order}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Badge variant="outline" className="text-[10px] font-bold bg-white text-slate-600 border-slate-200">
-                          {item.category_label}
-                        </Badge>
-                        {item.question_type === 'multiple_choice' && (
-                          <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
-                            Trắc nghiệm
-                          </Badge>
-                        )}
-                        {item.question_type === 'long_text' && (
-                          <Badge className="text-[10px] font-bold bg-blue-50 text-[#1657c1] border-blue-200">
-                            Tự luận chi tiết
-                          </Badge>
-                        )}
-                        {item.question_type === 'link' && (
-                          <Badge className="text-[10px] font-bold bg-purple-50 text-purple-800 border-purple-200">
-                            Hồ sơ đính kèm
-                          </Badge>
-                        )}
-                      </div>
-                      <CardTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
-                        {item.question_text}
-                      </CardTitle>
-                    </div>
+          {/* PHẦN A: CÂU HỎI CHUNG TOÀN CLB */}
+          {commonAnswers.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b-2 border-blue-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#1657c1] text-white flex items-center justify-center font-black shadow-xs">
+                    <Globe className="w-4 h-4" />
                   </div>
-                </CardHeader>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900">
+                      Phần A: Câu hỏi chung toàn CLB ({commonAnswers.length} câu)
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Áp dụng chung cho mọi ứng viên ứng tuyển vào CLB iSSAC
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs font-bold bg-blue-50 text-[#1657c1] border-blue-200">
+                  Chung toàn CLB
+                </Badge>
+              </div>
 
-                <CardContent className="p-5 sm:p-6 space-y-3.5">
-                  {/* Options selection for multiple choice */}
-                  {item.options && item.options.length > 0 && (
-                    <div className="space-y-1.5 pb-2">
-                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                        Lựa chọn của ứng viên:
+              <div className="space-y-4">
+                {commonAnswers.map((item) => (
+                  <Card key={item.question_id} className="border border-blue-200/80 shadow-2xs rounded-2xl overflow-hidden transition-all hover:border-blue-400 bg-white">
+                    <CardHeader className="py-4 px-5 sm:px-6 bg-blue-50/40 border-b border-blue-100/80 flex flex-row items-start justify-between gap-3">
+                      <div className="flex items-start gap-3.5">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#1657c1] text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5 shadow-2xs">
+                          Câu {item.question_order}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Badge className="text-[10px] font-bold bg-blue-100 text-[#1657c1] border-blue-200">
+                              Câu hỏi chung
+                            </Badge>
+                            {item.question_type === 'multiple_choice' && (
+                              <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+                                Trắc nghiệm
+                              </Badge>
+                            )}
+                            {item.question_type === 'checkbox' && (
+                              <Badge className="text-[10px] font-bold bg-amber-50 text-amber-800 border-amber-200">
+                                Nhiều lựa chọn
+                              </Badge>
+                            )}
+                            {item.question_type === 'long_text' && (
+                              <Badge className="text-[10px] font-bold bg-indigo-50 text-indigo-800 border-indigo-200">
+                                Tự luận chi tiết
+                              </Badge>
+                            )}
+                          </div>
+                          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                            {item.question_text}
+                          </CardTitle>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {item.options.map((opt, i) => {
-                          const isSelected = opt === item.selected_option
+                    </CardHeader>
+
+                    <CardContent className="p-5 sm:p-6 space-y-3.5">
+                      {item.options && item.options.length > 0 && (
+                        <div className="space-y-1.5 pb-2">
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            Lựa chọn của ứng viên:
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {item.options.map((opt: string, i: number) => {
+                              const isSelected = opt === item.selected_option || 
+                                (Array.isArray(item.answer_options) && item.answer_options.includes(opt)) ||
+                                (typeof item.answer_text === 'string' && item.answer_text.includes(opt))
+                              return (
+                                <div 
+                                  key={i} 
+                                  className={`p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2.5 border transition-all ${
+                                    isSelected 
+                                      ? 'bg-emerald-50/80 border-emerald-300 font-bold text-emerald-950 shadow-2xs' 
+                                      : 'bg-slate-50/40 border-slate-200 text-slate-500 opacity-75'
+                                  }`}
+                                >
+                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                                    isSelected ? 'bg-emerald-600 text-white' : 'border border-slate-300'
+                                  }`}>
+                                    {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </div>
+                                  <span className="truncate">{opt}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/30 border border-blue-100 text-slate-800 leading-relaxed">
+                        <div className="text-[11px] font-bold text-[#1657c1] mb-1.5 uppercase tracking-wider">
+                          Nội dung trả lời từ ứng viên:
+                        </div>
+                        <div className="whitespace-pre-line text-sm sm:text-[15px] text-slate-900 font-normal leading-relaxed">
+                          {item.answer_text ? item.answer_text : <span className="text-slate-400 italic">Chưa có câu trả lời</span>}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PHẦN B: CÂU HỎI CHUYÊN MÔN BAN */}
+          {deptAnswers.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between pb-2 border-b-2 border-purple-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-purple-700 text-white flex items-center justify-center font-black shadow-xs">
+                    <Building className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900">
+                      Phần B: Câu hỏi chuyên môn {dept?.name || 'Ban'} ({deptAnswers.length} câu)
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Kiểm tra kinh nghiệm, năng lực chuyên môn và xử lý tình huống thực tế của Ban
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs font-bold bg-purple-50 text-purple-700 border-purple-200">
+                  {dept?.name || 'Chuyên môn'}
+                </Badge>
+              </div>
+
+              <div className="space-y-4">
+                {deptAnswers.map((item) => (
+                  <Card key={item.question_id} className="border border-slate-200/90 shadow-2xs rounded-2xl overflow-hidden transition-all hover:border-purple-300 bg-white">
+                    <CardHeader className="py-4 px-5 sm:px-6 bg-slate-50/70 border-b border-slate-100 flex flex-row items-start justify-between gap-3">
+                      <div className="flex items-start gap-3.5">
+                        <span className="px-2.5 py-1 rounded-lg bg-purple-700 text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5 shadow-2xs">
+                          Câu {item.question_order}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Badge variant="outline" className="text-[10px] font-bold bg-purple-50 text-purple-700 border-purple-200">
+                              {item.category_label}
+                            </Badge>
+                            {item.question_type === 'multiple_choice' && (
+                              <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+                                Trắc nghiệm
+                              </Badge>
+                            )}
+                            {item.question_type === 'checkbox' && (
+                              <Badge className="text-[10px] font-bold bg-amber-50 text-amber-800 border-amber-200">
+                                Nhiều lựa chọn
+                              </Badge>
+                            )}
+                            {item.question_type === 'long_text' && (
+                              <Badge className="text-[10px] font-bold bg-blue-50 text-[#1657c1] border-blue-200">
+                                Tự luận chi tiết
+                              </Badge>
+                            )}
+                            {item.question_type === 'short_text' && (
+                              <Badge className="text-[10px] font-bold bg-slate-100 text-slate-700 border-slate-200">
+                                Trả lời ngắn
+                              </Badge>
+                            )}
+                            {item.question_type === 'link' && (
+                              <Badge className="text-[10px] font-bold bg-purple-50 text-purple-800 border-purple-200">
+                                Hồ sơ đính kèm
+                              </Badge>
+                            )}
+                          </div>
+                          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                            {item.question_text}
+                          </CardTitle>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-5 sm:p-6 space-y-3.5">
+                      {item.options && item.options.length > 0 && (
+                        <div className="space-y-1.5 pb-2">
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            Lựa chọn của ứng viên:
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {item.options.map((opt: string, i: number) => {
+                              const isSelected = opt === item.selected_option || 
+                                (Array.isArray(item.answer_options) && item.answer_options.includes(opt)) ||
+                                (typeof item.answer_text === 'string' && item.answer_text.includes(opt))
+                              return (
+                                <div 
+                                  key={i} 
+                                  className={`p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2.5 border transition-all ${
+                                    isSelected 
+                                      ? 'bg-emerald-50/80 border-emerald-300 font-bold text-emerald-950 shadow-2xs' 
+                                      : 'bg-slate-50/40 border-slate-200 text-slate-500 opacity-75'
+                                  }`}
+                                >
+                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                                    isSelected ? 'bg-emerald-600 text-white' : 'border border-slate-300'
+                                  }`}>
+                                    {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </div>
+                                  <span className="truncate">{opt}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/20 border border-purple-100 text-slate-800 leading-relaxed">
+                        <div className="text-[11px] font-bold text-purple-700 mb-1.5 uppercase tracking-wider">
+                          Nội dung trả lời từ ứng viên:
+                        </div>
+                        <div className="whitespace-pre-line text-sm sm:text-[15px] text-slate-900 font-normal leading-relaxed">
+                          {item.answer_text ? item.answer_text : <span className="text-slate-400 italic">Chưa có câu trả lời</span>}
+                        </div>
+
+                        {/* Auto-detect Google Drive / Portfolio / External URLs */}
+                        {(() => {
+                          const text = item.answer_text || ''
+                          const matches = text.match(/(https?:\/\/[^\s"'<>]+)/g) || []
+                          if (matches.length === 0) return null
                           return (
-                            <div 
-                              key={i} 
-                              className={`p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2.5 border transition-all ${
-                                isSelected 
-                                  ? 'bg-emerald-50/80 border-emerald-300 font-bold text-emerald-950 shadow-2xs' 
-                                  : 'bg-slate-50/40 border-slate-200 text-slate-500 opacity-75'
-                              }`}
-                            >
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-emerald-600 text-white' : 'border border-slate-300'
-                              }`}>
-                                {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                              </div>
-                              <span className="truncate">{opt}</span>
+                            <div className="mt-3 pt-3 border-t border-purple-100 flex flex-wrap gap-2">
+                              {matches.map((url: string, idx: number) => {
+                                const isDrive = url.includes('drive.google.com') || url.includes('docs.google.com')
+                                const isCanva = url.includes('canva.com')
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                                      isDrive
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        : isCanva
+                                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                    }`}
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    {isDrive ? 'Mở Google Drive đính kèm' : isCanva ? 'Mở Canva Portfolio' : 'Mở liên kết đính kèm'}
+                                  </a>
+                                )
+                              })}
                             </div>
                           )
-                        })}
+                        })()}
+
+                        {/* File URL directly attached */}
+                        {(item as any).file_url && (
+                          <div className="mt-3 pt-3 border-t border-purple-100 flex flex-wrap gap-2">
+                            <a
+                              href={(item as any).file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Mở tệp đính kèm câu trả lời
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Main Answer text container */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/30 border border-blue-100/80 text-slate-800 leading-relaxed">
-                    <div className="text-[11px] font-bold text-[#1657c1] mb-1.5 uppercase tracking-wider">
-                      Nội dung trả lời từ ứng viên:
-                    </div>
-                    <div className="whitespace-pre-line text-sm sm:text-[15px] text-slate-900 font-normal leading-relaxed">
-                      {item.answer_text ? item.answer_text : <span className="text-slate-400 italic">Chưa có câu trả lời</span>}
-                    </div>
-
-                    {/* Auto-detect Google Drive / Portfolio / External URLs */}
-                    {(() => {
-                      const text = item.answer_text || ''
-                      const matches = text.match(/(https?:\/\/[^\s"'<>]+)/g) || []
-                      if (matches.length === 0) return null
-                      return (
-                        <div className="mt-3 pt-3 border-t border-blue-100 flex flex-wrap gap-2">
-                          {matches.map((url: string, idx: number) => {
-                            const isDrive = url.includes('drive.google.com') || url.includes('docs.google.com')
-                            const isCanva = url.includes('canva.com')
-                            return (
-                              <a
-                                key={idx}
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
-                                  isDrive
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                    : isCanva
-                                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                }`}
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                {isDrive ? 'Mở Google Drive đính kèm' : isCanva ? 'Mở Canva Portfolio' : 'Mở liên kết đính kèm'}
-                              </a>
-                            )
-                          })}
-                        </div>
-                      )
-                    })()}
-
-                    {/* File URL directly attached */}
-                    {(item as any).file_url && (
-                      <div className="mt-3 pt-3 border-t border-blue-100 flex flex-wrap gap-2">
-                        <a
-                          href={(item as any).file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          Mở tệp đính kèm câu trả lời
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* TAB 2: HỒ SƠ CHI TIẾT ỨNG VIÊN */}

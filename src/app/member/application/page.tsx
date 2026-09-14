@@ -17,7 +17,7 @@ import { useSystemSettings, isRecruitmentOpen, formatDayMonth } from '@/lib/syst
 import { fetchAllQuestions, subscribeQuestionsChange, type QuestionItem } from '@/lib/questions-manager'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
-interface Question { id: string; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
+interface Question { id: string; department_id?: string | null; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
 
 export default function ApplicationPage() {
   const supabase = createClient()
@@ -112,10 +112,13 @@ export default function ApplicationPage() {
     // 1. Phân loại câu hỏi chung toàn CLB (department_id là null hoặc common)
     const commons = allQs.filter(q => !q.department_id || q.department_id === 'common')
 
-    // 2. Phân loại câu hỏi chuyên môn của ban đã chọn
+    // 2. Phân loại câu hỏi chuyên môn của ban đã chọn (loại trừ các câu trùng với câu hỏi chung)
     let deptQs = allQs.filter(q => {
       if (!q.department_id || q.department_id === 'common') return false
-      return q.department_id === deptId || q.departments?.id === deptId || q.departments?.slug === deptId
+      const isDeptMatch = q.department_id === deptId || q.departments?.id === deptId || q.departments?.slug === deptId
+      if (!isDeptMatch) return false
+      const isDup = commons.some(cq => cq.question_text.trim().toLowerCase() === q.question_text.trim().toLowerCase())
+      return !isDup
     })
 
     if (deptQs.length === 0) {
@@ -163,37 +166,68 @@ export default function ApplicationPage() {
   const handleCheckbox = (qId: string, option: string, checked: boolean) => {
     setCheckboxAnswers(prev => {
       const current = prev[qId] || []
-      return { ...prev, [qId]: checked ? [...current, option] : current.filter(o => o !== option) }
+      return {
+        ...prev,
+        [qId]: checked ? [...current, option] : current.filter(o => o !== option),
+      }
     })
   }
 
   const handleSubmit = async () => {
-    if (!profileComplete) {
-      toast({
-        title: 'Chưa hoàn tất hồ sơ',
-        description: 'Bạn cần cập nhật đầy đủ Phần 1 (Thông tin cá nhân) và Phần 2 (Thông tin học vấn) trước khi nộp đơn!',
-        variant: 'destructive',
-      })
-      router.push('/member/profile')
-      return
-    }
-
+    setSubmitting(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setSubmitting(true)
-      setTimeout(() => {
-        setSubmitting(false)
-        toast({
-          title: 'Nộp đơn thành công!',
-          description: 'Hồ sơ của bạn đã được chuyển đến Ban tuyển quân iSSAC.',
-        })
-        router.push('/member/dashboard')
-      }, 800)
+      toast({ title: 'Lỗi', description: 'Vui lòng đăng nhập lại', variant: 'destructive' })
+      setSubmitting(false)
       return
     }
-    setSubmitting(true)
+
+    // Kiểm tra câu hỏi bắt buộc
+    const missingRequired = questions.filter(q => {
+      if (!q.is_required) return false
+      if (q.question_type === 'checkbox') {
+        return !checkboxAnswers[q.id] || checkboxAnswers[q.id].length === 0
+      }
+      return !answers[q.id] || answers[q.id].trim() === ''
+    })
+
+    if (missingRequired.length > 0) {
+      toast({
+        title: 'Chưa hoàn thành câu hỏi',
+        description: `Vui lòng trả lời: "${missingRequired[0].question_text.slice(0, 50)}..."`,
+        variant: 'destructive',
+      })
+      setSubmitting(false)
+      return
+    }
+
+    // Chuẩn bị toàn bộ câu trả lời có cấu trúc (bao gồm cả Câu hỏi chung và Chuyên môn)
+    const chosenDept = departments.find(d => d.id === selectedDept)
+    const answersPayload = {
+      version: 1,
+      submitted_at: new Date().toISOString(),
+      answers: questions.map((q, idx) => {
+        const isCommon = !q.department_id || q.department_id === 'common' || commonQuestions.some(c => c.id === q.id)
+        const opts = (q as any).question_options?.map((o: any) => typeof o === 'string' ? o : o.option_text) || []
+        const ansText = answers[q.id] || (checkboxAnswers[q.id] ? checkboxAnswers[q.id].join(', ') : null)
+        return {
+          question_id: q.id,
+          question_order: idx + 1,
+          is_common: isCommon,
+          category_label: isCommon ? 'Câu hỏi chung (Toàn CLB)' : `Chuyên môn Ban ${chosenDept?.name || ''}`,
+          question_type: q.question_type,
+          question_text: q.question_text,
+          answer_text: ansText,
+          answer_options: checkboxAnswers[q.id] || null,
+          selected_option: ansText || '',
+          options: opts,
+        }
+      })
+    }
 
     let appId = existingApp?.id
+    const noteJson = JSON.stringify(answersPayload)
+
     if (!appId) {
       const { data: newApp, error } = await supabase.from('applications').insert({
         user_id: user.id,
@@ -201,6 +235,7 @@ export default function ApplicationPage() {
         second_department_id: selectedDept2 || null,
         status: 'submitted',
         submitted_at: new Date().toISOString(),
+        review_note: noteJson,
       }).select().single()
 
       if (error) { 
@@ -210,17 +245,32 @@ export default function ApplicationPage() {
       }
       appId = newApp!.id
     } else {
-      await supabase.from('applications').update({ status: 'submitted', submitted_at: new Date().toISOString() }).eq('id', appId)
+      await supabase.from('applications').update({
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        review_note: noteJson,
+      }).eq('id', appId)
     }
 
+    // Lưu dự phòng vào localStorage để luôn tra cứu được
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`issac_app_answers_${appId}`, noteJson)
+    }
+
+    // Đồng thời lưu vào application_answers cho các câu hỏi có UUID chuẩn
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     for (const q of questions) {
-      const answerData = {
-        application_id: appId,
-        question_id: q.id,
-        answer_text: answers[q.id] || null,
-        answer_options: checkboxAnswers[q.id] || null,
+      if (uuidRegex.test(q.id)) {
+        try {
+          const answerData = {
+            application_id: appId,
+            question_id: q.id,
+            answer_text: answers[q.id] || null,
+            answer_options: checkboxAnswers[q.id] || null,
+          }
+          await supabase.from('application_answers').upsert(answerData, { onConflict: 'application_id,question_id' })
+        } catch {}
       }
-      await supabase.from('application_answers').upsert(answerData, { onConflict: 'application_id,question_id' })
     }
 
     await supabase.from('notifications').insert({

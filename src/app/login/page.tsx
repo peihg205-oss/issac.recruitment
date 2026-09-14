@@ -328,7 +328,7 @@ function LoginForm() {
       try {
         const { data: userProf } = await supabase
           .from('profiles')
-          .select('id, role, is_active')
+          .select('id, role, is_active, admin_role, full_name, high_school')
           .eq('id', userId)
           .maybeSingle()
 
@@ -340,6 +340,22 @@ function LoginForm() {
             description: "Tài khoản của bạn đã bị Ban Tuyển quân xóa hoặc vô hiệu hóa khỏi hệ thống.",
             variant: "destructive"
           })
+          return
+        }
+
+        // Nếu tài khoản thực ra là admin/super_admin → chuyển hướng về admin
+        if (userProf && (userProf.role === 'admin' || userProf.role === 'super_admin')) {
+          const targetAdminRole = userProf.admin_role || 'chu-nhiem'
+          const displayName = userProf.full_name || 'Cán bộ Tuyển quân'
+          const displayTitle = userProf.high_school || (targetAdminRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
+          document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
+          document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`
+          document.cookie = `issac_logged_admin_title=${encodeURIComponent(displayTitle)}; path=/; max-age=2592000; SameSite=Lax`
+          document.cookie = `issac_logged_admin_email=${encodeURIComponent(userEmail)}; path=/; max-age=2592000; SameSite=Lax`
+          setLoading(false)
+          toast({ title: "Đăng nhập thành công", description: `Chào mừng ${displayName}! Đang chuyển vào cổng quản trị...`, variant: "success" } as Parameters<typeof toast>[0])
+          router.push("/admin/dashboard")
+          router.refresh()
           return
         }
       } catch {}

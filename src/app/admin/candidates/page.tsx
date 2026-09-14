@@ -16,7 +16,7 @@ import Link from 'next/link'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV, buildCandidateCodeMap } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { type ApplicationStatus } from '@/types/database'
-import { MOCK_DEPARTMENTS, MOCK_CANDIDATES } from '@/lib/mock-data'
+import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 
 interface Candidate {
@@ -73,12 +73,14 @@ export default function CandidatesPage() {
       ])
 
       let candidateList: Candidate[] = []
+      let profilesMap: Record<string, any> = {}
+      if (allProfiles && allProfiles.length > 0) {
+        allProfiles.forEach((p: any) => { profilesMap[p.id] = p })
+      }
+
       if (apps && apps.length > 0) {
         const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
-        let profilesMap: Record<string, any> = {}
-        if (allProfiles && allProfiles.length > 0) {
-          allProfiles.forEach((p: any) => { profilesMap[p.id] = p })
-        } else if (userIds.length > 0) {
+        if (Object.keys(profilesMap).length === 0 && userIds.length > 0) {
           const { data: profs } = await supabase
             .from('profiles')
             .select('id, full_name, email, student_id, phone, major, cohort')
@@ -91,33 +93,30 @@ export default function CandidatesPage() {
           ...a,
           profiles: profilesMap[a.user_id] || { full_name: 'Ứng viên', email: '', student_id: '' }
         })) as unknown as Candidate[]
+      }
 
-        // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn (lọc bỏ tài khoản đã xóa)
-        if (allProfiles && allProfiles.length > 0) {
-          const appUserIds = new Set(apps.map((a: any) => a.user_id))
-          const unsubmittedProfiles = allProfiles.filter((p: any) => 
-            !appUserIds.has(p.id) && 
-            p.role !== 'admin' && 
-            p.role !== 'deleted' && 
-            p.is_active !== false &&
-            !isCandidateDeleted(p.id, p.email, p.id)
-          )
-          unsubmittedProfiles.forEach((p: any) => {
-            candidateList.push({
-              id: `reg-${p.id}`,
-              user_id: p.id,
-              status: 'draft',
-              submitted_at: null,
-              created_at: p.created_at || new Date().toISOString(),
-              profiles: p,
-              departments: { name: 'Chưa chọn ban', slug: 'unassigned' },
-              candidate_rankings: null,
-            })
+      // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn (lọc bỏ tài khoản đã xóa)
+      if (allProfiles && allProfiles.length > 0) {
+        const appUserIds = new Set((apps || []).map((a: any) => a.user_id))
+        const unsubmittedProfiles = allProfiles.filter((p: any) => 
+          !appUserIds.has(p.id) && 
+          p.role !== 'admin' && 
+          p.role !== 'deleted' && 
+          p.is_active !== false &&
+          !isCandidateDeleted(p.id, p.email, p.id)
+        )
+        unsubmittedProfiles.forEach((p: any) => {
+          candidateList.push({
+            id: `reg-${p.id}`,
+            user_id: p.id,
+            status: 'draft',
+            submitted_at: null,
+            created_at: p.created_at || new Date().toISOString(),
+            profiles: p,
+            departments: { name: 'Chưa chọn ban', slug: 'unassigned' },
+            candidate_rankings: null,
           })
-        }
-      } else {
-        // Fallback demo/mock data
-        candidateList = MOCK_CANDIDATES as unknown as Candidate[]
+        })
       }
 
       // LỌC BỎ TOÀN BỘ ỨNG VIÊN ĐÃ BỊ BCN XÓA (ĐẢM BẢO HIỂN THỊ ĐÚNG DỮ LIỆU THẬT)
@@ -126,9 +125,9 @@ export default function CandidatesPage() {
       setCandidates(candidateList)
       setDepartments(depts && depts.length > 0 ? depts : MOCK_DEPARTMENTS)
     } catch (err) {
+      // Lỗi kết nối thật — hiện danh sách rỗng, KHÔNG load dữ liệu demo
       console.error('Error fetching candidates:', err)
-      const fallback = (MOCK_CANDIDATES as unknown as Candidate[]).filter(c => !isCandidateDeleted(c.id, c.profiles?.email, c.user_id))
-      setCandidates(fallback)
+      setCandidates([])
       setDepartments(MOCK_DEPARTMENTS)
     } finally {
       setLoading(false)

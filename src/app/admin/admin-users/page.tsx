@@ -121,6 +121,17 @@ const INITIAL_ACCOUNTS: AdminUser[] = [
   },
 ]
 
+// Email của các tài khoản cố định — không bao giờ lưu vào issac_created_admins
+const INITIAL_EMAILS = new Set(INITIAL_ACCOUNTS.map(a => a.email.toLowerCase().trim()))
+
+function saveCreatedAdminsToStorage(allAdmins: AdminUser[]) {
+  if (typeof window === "undefined") return
+  const createdOnly = allAdmins.filter(a => !INITIAL_EMAILS.has(a.email.toLowerCase().trim()))
+  const json = JSON.stringify(createdOnly)
+  localStorage.setItem("issac_created_admins", json)
+  document.cookie = "issac_created_admins=" + encodeURIComponent(json) + "; path=/; max-age=2592000; SameSite=Lax"
+}
+
 export default function AdminUsersPage() {
   const { toast } = useToast()
   const router = useRouter()
@@ -156,6 +167,7 @@ export default function AdminUsersPage() {
   const loadRequests = useCallback(() => {
     setChangeRequests(getAdminRequests())
   }, [])
+
 
   const loadAllAdmins = useCallback(async () => {
     // 1. Đọc danh sách email đã bị BCN xóa vĩnh viễn
@@ -380,8 +392,8 @@ export default function AdminUsersPage() {
       const filtered = prev.filter(a => a.email.toLowerCase() !== emailClean)
       const updated = [...filtered, newAdmin]
       if (typeof window !== "undefined") {
-        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
-        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+        // Chỉ lưu phần tài khoản được BCN tạo thêm, không lưu INITIAL_ACCOUNTS
+        saveCreatedAdminsToStorage(updated)
       }
       return updated
     })
@@ -451,8 +463,8 @@ export default function AdminUsersPage() {
         return a
       })
       if (typeof window !== "undefined") {
-        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
-        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+        // Chỉ lưu phần tài khoản được BCN tạo thêm
+        saveCreatedAdminsToStorage(updated)
       }
       return updated
     })
@@ -483,7 +495,8 @@ export default function AdminUsersPage() {
         return a
       })
       if (typeof window !== "undefined") {
-        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+        // Chỉ lưu phần tài khoản được BCN tạo thêm
+        saveCreatedAdminsToStorage(updated)
       }
       return updated
     })
@@ -537,8 +550,8 @@ export default function AdminUsersPage() {
     setAdmins(prev => {
       const updated = prev.filter(a => a.id !== admin.id && a.email.toLowerCase().trim() !== emailToDelete)
       if (typeof window !== "undefined") {
-        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
-        document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+        // Chỉ lưu phần tài khoản được BCN tạo thêm
+        saveCreatedAdminsToStorage(updated)
       }
       return updated
     })
@@ -568,7 +581,8 @@ export default function AdminUsersPage() {
         return a
       })
       if (typeof window !== "undefined") {
-        localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+        // Chỉ lưu phần tài khoản được BCN tạo thêm
+        saveCreatedAdminsToStorage(updated)
       }
       return updated
     })

@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { setCandidatePassword } from '@/lib/candidate-account-manager'
-import { Eye, EyeOff, UserPlus, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
+import { useSystemSettings } from '@/lib/system-settings'
+import { Eye, EyeOff, UserPlus, ArrowLeft, Loader2, CheckCircle, Calendar } from 'lucide-react'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Họ tên phải ít nhất 2 ký tự'),
@@ -31,6 +32,8 @@ export default function RegisterPage() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  // Đọc lịch trình trực tiếp từ admin settings — tự động cập nhật khi admin thay đổi
+  const { timeline } = useSystemSettings()
 
   const { register, handleSubmit, formState: { errors }, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -48,7 +51,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    // Lưu thông tin đăng nhập của ứng viên
     setCandidatePassword(data.email, data.password)
 
     const supabase = createClient()
@@ -73,25 +75,14 @@ export default function RegisterPage() {
       return
     }
 
-    // Nếu đã có session (Supabase tắt confirm email) -> tự động vào dashboard luôn!
     if (signUpData?.session) {
-      toast({
-        title: 'Đăng ký thành công!',
-        description: 'Đăng ký thành công. Đang chuyển hướng vào hệ thống ứng viên...',
-      })
-      setTimeout(() => {
-        router.push('/member/dashboard')
-        router.refresh()
-      }, 1000)
+      toast({ title: 'Đăng ký thành công!', description: 'Đang chuyển hướng vào hệ thống ứng viên...' })
+      setTimeout(() => { router.push('/member/dashboard'); router.refresh() }, 1000)
       return
     }
 
-    // Nếu email_confirmed_at đã có nhưng chưa có session -> chuyển sang login
     if (signUpData?.user?.email_confirmed_at) {
-      toast({
-        title: 'Đăng ký thành công!',
-        description: 'Tài khoản đã được tạo. Đang chuyển đến trang đăng nhập...',
-      })
+      toast({ title: 'Đăng ký thành công!', description: 'Tài khoản đã được tạo. Đang chuyển đến trang đăng nhập...' })
       setTimeout(() => router.push('/login'), 1200)
       return
     }
@@ -115,9 +106,7 @@ export default function RegisterPage() {
               Đăng nhập ngay
             </Button>
           </Link>
-          <p className="text-gray-400 text-xs mt-4">
-            Nếu không thấy email, hãy kiểm tra hộp thư Spam.
-          </p>
+          <p className="text-gray-400 text-xs mt-4">Nếu không thấy email, hãy kiểm tra hộp thư Spam.</p>
         </div>
       </div>
     )
@@ -125,7 +114,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex bg-[#1559c5]">
-      {/* Left side */}
+      {/* Left side — Lộ trình tuyển quân đồng bộ từ admin settings */}
       <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center p-8 xl:p-12 text-white">
         <div className="max-w-md xl:max-w-lg text-center w-full">
           <div className="flex justify-center mb-4">
@@ -152,28 +141,67 @@ export default function RegisterPage() {
             <span>Mùa tuyển thành viên 2026 đang mở</span>
           </div>
 
+          {/* Lộ trình — cùng nguồn dữ liệu với /login và /member/dashboard */}
           <div className="bg-white/10 border border-white/15 rounded-3xl p-5 xl:p-6 backdrop-blur-md text-left shadow-xl space-y-3.5">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <span className="text-xs font-black text-[#fdc455] uppercase tracking-wider">
-                📅 Lộ Trình Tuyển Quân
+              <span className="text-xs font-black text-[#fdc455] uppercase tracking-wider flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Lộ Trình Tuyển Quân Gen 3
               </span>
               <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full shadow-xs">
                 Khóa 2026
               </span>
             </div>
 
-            <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
-                <span className="text-white font-medium">Vòng 1: Mở cổng nhận đơn</span>
-                <span className="font-mono font-bold text-amber-300 bg-white/10 px-2.5 py-1 rounded-lg">01/09 - 15/10</span>
+            <div className="space-y-2.5">
+              {/* Vòng 1 */}
+              <div className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${
+                timeline.round1.isCurrent ? 'bg-amber-400/20 border-amber-300/40' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shrink-0 ${
+                    timeline.round1.isCurrent ? 'bg-[#fdc455] text-slate-900' : 'bg-[#fdc455]/20 text-[#fdc455]'
+                  }`}>
+                    01
+                  </div>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round1.name}</span>
+                </div>
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  {timeline.round1.dateBadge}
+                </span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
-                <span className="text-white font-medium">Vòng 2: Phỏng vấn & Thử thách</span>
-                <span className="font-mono font-bold text-blue-200 bg-white/10 px-2.5 py-1 rounded-lg">20/10 - 30/10</span>
+
+              {/* Vòng 2 */}
+              <div className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${
+                timeline.round2.isCurrent ? 'bg-blue-400/20 border-blue-300/40' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shrink-0 ${
+                    timeline.round2.isCurrent ? 'bg-blue-400 text-slate-900' : 'bg-blue-400/20 text-blue-200'
+                  }`}>
+                    02
+                  </div>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round2.name}</span>
+                </div>
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  {timeline.round2.dateBadge}
+                </span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
-                <span className="text-white font-medium">Công bố kết quả chính thức</span>
-                <span className="font-mono font-bold text-emerald-300 bg-white/10 px-2.5 py-1 rounded-lg">05/11/2026</span>
+
+              {/* Vòng 3 */}
+              <div className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${
+                timeline.round3.isCurrent ? 'bg-emerald-400/20 border-emerald-300/40' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shrink-0 ${
+                    timeline.round3.isCurrent ? 'bg-emerald-400 text-slate-900' : 'bg-emerald-400/20 text-emerald-300'
+                  }`}>
+                    03
+                  </div>
+                  <span suppressHydrationWarning className="font-bold text-white text-xs">{timeline.round3.name}</span>
+                </div>
+                <span suppressHydrationWarning className="font-mono text-xs font-bold text-emerald-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
+                  {timeline.round3.dateBadge}
+                </span>
               </div>
             </div>
           </div>

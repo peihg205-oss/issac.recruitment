@@ -35,7 +35,8 @@ export default function QuestionsPage() {
   const { toast } = useToast()
 
   const [activeRole, setActiveRole] = useState<AdminRoleType>('chu-nhiem')
-  const [questions, setQuestions] = useState<QuestionItem[]>(DEFAULT_COMMON_QUESTIONS)
+  const [questions, setQuestions] = useState<QuestionItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [departments, setDepartments] = useState<any[]>(MOCK_DEPARTMENTS)
   const [deptFilter, setDeptFilter] = useState('all')
 
@@ -114,9 +115,11 @@ export default function QuestionsPage() {
         fetchAllQuestions(),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
       ])
-      if (qs && qs.length > 0) setQuestions(qs)
+      setQuestions(qs || [])
       if (depts && depts.length > 0) setDepartments(depts)
-    } catch {}
+    } catch {} finally {
+      setLoading(false)
+    }
   }, [supabase])
 
   useEffect(() => {
@@ -366,7 +369,14 @@ export default function QuestionsPage() {
       )}
 
       {/* Questions List */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <Card className="text-center py-16 rounded-2xl border border-slate-200 bg-white shadow-xs">
+          <CardContent className="flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-[#1559c5] animate-spin mb-3" />
+            <p className="font-bold text-slate-700 text-sm">Đang tải danh sách câu hỏi...</p>
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
         <Card className="text-center py-20 rounded-2xl border border-dashed border-slate-300 bg-white shadow-xs">
           <CardContent>
             <HelpCircle className="w-14 h-14 text-slate-300 mx-auto mb-3" />

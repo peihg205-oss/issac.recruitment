@@ -117,10 +117,93 @@ export function saveCustomStoredQuestions(list: QuestionItem[]) {
   } catch {}
 }
 
+/**
+ * Fetch Question Bank Sync State from Supabase DB (cross-device sync for laptop & phone).
+ */
+export async function fetchQuestionsBankStateFromDB(): Promise<{
+  deletedQuestionIds: string[]
+  customQuestions: QuestionItem[]
+}> {
+  const localDeleted = getDeletedQuestionIds()
+  const localCustom = getCustomStoredQuestions()
+
+  try {
+    const supabase = createClient()
+    const { data: syncLogs } = await supabase
+      .from('audit_logs')
+      .select('description')
+      .eq('action', 'SYNC_QUESTIONS_BANK')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (syncLogs && syncLogs.length > 0 && syncLogs[0].description) {
+      const parsed = JSON.parse(syncLogs[0].description)
+      if (parsed && typeof parsed === 'object') {
+        const deletedQuestionIds = Array.isArray(parsed.deletedQuestionIds)
+          ? Array.from(new Set([...localDeleted, ...parsed.deletedQuestionIds]))
+          : localDeleted
+
+        const customQuestions: QuestionItem[] = Array.isArray(parsed.customQuestions)
+          ? parsed.customQuestions
+          : localCustom
+
+        // Update local cache
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(STORAGE_KEY_DELETED_QUESTIONS, JSON.stringify(deletedQuestionIds))
+            localStorage.setItem(STORAGE_KEY_CUSTOM_QUESTIONS, JSON.stringify(customQuestions))
+          } catch {}
+        }
+
+        return { deletedQuestionIds, customQuestions }
+      }
+    }
+  } catch (err) {
+    console.warn('Error fetching questions bank sync state:', err)
+  }
+
+  return { deletedQuestionIds: localDeleted, customQuestions: localCustom }
+}
+
+/**
+ * Persist Question Bank State to Supabase DB for instant cross-device sync.
+ */
+export async function syncQuestionsBankStateToDB(state: {
+  deletedQuestionIds: string[]
+  customQuestions: QuestionItem[]
+}): Promise<void> {
+  // 1. Update local cache immediately
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEY_DELETED_QUESTIONS, JSON.stringify(state.deletedQuestionIds))
+      localStorage.setItem(STORAGE_KEY_CUSTOM_QUESTIONS, JSON.stringify(state.customQuestions))
+      window.dispatchEvent(new Event('issac_questions_updated'))
+      window.dispatchEvent(new Event('storage'))
+    } catch {}
+  }
+
+  // 2. Sync to Supabase audit_logs (unrestricted cross-device persistence)
+  try {
+    const supabase = createClient()
+    await supabase.from('audit_logs').insert({
+      action: 'SYNC_QUESTIONS_BANK',
+      user_name: 'BCN',
+      description: JSON.stringify({
+        deletedQuestionIds: state.deletedQuestionIds,
+        customQuestions: state.customQuestions,
+        updatedAt: new Date().toISOString(),
+      }),
+    })
+  } catch (err) {
+    console.warn('Failed to sync questions bank to DB:', err)
+  }
+}
+
 export async function fetchAllQuestions(): Promise<QuestionItem[]> {
   const supabase = createClient()
-  const deletedIds = getDeletedQuestionIds()
-  const localCustom = getCustomStoredQuestions()
+
+  // 1. Fetch DB sync state first (cross-device sync)
+  const { deletedQuestionIds, customQuestions } = await fetchQuestionsBankStateFromDB()
 
   let remoteQuestions: QuestionItem[] = []
   try {
@@ -135,23 +218,23 @@ export async function fetchAllQuestions(): Promise<QuestionItem[]> {
     }
   } catch {}
 
-  // Merge map: Start with Default Common Questions -> Remote Questions -> Local Custom Questions
+  // 2. Merge map: Default Common Questions -> Remote Questions -> Custom Synced Questions
   const map = new Map<string, QuestionItem>()
 
   DEFAULT_COMMON_QUESTIONS.forEach(q => {
-    if (!deletedIds.includes(q.id)) {
+    if (!deletedQuestionIds.includes(q.id)) {
       map.set(q.id, q)
     }
   })
 
   remoteQuestions.forEach(q => {
-    if (!deletedIds.includes(q.id)) {
+    if (!deletedQuestionIds.includes(q.id)) {
       map.set(q.id, q)
     }
   })
 
-  localCustom.forEach(q => {
-    if (!deletedIds.includes(q.id)) {
+  customQuestions.forEach(q => {
+    if (!deletedQuestionIds.includes(q.id)) {
       map.set(q.id, q)
     }
   })
@@ -185,7 +268,7 @@ export async function saveQuestionItem(item: Partial<QuestionItem>): Promise<Que
     question_options: item.question_options || [],
   }
 
-  // 1. Try persisting to Supabase (source of truth)
+  // 1. Try persisting to Supabase questions table if allowed
   try {
     if (isNew) {
       const { data, error } = await supabase
@@ -220,23 +303,23 @@ export async function saveQuestionItem(item: Partial<QuestionItem>): Promise<Que
     }
   } catch {}
 
-  // 2. Always persist to localStorage so Admin actions never fail
-  const current = getCustomStoredQuestions()
-  const idx = current.findIndex(q => q.id === questionObj.id)
-  let updated: QuestionItem[]
-  if (idx >= 0) {
-    updated = [...current]
-    updated[idx] = questionObj
-  } else {
-    updated = [...current, questionObj]
-  }
-  saveCustomStoredQuestions(updated)
+  // 2. Cross-device sync to Supabase audit_logs & local cache
+  const { deletedQuestionIds, customQuestions } = await fetchQuestionsBankStateFromDB()
+  const updatedDeleted = deletedQuestionIds.filter(id => id !== questionObj.id)
 
-  // Remove from deleted list if it was previously marked deleted
-  const deleted = getDeletedQuestionIds().filter(id => id !== questionObj.id)
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY_DELETED_QUESTIONS, JSON.stringify(deleted))
+  const idx = customQuestions.findIndex(q => q.id === questionObj.id)
+  let updatedCustom: QuestionItem[]
+  if (idx >= 0) {
+    updatedCustom = [...customQuestions]
+    updatedCustom[idx] = questionObj
+  } else {
+    updatedCustom = [...customQuestions, questionObj]
   }
+
+  await syncQuestionsBankStateToDB({
+    deletedQuestionIds: updatedDeleted,
+    customQuestions: updatedCustom,
+  })
 
   return questionObj
 }
@@ -244,24 +327,21 @@ export async function saveQuestionItem(item: Partial<QuestionItem>): Promise<Que
 export async function deleteQuestionItem(id: string): Promise<boolean> {
   const supabase = createClient()
 
-  // 1. Try deleting from Supabase (source of truth)
+  // 1. Try deleting from Supabase questions table
   try {
     await supabase.from('questions').delete().eq('id', id)
   } catch {}
 
-  // 2. Record to deleted list to prevent re-surfacing
-  const deleted = getDeletedQuestionIds()
-  if (!deleted.includes(id)) {
-    deleted.push(id)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_DELETED_QUESTIONS, JSON.stringify(deleted))
-    }
-  }
+  // 2. Add to deletedQuestionIds and remove from customQuestions in DB sync
+  const { deletedQuestionIds, customQuestions } = await fetchQuestionsBankStateFromDB()
 
-  // 3. Remove from custom storage
-  const current = getCustomStoredQuestions()
-  const updated = current.filter(q => q.id !== id)
-  saveCustomStoredQuestions(updated)
+  const updatedDeleted = Array.from(new Set([...deletedQuestionIds, id]))
+  const updatedCustom = customQuestions.filter(q => q.id !== id)
+
+  await syncQuestionsBankStateToDB({
+    deletedQuestionIds: updatedDeleted,
+    customQuestions: updatedCustom,
+  })
 
   return true
 }
@@ -276,6 +356,11 @@ export function subscribeQuestionsChange(callback: () => void): () => void {
   const supabase = createClient()
   const channel = supabase
     .channel(`questions-realtime-${Date.now()}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, (payload) => {
+      if (payload.new && (payload.new as any).action === 'SYNC_QUESTIONS_BANK') {
+        callback()
+      }
+    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
       callback()
     })

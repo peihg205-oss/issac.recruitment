@@ -18,6 +18,7 @@ export default function MemberMessagesPage() {
   const supabase = createClient()
   const { toast } = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -27,17 +28,15 @@ export default function MemberMessagesPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
-  const [hasApp, setHasApp] = useState<boolean | null>(null)
 
   const scrollToBottom = useCallback((instant = false) => {
     setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: instant ? 'auto' : 'smooth',
-        })
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'end' })
+      } else if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight
       }
-    }, 100)
+    }, 50)
   }, [])
 
   const loadData = useCallback(async (isSilent = false) => {
@@ -60,20 +59,18 @@ export default function MemberMessagesPage() {
 
       setProfile(prof)
       setApplication(app)
-      setHasApp(!!app)
 
-      if (app?.id) {
-        const msgs = await fetchApplicationMessages(supabase, app.id)
-        setMessages(msgs)
-        // Mark admin messages as read
-        await markChatAsRead(supabase, app.id, 'member')
-      }
+      // Conversation key is application.id if submitted, otherwise authUser.id for fresh accounts
+      const convKey = app?.id || authUser.id
+      const msgs = await fetchApplicationMessages(supabase, convKey, authUser.id)
+      setMessages(msgs)
+      await markChatAsRead(supabase, convKey, 'member', authUser.id)
     } catch (err) {
       console.error('Error fetching messages:', err)
     } finally {
       setLoading(false)
       setRefreshing(false)
-      if (!isSilent) scrollToBottom(true)
+      scrollToBottom(true)
     }
   }, [supabase, scrollToBottom])
 
@@ -81,12 +78,18 @@ export default function MemberMessagesPage() {
     loadData()
   }, [loadData])
 
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    scrollToBottom(false)
+  }, [messages.length, scrollToBottom])
+
   // Periodic polling to guarantee sync between mobile phones & laptops
   useEffect(() => {
-    if (!application?.id) return
+    if (!user?.id) return
+    const convKey = application?.id || user.id
     const interval = setInterval(async () => {
       try {
-        const msgs = await fetchApplicationMessages(supabase, application.id)
+        const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
         setMessages(prev => {
           if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) {
             return msgs
@@ -94,54 +97,58 @@ export default function MemberMessagesPage() {
           return prev
         })
       } catch {}
-    }, 3500)
+    }, 3000)
     return () => clearInterval(interval)
-  }, [application?.id, supabase])
+  }, [application?.id, user?.id, supabase])
 
   // Realtime subscription
   useEffect(() => {
-    if (!application?.id) return
+    if (!user?.id) return
+    const convKey = application?.id || user.id
 
     const channel = supabase
-      .channel(`member-messages-${application.id}`)
+      .channel(`member-messages-${convKey}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'audit_logs',
-        filter: `target_id=eq.${application.id}`,
-      }, async () => {
-        const msgs = await fetchApplicationMessages(supabase, application.id)
-        setMessages(msgs)
-        scrollToBottom()
+      }, async (payload: any) => {
+        const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
+        if (target === convKey || target === user.id) {
+          const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
+          setMessages(msgs)
+          scrollToBottom()
+        }
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'messages',
-        filter: `application_id=eq.${application.id}`,
-      }, async () => {
-        const msgs = await fetchApplicationMessages(supabase, application.id)
-        setMessages(msgs)
-        scrollToBottom()
+      }, async (payload: any) => {
+        if (payload?.new?.application_id === convKey || payload?.new?.application_id === user.id) {
+          const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
+          setMessages(msgs)
+          scrollToBottom()
+        }
       })
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [application?.id, supabase, scrollToBottom])
+  }, [application?.id, user?.id, supabase, scrollToBottom])
 
   const handleSend = async () => {
     const trimmed = newMessage.trim()
-    if (!trimmed || !user || !application?.id) return
+    if (!trimmed || !user?.id) return
     setSending(true)
 
-    // Optimistic message update
+    const convKey = application?.id || user.id
     const tempId = `tmp_${Date.now()}`
     const senderName = profile?.full_name || user.user_metadata?.full_name || 'Ứng viên'
     const optimisticMsg: ChatMessage = {
       id: tempId,
-      application_id: application.id,
+      application_id: convKey,
       sender_id: user.id,
       sender_role: 'member',
       sender_name: senderName,
@@ -152,11 +159,13 @@ export default function MemberMessagesPage() {
 
     setMessages(prev => [...prev, optimisticMsg])
     setNewMessage('')
-    scrollToBottom()
+    scrollToBottom(true)
 
     try {
       const savedMsg = await sendChatMessage(supabase, {
-        application_id: application.id,
+        conversation_id: convKey,
+        application_id: application?.id || null,
+        candidate_user_id: user.id,
         sender_id: user.id,
         sender_role: 'member',
         sender_name: senderName,
@@ -172,7 +181,6 @@ export default function MemberMessagesPage() {
         description: err?.message || 'Vui lòng thử lại sau.',
         variant: 'destructive',
       })
-      // Revert optimistic on error
       setMessages(prev => prev.filter(m => m.id !== tempId))
     } finally {
       setSending(false)
@@ -216,32 +224,10 @@ export default function MemberMessagesPage() {
     )
   }
 
-  if (!hasApp) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4 max-w-md mx-auto p-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto text-[#1657c1]">
-            <MessageSquare className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Chat với Ban Tuyển quân</h2>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            Bạn cần nộp đơn ứng tuyển trước khi có thể trao đổi trực tiếp với Ban Tuyển quân & Ban Chủ nhiệm iSSAC.
-          </p>
-          <a
-            href="/member/application"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1657c1] text-white font-bold text-sm hover:bg-[#1147a3] transition-all shadow-sm"
-          >
-            <Sparkles className="w-4 h-4" /> Ứng tuyển ngay
-          </a>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shrink-0">
+      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shrink-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shadow-xs shrink-0">
             <MessageSquare className="w-5 h-5 text-amber-300" />
@@ -254,7 +240,9 @@ export default function MemberMessagesPage() {
               </span>
             </div>
             <p className="text-xs text-blue-200 font-medium truncate">
-              {application?.departments?.name ? `Ban ${application.departments.name} • ` : ''}Giải đáp thắc mắc tuyển quân
+              {application?.departments?.name
+                ? `Ban ${application.departments.name} • Giải đáp thắc mắc tuyển quân`
+                : 'Ứng viên Gen 3 • Giải đáp thắc mắc tuyển quân & hồ sơ'}
             </p>
           </div>
         </div>
@@ -264,7 +252,7 @@ export default function MemberMessagesPage() {
             onClick={() => loadData(true)}
             disabled={refreshing}
             title="Làm mới tin nhắn"
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-50"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -276,15 +264,18 @@ export default function MemberMessagesPage() {
       </div>
 
       {/* Notice Banner */}
-      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-amber-50/80 border-b border-amber-200/60 text-xs text-amber-900 shrink-0">
+      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-amber-50/80 border-b border-amber-200/60 text-xs text-amber-900 shrink-0 z-10">
         <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <span className="leading-snug">
-          Bạn có thể đặt câu hỏi về tiến độ duyệt đơn, lịch phỏng vấn hoặc thắc mắc chuyên môn. Ban Chủ nhiệm sẽ phản hồi sớm nhất!
+          Chào bạn! Bạn có thể trao đổi trực tiếp với Ban Chủ nhiệm về thể lệ ứng tuyển, tiêu chí từng ban, lịch trình hoặc thắc mắc về hồ sơ. Ban Chủ nhiệm sẽ phản hồi sớm nhất!
         </span>
       </div>
 
       {/* Messages Scroll Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/50">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/50 overscroll-contain"
+      >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-[#1657c1]">
@@ -347,10 +338,11 @@ export default function MemberMessagesPage() {
             )
           })
         )}
+        <div ref={messagesEndRef} className="h-1 shrink-0" />
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0">
+      <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0 z-10">
         <div className="flex items-end gap-2.5">
           <div className="flex-1 relative">
             <textarea

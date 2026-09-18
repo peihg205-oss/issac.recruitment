@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import {
   MessageSquare, Send, Loader2, CheckCheck, Clock,
   ShieldCheck, Users, Search, ArrowLeft, Inbox,
-  RefreshCw, Sparkles, Phone, Mail, GraduationCap
+  RefreshCw, Sparkles, Phone, Mail, GraduationCap, ChevronDown
 } from 'lucide-react'
 import {
   ChatMessage,
@@ -25,6 +25,7 @@ function AdminMessagesContent() {
   const searchParams = useSearchParams()
   const initialAppId = searchParams.get('appId')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [activeConv, setActiveConv] = useState<string | null>(initialAppId)
@@ -38,17 +39,25 @@ function AdminMessagesContent() {
   const [adminUser, setAdminUser] = useState<any>(null)
   const [adminProfile, setAdminProfile] = useState<any>(null)
   const [showMobileList, setShowMobileList] = useState(true)
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false)
 
   const scrollToBottom = useCallback((instant = false) => {
     setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: instant ? 'auto' : 'smooth',
-        })
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'end' })
+      } else if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight
       }
-    }, 100)
+    }, 60)
   }, [])
+
+  // Check scroll position to show/hide "Scroll to bottom" button
+  const handleScroll = () => {
+    if (!scrollRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 120
+    setShowScrollBottomBtn(!isNearBottom)
+  }
 
   // Load admin user & all conversation summaries
   const loadConversations = useCallback(async (isSilent = false) => {
@@ -92,26 +101,32 @@ function AdminMessagesContent() {
   // Fetch messages for active conversation
   const loadMessages = useCallback(async (appId: string, isSilent = false) => {
     try {
-      const msgs = await fetchApplicationMessages(supabase, appId)
+      const conv = conversations.find(c => c.application_id === appId)
+      const msgs = await fetchApplicationMessages(supabase, appId, conv?.candidate_id)
       setMessages(msgs)
-      await markChatAsRead(supabase, appId, 'admin')
+      await markChatAsRead(supabase, appId, 'admin', conv?.candidate_id)
 
       // Update local unread badge
       setConversations(prev => prev.map(c =>
         c.application_id === appId ? { ...c, unread_count: 0 } : c
       ))
 
-      if (!isSilent) scrollToBottom(true)
+      scrollToBottom(true)
     } catch (err) {
       console.error('Error fetching messages for app:', err)
     }
-  }, [supabase, scrollToBottom])
+  }, [supabase, conversations, scrollToBottom])
 
   useEffect(() => {
     if (activeConv) {
       loadMessages(activeConv)
     }
   }, [activeConv, loadMessages])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom(false)
+  }, [messages.length, activeConv, scrollToBottom])
 
   // Periodic polling for realtime synchronization across phone & laptop
   useEffect(() => {
@@ -121,7 +136,8 @@ function AdminMessagesContent() {
         setConversations(list)
 
         if (activeConv) {
-          const msgs = await fetchApplicationMessages(supabase, activeConv)
+          const conv = list.find(c => c.application_id === activeConv)
+          const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
           setMessages(prev => {
             if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) {
               return msgs
@@ -130,7 +146,7 @@ function AdminMessagesContent() {
           })
         }
       } catch {}
-    }, 4000)
+    }, 3500)
 
     return () => clearInterval(interval)
   }, [activeConv, supabase])
@@ -143,10 +159,14 @@ function AdminMessagesContent() {
         if (payload?.new?.action === 'CHAT_MESSAGE' || payload?.new?.action === 'CHAT_READ') {
           const list = await fetchAllConversations(supabase)
           setConversations(list)
-          if (activeConv && (payload?.new?.target_id === activeConv || payload?.new?.metadata?.application_id === activeConv)) {
-            const msgs = await fetchApplicationMessages(supabase, activeConv)
-            setMessages(msgs)
-            scrollToBottom()
+          if (activeConv) {
+            const conv = list.find(c => c.application_id === activeConv)
+            const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
+            if (target === activeConv || (conv && target === conv.candidate_id)) {
+              const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
+              setMessages(msgs)
+              scrollToBottom()
+            }
           }
         }
       })
@@ -154,7 +174,8 @@ function AdminMessagesContent() {
         const list = await fetchAllConversations(supabase)
         setConversations(list)
         if (activeConv && payload?.new?.application_id === activeConv) {
-          const msgs = await fetchApplicationMessages(supabase, activeConv)
+          const conv = list.find(c => c.application_id === activeConv)
+          const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
           setMessages(msgs)
           scrollToBottom()
         }
@@ -177,7 +198,6 @@ function AdminMessagesContent() {
     if (!trimmed || !adminUser || !activeConv) return
     setSending(true)
 
-    // Determine admin sender name
     let senderName = adminProfile?.full_name || 'Ban Chủ nhiệm iSSAC'
     if (typeof document !== 'undefined') {
       const nameCookie = document.cookie.match(/issac_logged_admin_name=([^;]+)/)
@@ -199,16 +219,17 @@ function AdminMessagesContent() {
 
     setMessages(prev => [...prev, optimisticMsg])
     setNewMessage('')
-    scrollToBottom()
+    scrollToBottom(true)
 
     try {
       const savedMsg = await sendChatMessage(supabase, {
-        application_id: activeConv,
+        conversation_id: activeConv,
+        application_id: currentConv?.has_application ? activeConv : null,
+        candidate_user_id: currentConv?.candidate_id || activeConv,
         sender_id: adminUser.id,
         sender_role: 'admin',
         sender_name: senderName,
         content: trimmed,
-        candidate_user_id: undefined, // handled via notification query in manager
       })
 
       setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
@@ -318,7 +339,7 @@ function AdminMessagesContent() {
           <button
             onClick={() => loadConversations(true)}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Làm mới</span>
@@ -326,12 +347,12 @@ function AdminMessagesContent() {
         </div>
       </div>
 
-      {/* Main Chat Box */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden h-[calc(100vh-12rem)] min-h-[500px]">
+      {/* Main Chat Box - Constrained Height with Full Scrollable Area */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 bg-white rounded-3xl border border-slate-200 shadow-xs h-[calc(100vh-11rem)] max-h-[850px] min-h-[550px] overflow-hidden">
         {/* Left Sidebar: Conversations List */}
-        <div className={`md:col-span-4 lg:col-span-4 border-r border-slate-200 flex flex-col bg-slate-50/60 ${showMobileList ? 'block' : 'hidden md:flex'}`}>
+        <div className={`md:col-span-4 lg:col-span-4 border-r border-slate-200 flex flex-col bg-slate-50/60 h-full min-h-0 overflow-hidden ${showMobileList ? 'flex' : 'hidden md:flex'}`}>
           {/* Search & Filter Tabs */}
-          <div className="p-3 border-b border-slate-200 space-y-2 bg-white">
+          <div className="p-3 border-b border-slate-200 space-y-2 bg-white shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
@@ -345,7 +366,7 @@ function AdminMessagesContent() {
             <div className="flex items-center gap-1.5 pt-1">
               <button
                 onClick={() => setFilterMode('all')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   filterMode === 'all'
                     ? 'bg-[#1559c5] text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -355,7 +376,7 @@ function AdminMessagesContent() {
               </button>
               <button
                 onClick={() => setFilterMode('unread')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   filterMode === 'unread'
                     ? 'bg-rose-600 text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -367,7 +388,7 @@ function AdminMessagesContent() {
           </div>
 
           {/* Conversations Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 overscroll-contain">
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center space-y-2 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto stroke-1 text-slate-300" />
@@ -401,7 +422,9 @@ function AdminMessagesContent() {
 
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate mt-0.5">
                         {conv.candidate_student_id && <span>{conv.candidate_student_id} • </span>}
-                        <span>{conv.dept_name}</span>
+                        <span className={conv.has_application ? 'text-blue-700 font-semibold' : 'text-slate-500'}>
+                          {conv.dept_name}
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between gap-2 mt-1">
@@ -423,15 +446,15 @@ function AdminMessagesContent() {
         </div>
 
         {/* Right Area: Active Chat Window */}
-        <div className={`md:col-span-8 lg:col-span-8 flex flex-col bg-white ${!showMobileList ? 'block' : 'hidden md:flex'}`}>
+        <div className={`md:col-span-8 lg:col-span-8 flex flex-col bg-white h-full min-h-0 overflow-hidden relative ${!showMobileList ? 'flex' : 'hidden md:flex'}`}>
           {activeConversation ? (
             <>
               {/* Active Conversation Header */}
-              <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+              <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0 z-10 shadow-2xs">
                 <div className="flex items-center gap-3 min-w-0">
                   <button
                     onClick={() => setShowMobileList(true)}
-                    className="md:hidden p-1.5 rounded-xl hover:bg-slate-100 text-slate-600"
+                    className="md:hidden p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 cursor-pointer"
                     title="Quay lại danh sách"
                   >
                     <ArrowLeft className="w-5 h-5" />
@@ -444,7 +467,11 @@ function AdminMessagesContent() {
                       <h2 className="text-sm font-bold text-slate-900 truncate">
                         {activeConversation.candidate_name}
                       </h2>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-[#1559c5] border border-blue-200 rounded-full">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                        activeConversation.has_application
+                          ? 'bg-blue-50 text-[#1559c5] border border-blue-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}>
                         {activeConversation.dept_name}
                       </span>
                     </div>
@@ -461,6 +488,12 @@ function AdminMessagesContent() {
                           {activeConversation.candidate_phone}
                         </span>
                       )}
+                      {activeConversation.candidate_email && (
+                        <span className="hidden sm:flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          {activeConversation.candidate_email}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -475,8 +508,12 @@ function AdminMessagesContent() {
                 </div>
               </div>
 
-              {/* Messages Body */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/50">
+              {/* Messages Body - Flex-1 with native scroll */}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/50 overscroll-contain"
+              >
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1559c5]">
@@ -543,10 +580,24 @@ function AdminMessagesContent() {
                     )
                   })
                 )}
+                {/* Scroll Target Anchor */}
+                <div ref={messagesEndRef} className="h-1 shrink-0" />
               </div>
 
+              {/* Floating Scroll to Bottom Button */}
+              {showScrollBottomBtn && (
+                <button
+                  onClick={() => scrollToBottom(false)}
+                  className="absolute bottom-32 right-6 p-2 rounded-full bg-white text-[#1559c5] shadow-md border border-slate-200 hover:bg-slate-50 transition-all z-20 cursor-pointer animate-bounce flex items-center gap-1 text-xs font-bold px-3"
+                  title="Cuộn xuống tin nhắn mới nhất"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  <span>Mới nhất</span>
+                </button>
+              )}
+
               {/* Quick Template Chips */}
-              <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+              <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 z-10">
                 <span className="text-[10px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">Mẫu nhanh:</span>
                 {[
                   'Ban Chủ nhiệm đã nhận được tin nhắn và đang kiểm tra hồ sơ của bạn.',
@@ -557,7 +608,7 @@ function AdminMessagesContent() {
                   <button
                     key={idx}
                     onClick={() => handleQuickReply(txt)}
-                    className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 hover:text-[#1559c5] border border-slate-200 text-slate-600 whitespace-nowrap transition-all shrink-0"
+                    className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 hover:text-[#1559c5] border border-slate-200 text-slate-600 whitespace-nowrap transition-all shrink-0 cursor-pointer"
                   >
                     {txt.slice(0, 32)}...
                   </button>
@@ -565,7 +616,7 @@ function AdminMessagesContent() {
               </div>
 
               {/* Input Bar */}
-              <div className="border-t border-slate-200 p-3 sm:p-4 bg-white shrink-0">
+              <div className="border-t border-slate-200 p-3 sm:p-4 bg-white shrink-0 z-10">
                 <div className="flex items-end gap-2.5">
                   <div className="flex-1 relative">
                     <textarea

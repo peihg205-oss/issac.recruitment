@@ -57,44 +57,51 @@ export default async function MemberLayout({ children }: { children: React.React
 
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      // 1. Kiểm tra cookie danh sách bị xóa
-      const cookieStore = await cookies()
-      const deletedCookieStr = cookieStore.get('issac_deleted_candidates')?.value
-      const deletedIds = parseDeletedCandidateIdsFromCookie(deletedCookieStr ? `issac_deleted_candidates=${deletedCookieStr}` : '')
-      const userEmail = (user.email || '').toLowerCase().trim()
+    if (!user) {
+      return redirect('/login')
+    }
 
-      if (deletedIds.includes(user.id) || (userEmail && deletedIds.includes(userEmail))) {
-        return redirect('/login?deleted=true')
-      }
+    // 1. Kiểm tra cookie danh sách bị xóa
+    const cookieStore = await cookies()
+    const deletedCookieStr = cookieStore.get('issac_deleted_candidates')?.value
+    const deletedIds = parseDeletedCandidateIdsFromCookie(deletedCookieStr ? `issac_deleted_candidates=${deletedCookieStr}` : '')
+    const userEmail = (user.email || '').toLowerCase().trim()
 
-      const [{ data: profile }, { data: app }] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('full_name, email, avatar_url, role, student_id, cohort, is_active')
-          .eq('id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('applications')
-          .select('departments!applications_department_id_fkey(name)')
-          .eq('user_id', user.id)
-          .maybeSingle()
-      ])
+    if (deletedIds.includes(user.id) || (userEmail && deletedIds.includes(userEmail))) {
+      return redirect('/login?deleted=true')
+    }
 
-      // 2. Kiểm tra database profile nếu đã bị BCN vô hiệu hóa/xóa
-      if (profile && (profile.is_active === false || profile.role === 'deleted')) {
-        return redirect('/login?deleted=true')
-      }
+    const [{ data: profile }, { data: app }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, email, avatar_url, role, student_id, cohort, is_active')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('applications')
+        .select('departments!applications_department_id_fkey(name)')
+        .eq('user_id', user.id)
+        .maybeSingle()
+    ])
 
-      userProfile = {
-        full_name: profile?.full_name || user.user_metadata?.full_name || 'Ứng viên',
-        email: profile?.email || user.email || '',
-        student_id: profile?.student_id || null,
-        cohort: profile?.cohort || null,
-        avatar_url: profile?.avatar_url || null,
-        role: profile?.role || 'applicant',
-        deptName: (Array.isArray(app?.departments) ? (app.departments[0] as any)?.name : (app?.departments as any)?.name) || null,
-      }
+    // 2. Nếu là tài khoản quản trị (BCN / Giám khảo), chuyển hướng sang Cổng Quản trị
+    if (profile && (profile.role === 'admin' || profile.role === 'super_admin')) {
+      return redirect('/admin/dashboard')
+    }
+
+    // 3. Kiểm tra database profile nếu đã bị BCN vô hiệu hóa/xóa
+    if (profile && (profile.is_active === false || profile.role === 'deleted')) {
+      return redirect('/login?deleted=true')
+    }
+
+    userProfile = {
+      full_name: profile?.full_name || user.user_metadata?.full_name || 'Ứng viên',
+      email: profile?.email || user.email || '',
+      student_id: profile?.student_id || null,
+      cohort: profile?.cohort || null,
+      avatar_url: profile?.avatar_url || null,
+      role: profile?.role || 'applicant',
+      deptName: (Array.isArray(app?.departments) ? (app.departments[0] as any)?.name : (app?.departments as any)?.name) || null,
     }
   } catch (err) {
     console.error('Error loading member layout profile:', err)

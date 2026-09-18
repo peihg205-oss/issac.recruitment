@@ -185,7 +185,7 @@ export async function saveQuestionItem(item: Partial<QuestionItem>): Promise<Que
     question_options: item.question_options || [],
   }
 
-  // 1. Try persisting to Supabase
+  // 1. Try persisting to Supabase (source of truth)
   try {
     if (isNew) {
       const { data, error } = await supabase
@@ -244,7 +244,7 @@ export async function saveQuestionItem(item: Partial<QuestionItem>): Promise<Que
 export async function deleteQuestionItem(id: string): Promise<boolean> {
   const supabase = createClient()
 
-  // 1. Try deleting from Supabase
+  // 1. Try deleting from Supabase (source of truth)
   try {
     await supabase.from('questions').delete().eq('id', id)
   } catch {}

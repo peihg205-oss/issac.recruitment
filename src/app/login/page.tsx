@@ -1,5 +1,5 @@
 "use client"
-import { useState, Suspense, useEffect } from "react"
+import { useState, Suspense, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal"
-import { isCandidateDeleted, setCandidatePassword } from "@/lib/candidate-account-manager"
+import { isCandidateDeleted, isDeletedInDB, setCandidatePassword } from "@/lib/candidate-account-manager"
+import { getCreatedAdminAccountsFromDB, getCreatedAdminAccountsLocal, getDeletedAdminEmailsFromDB } from "@/lib/admin-account-manager"
 import { useSystemSettings } from "@/lib/system-settings"
 import {
   Eye, EyeOff, LogIn, Loader2, Home,
@@ -61,6 +62,14 @@ function LoginForm() {
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
   const [resendingEmail, setResendingEmail] = useState(false)
   const { timeline } = useSystemSettings()
+  const dbAdminListRef = useRef<any[]>([])
+
+  // Fetch admin accounts from DB on mount (cross-device sync)
+  useEffect(() => {
+    getCreatedAdminAccountsFromDB().then(list => {
+      dbAdminListRef.current = list
+    }).catch(() => {})
+  }, [])
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -133,36 +142,27 @@ function LoginForm() {
     setUnconfirmedEmail(null)
     const supabase = createClient()
 
-    const getCreatedAdminsList = (): any[] => {
-      // Thử đọc từ cookie trước (chia sẻ được giữa các thiết bị nếu set đúng)
-      const cookieMatch = typeof document !== "undefined" ? document.cookie.match(/(?:^|;\s*)issac_created_admins=([^;]+)/) : null
-      if (cookieMatch) {
-        try {
-          const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
-          if (Array.isArray(parsed)) return parsed
-        } catch {}
-      }
-      // Fallback: đọc từ localStorage
-      if (typeof window !== "undefined") {
-        const raw = localStorage.getItem("issac_created_admins")
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw)
-            if (Array.isArray(parsed)) return parsed
-          } catch {}
-        }
-      }
-      return []
-    }
+    // Use DB-fetched list (set in useEffect), with localStorage fallback
+    const createdList = dbAdminListRef.current.length > 0
+      ? dbAdminListRef.current
+      : getCreatedAdminAccountsLocal()
 
-    const createdList = getCreatedAdminsList()
+    const checkIsAdminEmail = (email: string, list: any[]): boolean => {
+      const emailLower = email.toLowerCase().trim()
+      if (SYSTEM_ADMIN_ROLES[emailLower]) return true
+      if (list.some((a: any) => a.email?.toLowerCase().trim() === emailLower)) return true
+      return false
+    }
 
     // XỬ LÝ ĐĂNG NHẬP BAN TUYỂN QUÂN (ADMIN / GIÁM KHẢO)
     if (loginType === "admin") {
       const emailLower = values.email.toLowerCase().trim()
 
-      // Kiểm tra nếu tài khoản này đã bị BCN xóa vĩnh viễn
+      // Kiểm tra nếu tài khoản này đã bị BCN xóa — check DB + local
+      const dbDeletedAdminList = await getDeletedAdminEmailsFromDB()
       const isDeletedAdmin = (): boolean => {
+        if (dbDeletedAdminList.some(em => em.toLowerCase().trim() === emailLower)) return true
+        // Check local cache
         try {
           if (typeof window !== "undefined") {
             const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
@@ -171,12 +171,10 @@ function LoginForm() {
               if (Array.isArray(parsed) && parsed.includes(emailLower)) return true
             }
           }
-          const cookieMatch = typeof document !== "undefined" ? document.cookie.match(/(?:^|;\s*)issac_deleted_admin_emails=([^;]+)/) : null
-          if (cookieMatch) {
-            const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
-            if (Array.isArray(parsed) && parsed.includes(emailLower)) return true
-          }
         } catch {}
+        // Check if marked inactive in DB-fetched list
+        const found = createdList.find((a: any) => a.email?.toLowerCase().trim() === emailLower)
+        if (found && found.is_active === false) return true
         return false
       }
 
@@ -256,13 +254,25 @@ function LoginForm() {
         return
       }
 
-      // Không tìm thấy tài khoản admin phù hợp → thử Supabase Auth
+      // Không tìm thấy tài khoản admin phù hợp trong list cứng/local → sẽ thử Supabase Auth bên dưới
     }
 
-    // XỬ LÝ ĐĂNG NHẬP ỨNG VIÊN
+    // XỬ LÝ TIỀN KIỂM TRA ĐĂNG NHẬP ỨNG VIÊN
     if (loginType === "candidate") {
       const emailLower = values.email.toLowerCase().trim()
-      const isDeleted = isCandidateDeleted("", emailLower)
+
+      // Kiểm tra nếu là tài khoản của BCN / Giám khảo -> Chặn ngay lập tức
+      if (checkIsAdminEmail(emailLower, createdList)) {
+        setLoading(false)
+        toast({
+          title: "Tài khoản Ban Tuyển quân",
+          description: "Đây là tài khoản của Ban Chủ nhiệm / Giám khảo. Vui lòng chuyển sang tab 'Ban Tuyển quân' để đăng nhập vào Cổng Quản trị.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const isDeleted = (await isDeletedInDB("", emailLower)) || isCandidateDeleted("", emailLower)
       if (isDeleted) {
         setLoading(false)
         toast({
@@ -312,7 +322,19 @@ function LoginForm() {
       const userEmail = (authData.user.email || values.email).toLowerCase().trim()
       const userId = authData.user.id
 
-      // 1. Kiểm tra trong danh sách blacklist đã bị BCN xóa
+      // 1. Kiểm tra email nếu là admin
+      if (checkIsAdminEmail(userEmail, createdList)) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        toast({
+          title: "Tài khoản Ban Tuyển quân",
+          description: "Đây là tài khoản của Ban Chủ nhiệm / Giám khảo. Vui lòng chuyển sang tab 'Ban Tuyển quân' để đăng nhập vào Cổng Quản trị.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // 2. Kiểm tra trong danh sách blacklist đã bị BCN xóa
       if (isCandidateDeleted(userId, userEmail)) {
         await supabase.auth.signOut()
         setLoading(false)
@@ -324,7 +346,7 @@ function LoginForm() {
         return
       }
 
-      // 2. Kiểm tra trực tiếp trên DB profiles (bảo mật đa thiết bị)
+      // 3. Kiểm tra trực tiếp trên DB profiles (bảo mật đa thiết bị)
       try {
         const { data: userProf } = await supabase
           .from('profiles')
@@ -343,19 +365,15 @@ function LoginForm() {
           return
         }
 
-        // Nếu tài khoản thực ra là admin/super_admin → chuyển hướng về admin
+        // Nếu tài khoản là admin / super_admin: TUYỆT ĐỐI CHẶN ở tab ứng viên, bắt chuyển tab
         if (userProf && (userProf.role === 'admin' || userProf.role === 'super_admin')) {
-          const targetAdminRole = userProf.admin_role || 'chu-nhiem'
-          const displayName = userProf.full_name || 'Cán bộ Tuyển quân'
-          const displayTitle = userProf.high_school || (targetAdminRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : 'Cán bộ Tuyển quân')
-          document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
-          document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`
-          document.cookie = `issac_logged_admin_title=${encodeURIComponent(displayTitle)}; path=/; max-age=2592000; SameSite=Lax`
-          document.cookie = `issac_logged_admin_email=${encodeURIComponent(userEmail)}; path=/; max-age=2592000; SameSite=Lax`
+          await supabase.auth.signOut()
           setLoading(false)
-          toast({ title: "Đăng nhập thành công", description: `Chào mừng ${displayName}! Đang chuyển vào cổng quản trị...`, variant: "success" } as Parameters<typeof toast>[0])
-          router.push("/admin/dashboard")
-          router.refresh()
+          toast({
+            title: "Tài khoản Ban Tuyển quân",
+            description: "Đây là tài khoản của Ban Chủ nhiệm / Giám khảo. Vui lòng chuyển sang tab 'Ban Tuyển quân' để đăng nhập vào Cổng Quản trị.",
+            variant: "destructive"
+          })
           return
         }
       } catch {}
@@ -382,28 +400,29 @@ function LoginForm() {
 
     setLoading(false)
 
-    // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN)
+    // ĐĂNG NHẬP TAB BAN TUYỂN QUÂN (ADMIN) QUA SUPABASE AUTH
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, admin_role, full_name, email, high_school")
       .eq("id", authData.user.id)
-      .single()
+      .maybeSingle()
 
-    const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
+    const userEmail = (authData.user.email || values.email).toLowerCase().trim()
+    const isAdmin = profile?.role === "admin" || profile?.role === "super_admin" || checkIsAdminEmail(userEmail, createdList)
 
-    // Kiểm tra đúng quyền quản trị
+    // Kiểm tra đúng quyền quản trị - nếu là ứng viên (role !== admin) -> CHẶN NGAY VÀ ĐĂNG XUẤT
     if (!isAdmin) {
+      await supabase.auth.signOut()
       toast({
         title: "Không có quyền quản trị",
-        description: "Tài khoản của bạn là Ứng viên. Vui lòng chuyển sang tab Đăng nhập Ứng viên.",
+        description: "Tài khoản của bạn là Ứng viên. Vui lòng chuyển sang tab 'Ứng viên' để đăng nhập.",
         variant: "destructive"
       })
       return
     }
 
     const userMeta = authData.user.user_metadata || {}
-    const emailLower = (authData.user.email || values.email).toLowerCase().trim()
-    const foundCreated = createdList.find((a: any) => a.email?.toLowerCase().trim() === emailLower)
+    const foundCreated = createdList.find((a: any) => a.email?.toLowerCase().trim() === userEmail)
 
     const targetAdminRole = foundCreated?.admin_role || profile?.admin_role || userMeta.admin_role || "chu-nhiem"
     const displayName = foundCreated?.full_name || profile?.full_name || userMeta.full_name || "Cán bộ Tuyển quân"
@@ -412,7 +431,7 @@ function LoginForm() {
     document.cookie = `issac_admin_role=${targetAdminRole}; path=/; max-age=2592000; SameSite=Lax`
     document.cookie = `issac_logged_admin_name=${encodeURIComponent(displayName)}; path=/; max-age=2592000; SameSite=Lax`
     document.cookie = `issac_logged_admin_title=${encodeURIComponent(displayTitle)}; path=/; max-age=2592000; SameSite=Lax`
-    document.cookie = `issac_logged_admin_email=${encodeURIComponent(authData.user.email || "")}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_email=${encodeURIComponent(userEmail)}; path=/; max-age=2592000; SameSite=Lax`
 
     toast({
       title: "Đăng nhập thành công",

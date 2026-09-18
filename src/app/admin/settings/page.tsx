@@ -16,6 +16,7 @@ import {
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType, getAdminRoleFromCookie } from '@/lib/permissions'
 import { getAdminAccounts } from '@/lib/admin-account-manager'
 import { formatDate } from '@/lib/utils'
+import { saveSystemSettingsToDB, fetchSystemSettingsFromDB } from '@/lib/system-settings'
 
 interface Setting {
   id: string
@@ -261,21 +262,8 @@ export default function SettingsPage() {
         value: values[s.key] !== undefined ? values[s.key] : s.value
       })))
 
-      // 5. Try Supabase upsert so any new setting key is saved/created
-      const { data: { user } } = await supabase.auth.getUser()
-      for (const key of Object.keys(values)) {
-        await supabase
-          .from('system_settings')
-          .upsert({ 
-            key, 
-            value: values[key], 
-            updated_by: user?.id, 
-            updated_at: new Date().toISOString() 
-          }, { onConflict: 'key' })
-      }
-      if (user?.id) {
-        await supabase.from('audit_logs').insert({ user_id: user.id, action: 'UPDATE_SETTINGS', description: 'Updated system settings' })
-      }
+      // 5. Save to Supabase DB & audit_logs for cross-device synchronization
+      await saveSystemSettingsToDB(values)
     } catch (err) {
       console.warn('Supabase settings sync warning:', err)
     } finally {

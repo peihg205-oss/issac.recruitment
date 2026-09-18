@@ -77,7 +77,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full border border-white/40 hover:border-white text-white text-xs sm:text-sm font-semibold transition-all hover:bg-white/10"
             >
               <User className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">Đăng nhập</span>
+              <span className="hidden sm:inline">Đăng nhập</span>
             </Link>
             <Link
               href="/register"

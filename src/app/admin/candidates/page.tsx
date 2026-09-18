@@ -11,7 +11,7 @@ import {
   ArrowUpDown, Users, Loader2, ChevronRight, Filter, Key, Trash2
 } from 'lucide-react'
 import { CandidateAccountModal } from "@/components/admin/candidate-account-modal"
-import { isCandidateDeleted, deleteCandidateAccount } from "@/lib/candidate-account-manager"
+import { isCandidateDeleted, deleteCandidateAccount, getDeletedCandidateIdsFromDB } from "@/lib/candidate-account-manager"
 import Link from 'next/link'
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS, formatDate, formatFullTimestamp, exportToCSV, buildCandidateCodeMap } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -25,7 +25,7 @@ interface Candidate {
   status: ApplicationStatus
   submitted_at: string | null
   created_at: string
-  profiles: { full_name: string; email: string; student_id: string | null; phone: string | null; major?: string; cohort?: string }
+  profiles: { full_name: string; email: string; student_id: string | null; phone: string | null; major?: string; cohort?: string; is_active?: boolean }
   departments: { name: string; slug: string }
   candidate_rankings: { rank_number: number | null; final_score: number | null; result: string } | null
 }
@@ -59,7 +59,7 @@ export default function CandidatesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [{ data: apps }, { data: depts }, { data: allProfiles }] = await Promise.all([
+      const [{ data: apps }, { data: depts }, { data: allProfiles }, dbDeleted] = await Promise.all([
         supabase
           .from('applications')
           .select(`
@@ -69,8 +69,11 @@ export default function CandidatesPage() {
           `)
           .order('created_at', { ascending: false }),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
-        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at')
+        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at'),
+        getDeletedCandidateIdsFromDB()
       ])
+
+      const deletedSet = new Set((dbDeleted || []).map(x => x.toLowerCase().trim()))
 
       let candidateList: Candidate[] = []
       let profilesMap: Record<string, any> = {}
@@ -83,16 +86,22 @@ export default function CandidatesPage() {
         if (Object.keys(profilesMap).length === 0 && userIds.length > 0) {
           const { data: profs } = await supabase
             .from('profiles')
-            .select('id, full_name, email, student_id, phone, major, cohort')
+            .select('id, full_name, email, student_id, phone, major, cohort, is_active')
             .in('id', userIds)
           if (profs) {
             profs.forEach((p: any) => { profilesMap[p.id] = p })
           }
         }
-        candidateList = apps.map((a: any) => ({
-          ...a,
-          profiles: profilesMap[a.user_id] || { full_name: 'Ứng viên', email: '', student_id: '' }
-        })) as unknown as Candidate[]
+        candidateList = apps
+          .filter((a: any) => {
+            const p = profilesMap[a.user_id]
+            if (p && p.is_active === false) return false
+            return true
+          })
+          .map((a: any) => ({
+            ...a,
+            profiles: profilesMap[a.user_id] || { full_name: 'Ứng viên', email: '', student_id: '' }
+          })) as unknown as Candidate[]
       }
 
       // Bổ sung tài khoản sinh viên đã đăng ký / đăng nhập nhưng CHƯA làm đơn (lọc bỏ tài khoản đã xóa)
@@ -103,6 +112,8 @@ export default function CandidatesPage() {
           p.role !== 'admin' && 
           p.role !== 'deleted' && 
           p.is_active !== false &&
+          !deletedSet.has(p.id?.toLowerCase().trim()) &&
+          !deletedSet.has(p.email?.toLowerCase().trim()) &&
           !isCandidateDeleted(p.id, p.email, p.id)
         )
         unsubmittedProfiles.forEach((p: any) => {
@@ -119,8 +130,18 @@ export default function CandidatesPage() {
         })
       }
 
-      // LỌC BỎ TOÀN BỘ ỨNG VIÊN ĐÃ BỊ BCN XÓA (ĐẢM BẢO HIỂN THỊ ĐÚNG DỮ LIỆU THẬT)
-      candidateList = candidateList.filter(c => !isCandidateDeleted(c.id, c.profiles?.email, c.user_id))
+      // LỌC BỎ TOÀN BỘ ỨNG VIÊN ĐÃ BỊ BCN XÓA (ĐẢM BẢO ĐỒNG BỘ 100% ĐA THIẾT BỊ LAPTOP / ĐIỆN THOẠI)
+      candidateList = candidateList.filter(c => {
+        if (c.profiles && c.profiles.is_active === false) return false
+        const idLower = c.id?.toLowerCase().trim()
+        const emailLower = c.profiles?.email?.toLowerCase().trim()
+        const userIdLower = c.user_id?.toLowerCase().trim()
+        if (idLower && deletedSet.has(idLower)) return false
+        if (emailLower && deletedSet.has(emailLower)) return false
+        if (userIdLower && deletedSet.has(userIdLower)) return false
+        if (isCandidateDeleted(c.id, c.profiles?.email, c.user_id)) return false
+        return true
+      })
 
       setCandidates(candidateList)
       setDepartments(depts && depts.length > 0 ? depts : MOCK_DEPARTMENTS)

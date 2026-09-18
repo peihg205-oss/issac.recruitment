@@ -25,13 +25,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     userProfile = prof
   }
 
-  // Nếu là ứng viên (role = member) và không có cookie admin, chuyển hướng ngay về dashboard ứng viên
-  if (userProfile && userProfile.role === "member" && !activeRoleFromCookie) {
-    redirect("/member/dashboard")
+  const hasAdminCookie = Boolean(activeRoleFromCookie && activeRoleFromCookie in ADMIN_ROLE_CONFIGS)
+  const isDbAdmin = Boolean(userProfile && (userProfile.role === "admin" || userProfile.role === "super_admin"))
+
+  // Chặn người dùng không có quyền quản trị truy cập cổng Ban Tuyển quân
+  if (!hasAdminCookie && !isDbAdmin) {
+    if (userProfile && userProfile.role === "member") {
+      redirect("/member/dashboard")
+    }
+    redirect("/login?role=admin")
   }
 
-  const activeRole: AdminRoleType = (activeRoleFromCookie && activeRoleFromCookie in ADMIN_ROLE_CONFIGS)
-    ? activeRoleFromCookie
+  const activeRole: AdminRoleType = hasAdminCookie
+    ? activeRoleFromCookie!
     : (userProfile?.admin_role && userProfile.admin_role in ADMIN_ROLE_CONFIGS ? (userProfile.admin_role as AdminRoleType) : "chu-nhiem")
 
   const currentConfig = ADMIN_ROLE_CONFIGS[activeRole]

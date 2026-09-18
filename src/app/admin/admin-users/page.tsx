@@ -21,7 +21,12 @@ import {
   getAdminRequests,
   approveChangeRequest,
   rejectChangeRequest,
-  type AdminChangeRequest
+  type AdminChangeRequest,
+  saveCreatedAdminToDB,
+  deleteCreatedAdminFromDB,
+  updateCreatedAdminInDB,
+  getCreatedAdminAccountsFromDB,
+  getDeletedAdminEmailsFromDB,
 } from "@/lib/admin-account-manager"
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from "@/lib/permissions"
 
@@ -170,45 +175,32 @@ export default function AdminUsersPage() {
 
 
   const loadAllAdmins = useCallback(async () => {
-    // 1. Đọc danh sách email đã bị BCN xóa vĩnh viễn
-    const deletedEmails = new Set<string>()
-    if (typeof window !== "undefined") {
-      try {
-        const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
-        if (savedDeleted) {
-          const parsed = JSON.parse(savedDeleted)
-          if (Array.isArray(parsed)) {
-            parsed.forEach((em: string) => deletedEmails.add(em.toLowerCase().trim()))
-          }
-        }
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)issac_deleted_admin_emails=([^;]+)/)
-        if (cookieMatch) {
-          const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]))
-          if (Array.isArray(parsed)) {
-            parsed.forEach((em: string) => deletedEmails.add(em.toLowerCase().trim()))
-          }
-        }
-      } catch {}
-    }
+    // 1. Đọc danh sách email đã bị BCN xóa vĩnh viễn (từ DB cross-device + local cache)
+    const dbDeletedEmails = await getDeletedAdminEmailsFromDB()
+    const deletedEmails = new Set<string>(dbDeletedEmails.map(em => em.toLowerCase().trim()))
 
     let list = INITIAL_ACCOUNTS.filter(a => !deletedEmails.has(a.email.toLowerCase().trim()))
     const emailMap = new Map<string, AdminUser>()
     list.forEach(a => emailMap.set(a.email.toLowerCase().trim(), a))
 
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("issac_created_admins")
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (Array.isArray(parsed)) {
-            parsed.forEach(p => {
-              if (p.email && !deletedEmails.has(p.email.toLowerCase().trim())) {
-                emailMap.set(p.email.toLowerCase().trim(), p)
-              }
-            })
-          }
-        } catch {}
-      }
+    // 2. Đọc tài khoản do BCN tạo từ DB (cross-device sync điện thoại / máy tính)
+    const dbCreatedAdmins = await getCreatedAdminAccountsFromDB()
+    if (dbCreatedAdmins && dbCreatedAdmins.length > 0) {
+      dbCreatedAdmins.forEach(p => {
+        if (p.email && !deletedEmails.has(p.email.toLowerCase().trim())) {
+          emailMap.set(p.email.toLowerCase().trim(), {
+            id: p.id || `adm-${p.email}`,
+            full_name: p.full_name,
+            title: p.title || "",
+            email: p.email,
+            password: p.password,
+            role: p.admin_role === "chu-nhiem" ? "super_admin" : "admin",
+            admin_role: p.admin_role as any,
+            is_active: p.is_active,
+            created_at: p.created_at || new Date().toISOString().slice(0, 10),
+          })
+        }
+      })
     }
 
     try {
@@ -361,7 +353,7 @@ export default function AdminUsersPage() {
       console.warn("Supabase auth sync notice:", e)
     }
 
-    // 2. Lưu vào state và LocalStorage
+    // 2. Lưu vào DB (cross-device sync điện thoại & máy tính) và state
     const newAdmin: AdminUser = {
       id: `adm-${Date.now()}`,
       full_name: nameClean,
@@ -373,6 +365,15 @@ export default function AdminUsersPage() {
       is_active: true,
       created_at: new Date().toISOString().slice(0, 10),
     }
+
+    await saveCreatedAdminToDB({
+      email: emailClean,
+      full_name: nameClean,
+      admin_role: form.admin_role,
+      title: titleClean,
+      password: passClean,
+      is_active: true,
+    })
 
     if (typeof window !== "undefined") {
       try {
@@ -392,7 +393,6 @@ export default function AdminUsersPage() {
       const filtered = prev.filter(a => a.email.toLowerCase() !== emailClean)
       const updated = [...filtered, newAdmin]
       if (typeof window !== "undefined") {
-        // Chỉ lưu phần tài khoản được BCN tạo thêm, không lưu INITIAL_ACCOUNTS
         saveCreatedAdminsToStorage(updated)
       }
       return updated
@@ -447,7 +447,14 @@ export default function AdminUsersPage() {
       console.warn("Update profile error:", e)
     }
 
-    // 2. Cập nhật state & LocalStorage
+    // 2. Cập nhật DB (cross-device) & state & LocalStorage
+    await updateCreatedAdminInDB(selectedAdminForEdit.email, {
+      full_name: nameClean,
+      title: titleClean,
+      admin_role: editForm.admin_role,
+      ...(passClean ? { password: passClean } : {})
+    })
+
     setAdmins(prev => {
       const updated = prev.map(a => {
         if (a.id === selectedAdminForEdit.id || a.email.toLowerCase() === selectedAdminForEdit.email.toLowerCase()) {
@@ -478,24 +485,30 @@ export default function AdminUsersPage() {
     } as Parameters<typeof toast>[0])
   }
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
+    const target = admins.find(a => a.id === id)
+    if (target?.is_fixed) {
+      toast({
+        title: "Tài khoản cố định",
+        description: "Tài khoản này là tài khoản master cố định của hệ thống, không thể khoá.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const newActiveState = target ? !target.is_active : false
+    if (target) {
+      await updateCreatedAdminInDB(target.email, { is_active: newActiveState })
+    }
+
     setAdmins(prev => {
       const updated = prev.map(a => {
         if (a.id === id) {
-          if (a.is_fixed) {
-            toast({
-              title: "Tài khoản cố định",
-              description: "Tài khoản này là tài khoản master cố định của hệ thống, không thể khoá.",
-              variant: "destructive"
-            })
-            return a
-          }
-          return { ...a, is_active: !a.is_active }
+          return { ...a, is_active: newActiveState }
         }
         return a
       })
       if (typeof window !== "undefined") {
-        // Chỉ lưu phần tài khoản được BCN tạo thêm
         saveCreatedAdminsToStorage(updated)
       }
       return updated
@@ -518,24 +531,10 @@ export default function AdminUsersPage() {
 
     const emailToDelete = admin.email.toLowerCase().trim()
 
-    // 1. Lưu vào danh sách email đã bị BCN xóa vĩnh viễn (localStorage + cookie)
-    if (typeof window !== "undefined") {
-      try {
-        let deletedList: string[] = []
-        const savedDeleted = localStorage.getItem("issac_deleted_admin_emails")
-        if (savedDeleted) {
-          const parsed = JSON.parse(savedDeleted)
-          if (Array.isArray(parsed)) deletedList = parsed
-        }
-        if (!deletedList.includes(emailToDelete)) {
-          deletedList.push(emailToDelete)
-        }
-        localStorage.setItem("issac_deleted_admin_emails", JSON.stringify(deletedList))
-        document.cookie = `issac_deleted_admin_emails=${encodeURIComponent(JSON.stringify(deletedList))}; path=/; max-age=2592000; SameSite=Lax`
-      } catch {}
-    }
+    // 1. Xóa trong DB (cross-device sync điện thoại & laptop)
+    await deleteCreatedAdminFromDB(emailToDelete)
 
-    // 2. Xóa / Gỡ bỏ trong database Supabase profiles
+    // 2. Xóa / Gỡ bỏ trong database Supabase profiles nếu có
     try {
       const supabase = createClient()
       await supabase.from("profiles").delete().ilike("email", emailToDelete)
@@ -550,7 +549,6 @@ export default function AdminUsersPage() {
     setAdmins(prev => {
       const updated = prev.filter(a => a.id !== admin.id && a.email.toLowerCase().trim() !== emailToDelete)
       if (typeof window !== "undefined") {
-        // Chỉ lưu phần tài khoản được BCN tạo thêm
         saveCreatedAdminsToStorage(updated)
       }
       return updated
@@ -569,9 +567,11 @@ export default function AdminUsersPage() {
     setShowResetModal(true)
   }
 
-  const handleSaveResetPassword = () => {
+  const handleSaveResetPassword = async () => {
     if (!selectedAdminForReset || !newPasswordInput.trim()) return
     const updatedPass = newPasswordInput.trim()
+
+    await updateCreatedAdminInDB(selectedAdminForReset.email, { password: updatedPass })
 
     setAdmins(prev => {
       const updated = prev.map(a => {
@@ -581,7 +581,6 @@ export default function AdminUsersPage() {
         return a
       })
       if (typeof window !== "undefined") {
-        // Chỉ lưu phần tài khoản được BCN tạo thêm
         saveCreatedAdminsToStorage(updated)
       }
       return updated

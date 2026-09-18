@@ -85,6 +85,94 @@ export function getStoredSystemSettings(): Record<string, string> {
   return { ...DEFAULT_SYSTEM_SETTINGS_MAP }
 }
 
+/**
+ * Save system settings to Supabase DB + audit_logs + localStorage cache.
+ * Works across all devices (laptop & phone) seamlessly.
+ */
+export async function saveSystemSettingsToDB(
+  settingsMap: Record<string, string>
+): Promise<boolean> {
+  const supabase = createClient()
+  let success = false
+
+  // 1. Try upserting each key-value pair to system_settings table
+  for (const [key, value] of Object.entries(settingsMap)) {
+    try {
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert({ key, value }, { onConflict: "key" })
+      if (!error) success = true
+    } catch {}
+  }
+
+  // 2. Always save merged settings to audit_logs for guaranteed cross-device sync
+  const current = getStoredSystemSettings()
+  const merged = { ...current, ...settingsMap }
+
+  try {
+    await supabase.from('audit_logs').insert({
+      action: 'SYNC_SYSTEM_SETTINGS',
+      user_name: 'BCN',
+      description: JSON.stringify(merged)
+    })
+    success = true
+  } catch {}
+
+  // 3. Always update localStorage cache
+  if (typeof window !== "undefined") {
+    localStorage.setItem("issac_system_settings", JSON.stringify(merged))
+    window.dispatchEvent(new Event("issac_system_settings_updated"))
+  }
+
+  return success
+}
+
+/**
+ * Fetch all settings from Supabase DB, merge with defaults, cache to localStorage.
+ */
+export async function fetchSystemSettingsFromDB(): Promise<Record<string, string>> {
+  const supabase = createClient()
+  try {
+    const remoteMap: Record<string, string> = {}
+
+    // 1. Read from system_settings table
+    const { data: dbSettings } = await supabase.from("system_settings").select("key, value")
+    if (dbSettings && dbSettings.length > 0) {
+      dbSettings.forEach((s) => {
+        if (s.key && s.value !== null && s.value !== undefined) {
+          remoteMap[s.key] = s.value
+        }
+      })
+    }
+
+    // 2. Overlay latest updates from audit_logs SYNC_SYSTEM_SETTINGS
+    try {
+      const { data: syncLogs } = await supabase
+        .from('audit_logs')
+        .select('description')
+        .eq('action', 'SYNC_SYSTEM_SETTINGS')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (syncLogs && syncLogs.length > 0 && syncLogs[0].description) {
+        const parsed = JSON.parse(syncLogs[0].description)
+        if (parsed && typeof parsed === 'object') {
+          Object.assign(remoteMap, parsed)
+        }
+      }
+    } catch {}
+
+    if (Object.keys(remoteMap).length > 0) {
+      const merged = { ...DEFAULT_SYSTEM_SETTINGS_MAP, ...remoteMap }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("issac_system_settings", JSON.stringify(merged))
+      }
+      return merged
+    }
+  } catch {}
+  return getStoredSystemSettings()
+}
+
 export interface RecruitmentTimeline {
   round1: {
     id: number
@@ -159,28 +247,16 @@ export function useSystemSettings() {
   const [timeline, setTimeline] = useState<RecruitmentTimeline>(() => computeRecruitmentTimeline(DEFAULT_SYSTEM_SETTINGS_MAP))
 
   const refresh = useCallback(async () => {
+    // 1. Show cached data immediately
     const local = getStoredSystemSettings()
     setSettings(local)
     setTimeline(computeRecruitmentTimeline(local))
 
+    // 2. Fetch from Supabase DB (source of truth)
     try {
-      const supabase = createClient()
-      const { data } = await supabase.from("system_settings").select("key, value")
-      if (data && data.length > 0) {
-        const remoteMap: Record<string, string> = {}
-        data.forEach((s) => {
-          if (s.key && s.value !== null && s.value !== undefined) {
-            remoteMap[s.key] = s.value
-          }
-        })
-        // Merge: Defaults -> Remote Supabase -> Local Admin Overrides
-        const merged = { ...DEFAULT_SYSTEM_SETTINGS_MAP, ...remoteMap, ...local }
-        if (typeof window !== "undefined") {
-          localStorage.setItem("issac_system_settings", JSON.stringify(merged))
-        }
-        setSettings(merged)
-        setTimeline(computeRecruitmentTimeline(merged))
-      }
+      const dbSettings = await fetchSystemSettingsFromDB()
+      setSettings(dbSettings)
+      setTimeline(computeRecruitmentTimeline(dbSettings))
     } catch {}
   }, [])
 
@@ -196,9 +272,19 @@ export function useSystemSettings() {
     window.addEventListener("issac_system_settings_updated", handleUpdate)
     window.addEventListener("storage", handleUpdate)
 
+    // Subscribe to realtime changes from Supabase
+    const supabase = createClient()
+    const channel = supabase
+      .channel("system-settings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "system_settings" }, () => {
+        refresh()
+      })
+      .subscribe()
+
     return () => {
       window.removeEventListener("issac_system_settings_updated", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
+      supabase.removeChannel(channel)
     }
   }, [refresh])
 

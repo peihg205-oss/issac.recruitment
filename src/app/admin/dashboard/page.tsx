@@ -23,13 +23,15 @@ export default async function AdminDashboardPage() {
   let settings: any[] | null = null
 
   try {
-    const [appsRes, evalsRes, ranksRes, deptsRes, ivwsRes, settRes] = await Promise.all([
+    const [appsRes, evalsRes, ranksRes, deptsRes, ivwsRes, settRes, deletedAuditRes, inactiveProfilesRes] = await Promise.all([
       supabase.from('applications').select('id, user_id, status, department_id, departments!applications_department_id_fkey(name, slug)'),
       supabase.from('evaluations').select('id, application_id, status, total_score'),
       supabase.from('candidate_rankings').select('id, application_id, result, final_score, rank_number').order('rank_number', { ascending: true }),
       supabase.from('departments').select('id, name, slug, color').neq('slug', 'chu-nhiem'),
       supabase.from('interviews').select('id, application_id, status'),
-      supabase.from('system_settings').select('key, value')
+      supabase.from('system_settings').select('key, value'),
+      supabase.from('audit_logs').select('description').eq('action', 'SYNC_DELETED_CANDIDATES').order('created_at', { ascending: false }).limit(1),
+      supabase.from('profiles').select('id, email').eq('is_active', false)
     ])
     applications = appsRes.data
     evaluations = evalsRes.data
@@ -37,11 +39,29 @@ export default async function AdminDashboardPage() {
     departments = deptsRes.data
     interviews = ivwsRes.data
     settings = settRes.data
+
+    // Merge deleted IDs from audit logs & inactive profiles for cross-device accuracy
+    if (inactiveProfilesRes.data && inactiveProfilesRes.data.length > 0) {
+      inactiveProfilesRes.data.forEach(p => {
+        if (p.id && !deletedIds.includes(p.id)) deletedIds.push(p.id)
+        if (p.email && !deletedIds.includes(p.email.toLowerCase().trim())) deletedIds.push(p.email.toLowerCase().trim())
+      })
+    }
+    if (deletedAuditRes.data && deletedAuditRes.data.length > 0 && deletedAuditRes.data[0].description) {
+      try {
+        const parsed = JSON.parse(deletedAuditRes.data[0].description)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id: string) => {
+            if (!deletedIds.includes(id)) deletedIds.push(id)
+          })
+        }
+      } catch {}
+    }
   } catch (err) {
     console.error('Error fetching dashboard data:', err)
   }
 
-  // Lọc bỏ toàn bộ ứng viên đã bị Ban Chủ nhiệm xóa
+  // Lọc bỏ toàn bộ ứng viên đã bị Ban Chủ nhiệm xóa (đồng bộ đa thiết bị)
   const rawApps: any[] = applications || []
   const apps: any[] = rawApps.filter(a => !deletedIds.includes(a.id) && !deletedIds.includes(a.user_id))
   const depts = (departments && departments.length > 0) ? departments : MOCK_DEPARTMENTS

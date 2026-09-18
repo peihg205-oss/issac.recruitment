@@ -112,41 +112,40 @@ export default function ApplicationPage() {
     // 1. Phân loại câu hỏi chung toàn CLB (department_id là null hoặc common)
     const commons = allQs.filter(q => !q.department_id || q.department_id === 'common')
 
+    // Tìm ban hiện tại từ danh sách departments
+    const currentDept = departments.find(d => 
+      d.id === deptId || 
+      d.slug === deptId || 
+      (deptId === 'dept-1' && d.slug === 'truyen-thong') || 
+      (deptId === 'dept-2' && d.slug === 'tu-van') || 
+      (deptId === 'dept-3' && d.slug === 'nhan-su')
+    )
+
     // 2. Phân loại câu hỏi chuyên môn của ban đã chọn (loại trừ các câu trùng với câu hỏi chung)
-    let deptQs = allQs.filter(q => {
+    const deptQs = allQs.filter(q => {
       if (!q.department_id || q.department_id === 'common') return false
-      const isDeptMatch = q.department_id === deptId || q.departments?.id === deptId || q.departments?.slug === deptId
+      const isDeptMatch = 
+        q.department_id === deptId || 
+        q.departments?.id === deptId || 
+        q.departments?.slug === deptId ||
+        (deptId === 'dept-1' && q.departments?.slug === 'truyen-thong') ||
+        (deptId === 'dept-2' && q.departments?.slug === 'tu-van') ||
+        (deptId === 'dept-3' && q.departments?.slug === 'nhan-su') ||
+        (currentDept && (
+          q.department_id === currentDept.id ||
+          q.departments?.id === currentDept.id ||
+          q.departments?.slug === currentDept.slug ||
+          q.department_id === currentDept.slug
+        ))
       if (!isDeptMatch) return false
       const isDup = commons.some(cq => cq.question_text.trim().toLowerCase() === q.question_text.trim().toLowerCase())
       return !isDup
     })
 
-    if (deptQs.length === 0) {
-      if (deptId === 'dept-1' || deptId.includes('truyen-thong')) {
-        deptQs = [
-          { id: 'q-tt-1', question_text: 'Vì sao bạn muốn tham gia Ban Truyền thông iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và mục tiêu của bạn...', sort_order: 10, is_active: true },
-          { id: 'q-tt-2', question_text: 'Bạn có kinh nghiệm thiết kế (Photoshop/Canva) hoặc quay dựng video chưa? Hãy chia sẻ link sản phẩm nếu có.', question_type: 'long_text', is_required: true, placeholder: 'Link drive, portfolio hoặc mô tả kinh nghiệm...', sort_order: 11, is_active: true },
-          { id: 'q-tt-3', question_text: 'Nếu được giao nhiệm vụ lên ý tưởng viral cho chiến dịch truyền thông của iSSAC, bạn sẽ làm gì?', question_type: 'long_text', is_required: false, placeholder: 'Ý tưởng sáng tạo của bạn...', sort_order: 12, is_active: true }
-        ]
-      } else if (deptId === 'dept-2' || deptId.includes('tu-van')) {
-        deptQs = [
-          { id: 'q-tv-1', question_text: 'Vì sao bạn lựa chọn ứng tuyển vào Ban Tư vấn iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Chia sẻ lý do và nguyện vọng...', sort_order: 10, is_active: true },
-          { id: 'q-tv-2', question_text: 'Theo bạn, những kỹ năng quan trọng nhất của một Đại sứ sinh viên khi tư vấn là gì?', question_type: 'long_text', is_required: true, placeholder: 'Kỹ năng lắng nghe, thấu cảm, truyền đạt...', sort_order: 11, is_active: true },
-          { id: 'q-tv-3', question_text: 'Chia sẻ một tình huống bạn từng lắng nghe và hỗ trợ giải quyết khó khăn cho một người bạn.', question_type: 'long_text', is_required: false, placeholder: 'Kể lại trải nghiệm thực tế...', sort_order: 12, is_active: true }
-        ]
-      } else {
-        deptQs = [
-          { id: 'q-ns-1', question_text: 'Vì sao bạn muốn trở thành thành viên Ban Nhân sự iSSAC?', question_type: 'long_text', is_required: true, placeholder: 'Lý do ứng tuyển...', sort_order: 10, is_active: true },
-          { id: 'q-ns-2', question_text: 'Bạn đã có kinh nghiệm quản lý nhóm, gắn kết thành viên hoặc tổ chức team building chưa?', question_type: 'long_text', is_required: true, placeholder: 'Kinh nghiệm hoạt động đội nhóm...', sort_order: 11, is_active: true },
-          { id: 'q-ns-3', question_text: 'Nếu trong ban có hai thành viên bất đồng quan điểm, bạn sẽ xử lý như thế nào?', question_type: 'long_text', is_required: false, placeholder: 'Cách giải quyết mâu thuẫn...', sort_order: 12, is_active: true }
-        ]
-      }
-    }
-
     setCommonQuestions(commons)
     setDepartmentQuestions(deptQs)
     setQuestions([...commons, ...deptQs])
-  }, [])
+  }, [departments])
 
   useEffect(() => { 
     if (!selectedDept) return

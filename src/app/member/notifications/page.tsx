@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Bell, CheckCheck, Clock, ArrowRight, Trash2, CheckCircle2,
-  AlertCircle, Info, Sparkles, Inbox, RefreshCw
+  AlertCircle, Info, Sparkles, Inbox, RefreshCw, AlertTriangle
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -109,11 +109,9 @@ export default function MemberNotificationsPage() {
     }
   }, [fetchNotifications, supabase])
 
-  const markAsRead = async (id: string, actionUrl?: string | null) => {
-    try {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', id)
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
-    } catch {}
+  const markAsRead = (id: string, actionUrl?: string | null) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    Promise.resolve(supabase.from('notifications').update({ is_read: true }).eq('id', id)).catch(() => {})
 
     if (actionUrl) {
       // Ensure url is valid member route
@@ -164,7 +162,7 @@ export default function MemberNotificationsPage() {
       case 'error':
         return <AlertCircle className="w-5 h-5 text-red-600" />
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-amber-600" />
+        return <AlertTriangle className="w-5 h-5 text-amber-600" />
       default:
         return <Info className="w-5 h-5 text-blue-600" />
     }

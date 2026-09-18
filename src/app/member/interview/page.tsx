@@ -485,8 +485,67 @@ export default function MemberInterviewPage() {
     )
   }
 
-  // 2. Trường hợp chưa mở vòng phỏng vấn
-  if (!application || application.status === 'draft' || application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
+  // 2. Trường hợp CHƯA HOÀN THÀNH VÒNG ĐƠN (Chỉ mới tạo tài khoản)
+  if (!application || application.status === 'draft') {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+        <div className="flex items-end justify-between border-b border-slate-200 pb-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              LỊCH PHỎNG VẤN iSSAC 2026
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 3
+            </p>
+          </div>
+          <div className="shrink-0 -mb-4 pl-3 mr-3 sm:mr-6">
+            <Image
+              src="/images/isaris-interview.png"
+              alt="ISARIS"
+              width={295}
+              height={383}
+              className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm select-none pointer-events-none"
+              priority
+            />
+          </div>
+        </div>
+
+        <div className="bg-white border-2 border-rose-300 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-rose-950 bg-rose-200 uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
+              Chưa đủ điều kiện tham gia
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Bạn chưa hoàn thành nộp đơn ứng tuyển (Vòng 1)
+            </h2>
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
+              Theo quy chế tuyển quân iSSAC Gen 3, bạn cần hoàn thiện hồ sơ và gửi đơn ứng tuyển trong vòng 3 ngày kể từ khi tạo tài khoản. Chỉ những ứng viên đã hoàn thành nộp đơn và được Hội đồng duyệt qua vòng đơn mới có quyền đặt lịch phỏng vấn.
+            </p>
+          </div>
+
+          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-rose-100">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl self-start">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+              Yêu cầu hoàn thành Vòng 1 trước
+            </span>
+
+            <Link
+              href="/member/application"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1657c1] hover:bg-blue-800 text-white font-bold text-xs transition-all shadow-sm self-start sm:self-auto"
+            >
+              <span>Điền đơn ứng tuyển ngay</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 3. Trường hợp ĐÃ NỘP ĐƠN nhưng đang trong giai đoạn chấm duyệt
+  if (application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
     return (
       <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
         <div className="flex items-end justify-between border-b border-slate-200 pb-4">

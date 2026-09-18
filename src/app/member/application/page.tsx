@@ -15,6 +15,7 @@ import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { useSystemSettings, isRecruitmentOpen, formatDayMonth } from '@/lib/system-settings'
 import { fetchAllQuestions, subscribeQuestionsChange, type QuestionItem } from '@/lib/questions-manager'
+import { computeCandidateDeadlineStatus } from '@/lib/candidate-deadline-manager'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
 interface Question { id: string; department_id?: string | null; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
@@ -36,12 +37,21 @@ export default function ApplicationPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [checkboxAnswers, setCheckboxAnswers] = useState<Record<string, string[]>>({})
   const [existingApp, setExistingApp] = useState<any>(null)
+  const [candidateProfile, setCandidateProfile] = useState<any>(null)
+  const [candidateUserId, setCandidateUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [profileComplete, setProfileComplete] = useState(false)
   const [part1Complete, setPart1Complete] = useState(false)
   const [part2Complete, setPart2Complete] = useState(false)
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([])
+
+  const deadlineStatus = computeCandidateDeadlineStatus(
+    candidateProfile?.created_at,
+    Boolean(existingApp && existingApp.status && existingApp.status !== 'draft'),
+    candidateUserId
+  )
+  const isLocked = deadlineStatus.isLocked
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -55,11 +65,15 @@ export default function ApplicationPage() {
       return
     }
 
+    setCandidateUserId(user.id)
+
     const [{ data: depts }, { data: app }, { data: prof }] = await Promise.all([
       supabase.from('departments').select('*').neq('slug', 'chu-nhiem').eq('is_active', true),
       supabase.from('applications').select('*, departments!applications_department_id_fkey(name)').eq('user_id', user.id).limit(1).maybeSingle(),
-      supabase.from('profiles').select('full_name, phone, date_of_birth, gender, student_id, university, cohort, major').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('full_name, phone, date_of_birth, gender, student_id, university, cohort, major, created_at').eq('id', user.id).maybeSingle(),
     ])
+
+    setCandidateProfile(prof)
 
     // Kiểm tra chi tiết Phần 1 và Phần 2
     const missingP1: string[] = []
@@ -173,6 +187,15 @@ export default function ApplicationPage() {
   }
 
   const handleSubmit = async () => {
+    if (isLocked) {
+      toast({
+        title: 'Tài khoản đã bị tạm khóa',
+        description: 'Đã quá thời hạn 3 ngày nộp đơn kể từ thời điểm tạo tài khoản. Vui lòng liên hệ Ban Tuyển quân trong mục Chat để được hỗ trợ mở khóa.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSubmitting(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -1211,13 +1234,19 @@ const SOCIAL_CHANNELS = [
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting}
-              className="px-9 py-2.5 rounded-full bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-bold text-sm shadow-xs transition-all cursor-pointer"
+              disabled={submitting || isLocked}
+              className={`px-9 py-2.5 rounded-full font-bold text-sm shadow-xs transition-all ${
+                isLocked
+                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                  : 'bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 cursor-pointer'
+              }`}
             >
               {submitting ? (
                 <span className="inline-flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" /> Đang nộp đơn...
                 </span>
+              ) : isLocked ? (
+                'Tài khoản đã bị khóa do quá hạn 3 ngày'
               ) : (
                 'Nộp đơn ứng tuyển chính thức'
               )}

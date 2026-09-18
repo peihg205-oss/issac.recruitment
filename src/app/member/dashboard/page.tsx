@@ -15,7 +15,7 @@ import {
   ChevronRight, User, Sparkles, Building2, MapPin,
   ExternalLink, Mail, Eye, Heart, PartyPopper,
   ShieldCheck, Layers, ArrowRight, RefreshCw, AlertCircle,
-  Clock3, HelpCircle, FileCheck2, MessageSquare
+  Clock3, HelpCircle, FileCheck2, AlertTriangle
 } from 'lucide-react'
 import { formatDate, formatFullTimestamp, getCandidateCode } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -877,11 +877,11 @@ export default function MemberDashboardPage() {
         </div>
       </div>
 
-      {/* 4.5 KÊNH CHAT TUYỂN QUÂN VÀ GIẢI ĐÁP BCN */}
+      {/* 4.5 KÊNH CẢNH BÁO & NHẮC NHỞ TỪ BAN TUYỂN QUÂN */}
       <div className="rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-5 sm:p-6 text-white border border-blue-400/30 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300 relative">
-            <MessageSquare className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-amber-400 relative">
+            <AlertTriangle className="w-6 h-6" />
             {chatUnread > 0 && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
                 {chatUnread > 9 ? '9+' : chatUnread}
@@ -890,21 +890,21 @@ export default function MemberDashboardPage() {
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base font-bold text-white">Chat Tuyển quân & Hỏi đáp BCN</h3>
+              <h3 className="text-base font-bold text-white">Cảnh báo & Nhắc nhở từ Ban Tuyển quân</h3>
               {chatUnread > 0 ? (
                 <span className="px-2.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
-                  {chatUnread} phản hồi mới
+                  {chatUnread} cảnh báo mới
                 </span>
               ) : (
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
-                  Trực tuyến
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30 rounded-full">
+                  Thông báo 1 chiều
                 </span>
               )}
             </div>
             <p className="text-xs text-blue-200">
               {chatUnread > 0
-                ? 'Ban Tuyển quân vừa gửi phản hồi mới cho bạn. Nhấn vào bên dưới để xem ngay.'
-                : 'Có thắc mắc về hồ sơ, lịch phỏng vấn hoặc kết quả? Trao đổi trực tiếp để nhận phản hồi từ Ban Chủ nhiệm.'}
+                ? 'Ban Tuyển quân vừa gửi thông báo cảnh báo/nhắc nhở mới cho bạn. Nhấn vào bên dưới để xem ngay.'
+                : 'Theo dõi các thông báo nhắc nhở, cảnh báo về thời hạn nộp đơn, lịch phỏng vấn và quy chế từ Ban Chủ nhiệm.'}
             </p>
           </div>
         </div>
@@ -914,8 +914,8 @@ export default function MemberDashboardPage() {
               ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
               : 'bg-[#fdc455] hover:bg-amber-400 text-slate-950'
           }`}>
-            <MessageSquare className="w-4 h-4" />
-            {chatUnread > 0 ? `Xem ${chatUnread} tin nhắn mới` : 'Nhắn tin với BCN'}
+            <AlertTriangle className="w-4 h-4" />
+            {chatUnread > 0 ? `Xem ${chatUnread} cảnh báo mới` : 'Xem cảnh báo'}
           </Button>
         </Link>
       </div>

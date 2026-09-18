@@ -3,12 +3,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { MemberSidebar } from '@/components/shared/member-sidebar'
 import { MemberNotificationBell } from '@/components/shared/member-notification-bell'
-import { Sparkles, Home, Menu, MessageSquare } from 'lucide-react'
+import { Sparkles, Home, Menu, AlertTriangle } from 'lucide-react'
 import { useMemberChatUnread } from '@/hooks/use-chat-unread'
+import { CandidateDeadlineBanner } from '@/components/candidate/candidate-deadline-banner'
 
 interface MemberLayoutClientProps {
   children: React.ReactNode
   userProfile: {
+    id?: string
     full_name: string
     email: string
     student_id: string | null
@@ -16,6 +18,8 @@ interface MemberLayoutClientProps {
     avatar_url: string | null
     role: string
     deptName: string | null
+    createdAt?: string | null
+    hasApplication?: boolean
   }
   studentDisplay: string
 }
@@ -71,13 +75,13 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
               <Home className="w-4.5 h-4.5" />
             </Link>
 
-            {/* Quick Chat Tuyển quân & Realtime Unread Counter */}
+            {/* Quick Cảnh báo & Realtime Unread Counter */}
             <Link
               href="/member/messages"
-              className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-[#1657c1] text-slate-600 border border-slate-200/80 transition-all"
-              title="Chat Tuyển quân & Hỏi đáp BCN"
+              className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all"
+              title="Cảnh báo & Nhắc nhở từ Ban Tuyển quân"
             >
-              <MessageSquare className="w-4.5 h-4.5" />
+              <AlertTriangle className="w-4.5 h-4.5" />
               {chatUnread > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
                   {chatUnread > 9 ? '9+' : chatUnread}
@@ -112,6 +116,11 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+            <CandidateDeadlineBanner
+              userId={userProfile.id}
+              createdAt={userProfile.createdAt}
+              hasApplication={userProfile.hasApplication}
+            />
             {children}
           </div>
         </main>

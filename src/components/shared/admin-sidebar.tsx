@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Trophy, Calendar,
   FileQuestion, ShieldCheck, Download, Settings,
-  LogOut, CheckSquare, Crown, Megaphone, MessageSquare, X
+  LogOut, CheckSquare, Crown, Megaphone, MessageSquare, X, AlertTriangle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from '@/lib/permissions'
@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
   { href: '/admin/evaluation', label: 'Chấm điểm PV', icon: CheckSquare, group: 'main' },
   { href: '/admin/ranking', label: 'Bảng xếp hạng', icon: Trophy, group: 'main' },
   { href: '/admin/interviews', label: 'Lịch phỏng vấn', icon: Calendar, group: 'main' },
-  { href: '/admin/messages', label: 'Tin nhắn UV', icon: MessageSquare, group: 'main' },
+  { href: '/admin/messages', label: 'Cảnh báo UV', icon: AlertTriangle, group: 'main' },
   { href: '/admin/questions', label: 'Ngân hàng câu hỏi', icon: FileQuestion, group: 'tools' },
   { href: '/admin/admin-users', label: 'Cấp tài khoản Ban', icon: ShieldCheck, group: 'tools', superAdminOnly: true },
   { href: '/admin/export', label: 'Xuất dữ liệu', icon: Download, group: 'tools' },

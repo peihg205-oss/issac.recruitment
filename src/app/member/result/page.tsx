@@ -27,6 +27,7 @@ export default function MemberResultPage() {
   const [candidateName, setCandidateName] = useState('Ứng viên')
   const [deptName, setDeptName] = useState('Ban Chuyên môn')
   const [hasCelebrated, setHasCelebrated] = useState(false)
+  const [hasApplication, setHasApplication] = useState(true)
 
   const currentUserIdRef = useRef<string | null>(null)
   const currentAppIdRef = useRef<string | null>(null)
@@ -90,6 +91,15 @@ export default function MemberResultPage() {
           setDeptName(resolvedDept)
         }
 
+        const hasApp = Boolean(app && app.status && app.status !== 'draft')
+        setHasApplication(hasApp)
+
+        if (!hasApp) {
+          setPublished(false)
+          setFinalResult(null)
+          return
+        }
+
         if (effectiveFr || rankingResult) {
           const dec = effectiveFr?.result || rankingResult
           const defaultMsg = dec === 'pass'
@@ -116,8 +126,8 @@ export default function MemberResultPage() {
             } as Parameters<typeof toast>[0])
           }
         } else {
-          setPublished(isOfficiallyPublished)
-          if (isOfficiallyPublished) {
+          setPublished(isOfficiallyPublished && hasApp)
+          if (isOfficiallyPublished && hasApp) {
             setFinalResult({
               result: 'pass',
               announcement_message: 'Chúc mừng bạn đã xuất sắc vượt qua các vòng đánh giá tuyển chọn và chính thức trở thành Đại sứ Sinh viên CLB iSSAC - Trường Quốc tế, ĐHQGHN!'
@@ -248,6 +258,43 @@ export default function MemberResultPage() {
         <div className="bg-white border-2 border-slate-200 rounded-3xl p-12 text-center shadow-xs space-y-4">
           <div className="w-8 h-8 mx-auto border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Đang tải dữ liệu kết quả tuyển chọn...</p>
+        </div>
+      ) : !hasApplication ? (
+        <div className="bg-white border-2 border-rose-300 rounded-3xl p-6 sm:p-8 shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-rose-950 bg-rose-200 uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
+                  Chưa nộp đơn ứng tuyển
+                </span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Chưa có kết quả do chưa hoàn thành Vòng 1
+                </h2>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
+                  Bạn chỉ mới tạo tài khoản và chưa hoàn thành nộp đơn ứng tuyển cho kỳ tuyển quân iSSAC Gen 3. Vui lòng hoàn tất nộp đơn trong vòng 3 ngày kể từ khi tạo tài khoản để được Hội đồng tuyển chọn xét duyệt sang các vòng tiếp theo.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-rose-100">
+                <Link
+                  href="/member/application"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1657c1] hover:bg-blue-800 text-white font-bold text-xs transition-all shadow-sm"
+                >
+                  Điền đơn ứng tuyển ngay
+                </Link>
+              </div>
+            </div>
+            <div className="shrink-0 flex justify-center lg:justify-end">
+              <Image
+                src="/images/isaris-waiting.png"
+                alt="ISARIS"
+                width={200}
+                height={200}
+                className="w-36 sm:w-44 h-auto object-contain drop-shadow-sm select-none pointer-events-none"
+              />
+            </div>
+          </div>
         </div>
       ) : !published || !finalResult ? (
         <div className="bg-white border-2 border-[#fdc455] rounded-3xl p-6 sm:p-8 shadow-xs">

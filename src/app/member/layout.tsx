@@ -38,6 +38,7 @@ export default async function MemberLayout({ children }: { children: React.React
   const supabase = await createClient()
 
   let userProfile: {
+    id?: string
     full_name: string
     email: string
     student_id: string | null
@@ -45,7 +46,10 @@ export default async function MemberLayout({ children }: { children: React.React
     avatar_url: string | null
     role: string
     deptName: string | null
+    createdAt?: string | null
+    hasApplication: boolean
   } = {
+    id: undefined,
     full_name: 'Ứng viên',
     email: '',
     student_id: null,
@@ -53,6 +57,8 @@ export default async function MemberLayout({ children }: { children: React.React
     avatar_url: null,
     role: 'applicant',
     deptName: null,
+    createdAt: null,
+    hasApplication: false,
   }
 
   try {
@@ -74,12 +80,12 @@ export default async function MemberLayout({ children }: { children: React.React
     const [{ data: profile }, { data: app }] = await Promise.all([
       supabase
         .from('profiles')
-        .select('full_name, email, avatar_url, role, student_id, cohort, is_active')
+        .select('id, full_name, email, avatar_url, role, student_id, cohort, is_active, created_at')
         .eq('id', user.id)
         .maybeSingle(),
       supabase
         .from('applications')
-        .select('departments!applications_department_id_fkey(name)')
+        .select('id, status, departments!applications_department_id_fkey(name)')
         .eq('user_id', user.id)
         .maybeSingle()
     ])
@@ -94,7 +100,10 @@ export default async function MemberLayout({ children }: { children: React.React
       return redirect('/login?deleted=true')
     }
 
+    const hasApp = Boolean(app && app.status && app.status !== 'draft')
+
     userProfile = {
+      id: user.id,
       full_name: profile?.full_name || user.user_metadata?.full_name || 'Ứng viên',
       email: profile?.email || user.email || '',
       student_id: profile?.student_id || null,
@@ -102,6 +111,8 @@ export default async function MemberLayout({ children }: { children: React.React
       avatar_url: profile?.avatar_url || null,
       role: profile?.role || 'applicant',
       deptName: (Array.isArray(app?.departments) ? (app.departments[0] as any)?.name : (app?.departments as any)?.name) || null,
+      createdAt: profile?.created_at || user.created_at || null,
+      hasApplication: hasApp,
     }
   } catch (err) {
     console.error('Error loading member layout profile:', err)

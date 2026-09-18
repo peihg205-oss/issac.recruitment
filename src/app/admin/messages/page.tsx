@@ -7,9 +7,9 @@ import { useToast } from '@/components/ui/use-toast'
 import { Input } from '@/components/ui/input'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
 import {
-  MessageSquare, Send, Loader2, CheckCheck, Clock,
-  ShieldCheck, Users, Search, ArrowLeft, Inbox,
-  RefreshCw, Sparkles, Phone, Mail, GraduationCap, ChevronDown
+  AlertTriangle, Send, Loader2, CheckCheck, Clock,
+  ShieldCheck, ShieldAlert, Users, Search, ArrowLeft, Inbox,
+  RefreshCw, Phone, Mail, GraduationCap, ChevronDown, Info
 } from 'lucide-react'
 import {
   ChatMessage,
@@ -93,7 +93,7 @@ function AdminMessagesContent() {
   const roleConfig = ADMIN_ROLE_CONFIGS[activeRole] || ADMIN_ROLE_CONFIGS['chu-nhiem']
   const isSuperAdmin = activeRole === 'chu-nhiem' || roleConfig.isSuperAdmin
 
-  // Tên hiển thị đầy đủ kèm chức vụ của cán bộ gửi tin
+  // Tên hiển thị đầy đủ kèm chức vụ của cán bộ gửi cảnh báo
   const senderFormattedName = useMemo(() => {
     const effectiveName = adminProfile?.full_name || adminName || roleConfig.label
     const effectiveTitle = adminTitle || roleConfig.shortLabel || roleConfig.label
@@ -103,9 +103,9 @@ function AdminMessagesContent() {
     return effectiveName
   }, [adminProfile?.full_name, adminName, adminTitle, roleConfig])
 
-  // Lọc danh sách hội thoại theo phân quyền:
-  // - Ban Chủ nhiệm: Xem và trao đổi với TẤT CẢ ứng viên (tất cả các ban + tài khoản mới)
-  // - Các ban chuyên môn (Truyền thông, Tư vấn, Nhân sự): CHỈ xem và trao đổi với ứng viên ban mình
+  // Lọc danh sách ứng viên theo phân quyền:
+  // - Ban Chủ nhiệm: Xem và gửi cảnh báo tới TẤT CẢ ứng viên
+  // - Các ban chuyên môn: CHỈ xem và gửi cảnh báo tới ứng viên ban mình
   const accessibleConversations = useMemo(() => {
     if (isSuperAdmin) return conversations
     return conversations.filter(c => {
@@ -125,7 +125,6 @@ function AdminMessagesContent() {
     }, 60)
   }, [])
 
-  // Check scroll position to show/hide "Scroll to bottom" button
   const handleScroll = () => {
     if (!scrollRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
@@ -133,7 +132,7 @@ function AdminMessagesContent() {
     setShowScrollBottomBtn(!isNearBottom)
   }
 
-  // Load admin user & all conversation summaries
+  // Load admin user & all candidate warning summaries
   const loadConversations = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
     else setRefreshing(true)
@@ -149,12 +148,10 @@ function AdminMessagesContent() {
       const list = await fetchAllConversations(supabase)
       setConversations(list)
 
-      // If initialAppId provided and activeConv not set yet
       if (initialAppId && !activeConv) {
         setActiveConv(initialAppId)
         setShowMobileList(false)
       } else if (!activeConv && list.length > 0) {
-        // Auto-select first conversation with messages on desktop
         const firstWithMsgs = list.find(c => c.total_messages > 0) || list[0]
         if (firstWithMsgs && typeof window !== 'undefined' && window.innerWidth >= 768) {
           setActiveConv(firstWithMsgs.application_id)
@@ -172,14 +169,13 @@ function AdminMessagesContent() {
     loadConversations()
   }, [loadConversations])
 
-  // Fetch messages for active conversation
+  // Fetch warnings for active conversation
   const loadMessages = useCallback(async (appId: string) => {
     try {
       const msgs = await fetchApplicationMessages(supabase, appId)
       setMessages(msgs)
       await markChatAsRead(supabase, appId, 'admin')
 
-      // Update local unread badge without creating state change loop
       setConversations(prev => {
         const item = prev.find(c => c.application_id === appId)
         if (!item || item.unread_count === 0) return prev
@@ -190,7 +186,7 @@ function AdminMessagesContent() {
 
       scrollToBottom(true)
     } catch (err) {
-      console.error('Error fetching messages for app:', err)
+      console.error('Error fetching warnings for app:', err)
     }
   }, [supabase, scrollToBottom])
 
@@ -200,12 +196,11 @@ function AdminMessagesContent() {
     }
   }, [activeConv]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom(false)
   }, [messages.length, activeConv, scrollToBottom])
 
-  // Periodic polling for realtime synchronization across phone & laptop
+  // Periodic polling
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -223,7 +218,7 @@ function AdminMessagesContent() {
           })
         }
       } catch {}
-    }, 3500)
+    }, 4000)
 
     return () => clearInterval(interval)
   }, [activeConv, supabase])
@@ -231,7 +226,7 @@ function AdminMessagesContent() {
   // Realtime listener
   useEffect(() => {
     const channel = supabase
-      .channel('admin-chat-realtime')
+      .channel('admin-warning-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, async (payload: any) => {
         if (payload?.new?.action === 'CHAT_MESSAGE' || payload?.new?.action === 'CHAT_READ') {
           const list = await fetchAllConversations(supabase)
@@ -270,20 +265,19 @@ function AdminMessagesContent() {
     loadMessages(appId)
   }
 
-  const handleSend = () => {
+  const handleSendWarning = () => {
     const trimmed = newMessage.trim()
     if (!trimmed || !activeConv) return
 
     if (!canChatWithCandidate) {
       toast({
-        title: 'Không có quyền gửi tin nhắn',
-        description: `Bạn đang phụ trách ${roleConfig.departmentName}. Chỉ có thể trao đổi với ứng viên thuộc ban này.`,
+        title: 'Không có quyền gửi cảnh báo',
+        description: `Bạn đang phụ trách ${roleConfig.departmentName}. Chỉ có thể gửi cảnh báo cho ứng viên thuộc ban này.`,
         variant: 'destructive',
       })
       return
     }
 
-    // 1. Instant 0ms clear: no lag, can immediately type next message
     setNewMessage('')
     if (textareaRef.current) {
       textareaRef.current.style.height = '44px'
@@ -305,7 +299,6 @@ function AdminMessagesContent() {
       created_at: new Date().toISOString(),
     }
 
-    // 2. Immediate local optimistic updates
     setMessages(prev => [...prev, optimisticMsg])
     scrollToBottom(true)
 
@@ -324,7 +317,6 @@ function AdminMessagesContent() {
       return prev
     })
 
-    // 3. Send in background without freezing UI
     sendChatMessage(supabase, {
       conversation_id: activeConv,
       application_id: currentConv?.has_application ? activeConv : null,
@@ -336,10 +328,14 @@ function AdminMessagesContent() {
     }).then(savedMsg => {
       setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
       scrollToBottom()
-    }).catch(err => {
-      console.error('Send message error:', err)
       toast({
-        title: 'Không thể gửi tin nhắn',
+        title: 'Đã gửi cảnh báo',
+        description: `Đã phát cảnh báo thành công tới ứng viên ${currentConv?.candidate_name}.`,
+      })
+    }).catch(err => {
+      console.error('Send warning error:', err)
+      toast({
+        title: 'Không thể gửi cảnh báo',
         description: err?.message || 'Vui lòng kiểm tra lại kết nối.',
         variant: 'destructive',
       })
@@ -348,17 +344,16 @@ function AdminMessagesContent() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // CRITICAL: Prevent Vietnamese IME (Telex/VNI) jumping characters / last letter duplication
     if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
       return
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      handleSendWarning()
     }
   }
 
-  const handleQuickReply = (text: string) => {
+  const handleQuickTemplate = (text: string) => {
     setNewMessage(text)
   }
 
@@ -387,16 +382,13 @@ function AdminMessagesContent() {
       c.dept_name.toLowerCase().includes(searchQuery.toLowerCase())
 
     if (!matchesSearch) return false
-    if (filterMode === 'unread') return c.unread_count > 0
+    if (filterMode === 'unread') return c.total_messages > 0
     return true
   })
 
-  const totalUnread = accessibleConversations.reduce((sum, c) => sum + c.unread_count, 0)
+  const totalWarningsSent = accessibleConversations.reduce((sum, c) => sum + c.total_messages, 0)
   const activeConversation = conversations.find(c => c.application_id === activeConv)
 
-  // Kiểm tra quyền được gửi tin nhắn với ứng viên đang chọn:
-  // - Ban Chủ nhiệm: Được phép nhắn cho TẤT CẢ ứng viên
-  // - Các ban chuyên môn: CHỈ được phép nhắn cho ứng viên nộp vào ban của mình
   const canChatWithCandidate = useMemo(() => {
     if (!activeConversation) return false
     if (isSuperAdmin) return true
@@ -410,7 +402,7 @@ function AdminMessagesContent() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#1559c5] mx-auto" />
-          <p className="text-sm text-slate-500 font-medium">Đang tải hộp thư tuyển quân...</p>
+          <p className="text-sm text-slate-500 font-medium">Đang tải trung tâm cảnh báo...</p>
         </div>
       </div>
     )
@@ -422,16 +414,14 @@ function AdminMessagesContent() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
-            <MessageSquare className="w-6 h-6 text-[#1559c5]" />
-            Tin nhắn Ứng viên
-            {totalUnread > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white animate-pulse">
-                {totalUnread} mới
-              </span>
-            )}
+            <AlertTriangle className="w-6 h-6 text-amber-600" />
+            Cảnh báo Ứng viên
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+              Kênh 1 chiều
+            </span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Trao đổi và giải đáp thắc mắc trực tiếp giữa Ban Tuyển quân / Ban Chủ nhiệm với từng ứng viên
+            Gửi thông báo cảnh báo và nhắc nhở trực tiếp cho từng ứng viên (Ứng viên chỉ đọc, không có quyền phản hồi)
           </p>
         </div>
 
@@ -447,11 +437,11 @@ function AdminMessagesContent() {
         </div>
       </div>
 
-      {/* Main Chat Box - Constrained Height with Full Scrollable Area */}
+      {/* Main Container */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-0 bg-white rounded-3xl border border-slate-200 shadow-xs h-[calc(100vh-11rem)] max-h-[850px] min-h-[550px] overflow-hidden">
-        {/* Left Sidebar: Conversations List */}
+        {/* Left Sidebar: Candidates List */}
         <div className={`md:col-span-4 lg:col-span-4 border-r border-slate-200 flex flex-col bg-slate-50/60 h-full min-h-0 overflow-hidden ${showMobileList ? 'flex' : 'hidden md:flex'}`}>
-          {/* Search & Filter Tabs */}
+          {/* Search & Filter */}
           <div className="p-3 border-b border-slate-200 space-y-2.5 bg-white shrink-0">
             {/* Active role badge */}
             <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
@@ -466,14 +456,14 @@ function AdminMessagesContent() {
                   ? 'bg-blue-50 text-[#1559c5] border-blue-200'
                   : 'bg-indigo-50 text-indigo-700 border-indigo-200'
               }`}>
-                {isSuperAdmin ? 'Nhắn All' : `Ban ${roleConfig.shortLabel}`}
+                {isSuperAdmin ? 'Toàn quyền' : `Ban ${roleConfig.shortLabel}`}
               </span>
             </div>
 
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                placeholder="Tìm tên, MSSV, ban..."
+                placeholder="Tìm ứng viên theo tên, MSSV..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 text-xs rounded-xl bg-slate-50 border-slate-200"
@@ -495,21 +485,21 @@ function AdminMessagesContent() {
                 onClick={() => setFilterMode('unread')}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   filterMode === 'unread'
-                    ? 'bg-rose-600 text-white shadow-2xs'
+                    ? 'bg-amber-600 text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Chưa đọc ({totalUnread})
+                Đã có cảnh báo ({accessibleConversations.filter(c => c.total_messages > 0).length})
               </button>
             </div>
           </div>
 
-          {/* Conversations Scroll List */}
+          {/* Candidates Scroll List */}
           <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 overscroll-contain">
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center space-y-2 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto stroke-1 text-slate-300" />
-                <p className="text-xs font-medium">Không tìm thấy cuộc trò chuyện nào</p>
+                <p className="text-xs font-medium">Không tìm thấy ứng viên nào</p>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -520,16 +510,16 @@ function AdminMessagesContent() {
                     onClick={() => handleSelectConv(conv.application_id)}
                     className={`w-full text-left p-3.5 transition-all flex items-start gap-3 cursor-pointer ${
                       isActive
-                        ? 'bg-blue-50/80 border-l-4 border-l-[#1559c5]'
+                        ? 'bg-amber-50/80 border-l-4 border-l-amber-600'
                         : 'hover:bg-slate-100/80 border-l-4 border-l-transparent'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
                       {conv.candidate_name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-xs font-bold truncate ${isActive ? 'text-[#1559c5]' : 'text-slate-900'}`}>
+                        <span className={`text-xs font-bold truncate ${isActive ? 'text-amber-900' : 'text-slate-900'}`}>
                           {conv.candidate_name}
                         </span>
                         <span className="text-[10px] text-slate-400 shrink-0 font-medium">
@@ -548,9 +538,9 @@ function AdminMessagesContent() {
                         <p className="text-[11px] text-slate-600 truncate flex-1">
                           {conv.last_message}
                         </p>
-                        {conv.unread_count > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white shrink-0 shadow-2xs">
-                            {conv.unread_count}
+                        {conv.total_messages > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                            {conv.total_messages} cảnh báo
                           </span>
                         )}
                       </div>
@@ -562,11 +552,11 @@ function AdminMessagesContent() {
           </div>
         </div>
 
-        {/* Right Area: Active Chat Window */}
+        {/* Right Area: Warning Management Window */}
         <div className={`md:col-span-8 lg:col-span-8 flex flex-col bg-white h-full min-h-0 overflow-hidden relative ${!showMobileList ? 'flex' : 'hidden md:flex'}`}>
           {activeConversation ? (
             <>
-              {/* Active Conversation Header */}
+              {/* Candidate Info Header */}
               <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0 z-10 shadow-2xs">
                 <div className="flex items-center gap-3 min-w-0">
                   <button
@@ -576,7 +566,7 @@ function AdminMessagesContent() {
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <div className="w-10 h-10 rounded-2xl bg-blue-100 text-[#1559c5] font-black text-sm flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 font-black text-sm flex items-center justify-center shrink-0">
                     {activeConversation.candidate_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -625,7 +615,20 @@ function AdminMessagesContent() {
                 </div>
               </div>
 
-              {/* Messages Body - Flex-1 with native scroll */}
+              {/* Informational banner: 1-way warning channel */}
+              <div className="px-4 py-2 bg-amber-50/70 border-b border-amber-200/60 flex items-center justify-between text-xs text-amber-900 shrink-0 z-10">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span className="text-[11px] font-medium">
+                    Kênh thông báo cảnh báo 1 chiều: <strong>Ứng viên chỉ đọc, không có quyền phản hồi</strong>.
+                  </span>
+                </div>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
+                  Chỉ đọc
+                </span>
+              </div>
+
+              {/* Warnings List Body */}
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
@@ -633,12 +636,12 @@ function AdminMessagesContent() {
               >
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1559c5]">
-                      <MessageSquare className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                      <AlertTriangle className="w-6 h-6" />
                     </div>
-                    <p className="text-xs font-bold text-slate-700">Chưa có tin nhắn nào trong hội thoại này</p>
+                    <p className="text-xs font-bold text-slate-700">Chưa có cảnh báo nào được gửi tới ứng viên này</p>
                     <p className="text-[11px] text-slate-500 max-w-xs">
-                      Hãy gửi lời chào hoặc phản hồi cho ứng viên {activeConversation.candidate_name}.
+                      Soạn nội dung hoặc chọn mẫu cảnh báo nhanh bên dưới để gửi cảnh báo/nhắc nhở cho {activeConversation.candidate_name}.
                     </p>
                   </div>
                 ) : (
@@ -649,14 +652,17 @@ function AdminMessagesContent() {
                         key={msg.id}
                         className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className="max-w-[85%] sm:max-w-[70%]">
+                        <div className="max-w-[85%] sm:max-w-[75%]">
                           {/* Sender Label */}
                           <div className={`flex items-center gap-1.5 mb-1 px-1 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
                             {isAdmin ? (
                               <div className="flex items-center gap-1">
-                                <ShieldCheck className="w-3 h-3 text-blue-600 shrink-0" />
-                                <span className="text-[10px] font-bold text-blue-700">
+                                <ShieldAlert className="w-3 h-3 text-amber-600 shrink-0" />
+                                <span className="text-[10px] font-bold text-amber-800">
                                   {msg.sender_name || 'Ban Chủ nhiệm'}
+                                </span>
+                                <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900">
+                                  Cảnh báo
                                 </span>
                               </div>
                             ) : (
@@ -670,7 +676,7 @@ function AdminMessagesContent() {
                           <div
                             className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words shadow-2xs ${
                               isAdmin
-                                ? 'bg-[#1559c5] text-white rounded-br-xs'
+                                ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-br-xs'
                                 : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
                             }`}
                           >
@@ -684,11 +690,13 @@ function AdminMessagesContent() {
                             </span>
                             {isAdmin && (
                               msg.is_read ? (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 font-semibold">
-                                  <CheckCheck className="w-3 h-3 text-blue-600" /> Ứng viên đã xem
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-semibold">
+                                  <CheckCheck className="w-3 h-3 text-emerald-600" /> Ứng viên đã xem
                                 </span>
                               ) : (
-                                <Clock className="w-3 h-3 text-slate-300" />
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-slate-400">
+                                  <Clock className="w-3 h-3" /> Đã gửi
+                                </span>
                               )
                             )}
                           </div>
@@ -697,7 +705,6 @@ function AdminMessagesContent() {
                     )
                   })
                 )}
-                {/* Scroll Target Anchor */}
                 <div ref={messagesEndRef} className="h-1 shrink-0" />
               </div>
 
@@ -705,28 +712,29 @@ function AdminMessagesContent() {
               {showScrollBottomBtn && (
                 <button
                   onClick={() => scrollToBottom(false)}
-                  className="absolute bottom-32 right-6 p-2 rounded-full bg-white text-[#1559c5] shadow-md border border-slate-200 hover:bg-slate-50 transition-all z-20 cursor-pointer animate-bounce flex items-center gap-1 text-xs font-bold px-3"
-                  title="Cuộn xuống tin nhắn mới nhất"
+                  className="absolute bottom-32 right-6 p-2 rounded-full bg-white text-amber-700 shadow-md border border-slate-200 hover:bg-slate-50 transition-all z-20 cursor-pointer animate-bounce flex items-center gap-1 text-xs font-bold px-3"
+                  title="Cuộn xuống cảnh báo mới nhất"
                 >
                   <ChevronDown className="w-4 h-4" />
                   <span>Mới nhất</span>
                 </button>
               )}
 
-              {/* Quick Template Chips */}
+              {/* Quick Warning Templates */}
               {canChatWithCandidate && (
                 <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 z-10">
-                  <span className="text-[10px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">Mẫu nhanh:</span>
+                  <span className="text-[10px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">Mẫu cảnh báo:</span>
                   {[
-                    'Ban Tuyển quân đã nhận được tin nhắn và đang kiểm tra hồ sơ của bạn.',
-                    'Lịch phỏng vấn đã được cập nhật, bạn vui lòng kiểm tra Cổng ứng viên nhé.',
-                    'Hồ sơ của bạn đã được duyệt qua vòng đơn, chúc mừng bạn!',
-                    'Bạn vui lòng kiểm tra lại thông tin liên lạc và email nhé.',
+                    'Cảnh báo: Bạn chưa hoàn thiện nộp đơn Vòng 1. Hạn chót là 3 ngày sau khi tạo tài khoản, quá hạn tài khoản sẽ bị tạm khóa.',
+                    'Nhắc nhở: Thông tin hồ sơ (MSSV / Số điện thoại / Email) có dấu hiệu sai sót, bạn vui lòng cập nhật lại sớm.',
+                    'Cảnh báo: Lịch phỏng vấn đã được sắp xếp, vui lòng truy cập Cổng ứng viên xác nhận tham dự đúng giờ.',
+                    'Cảnh báo vi phạm: Nghiêm cấm chia sẻ đề bài hoặc nội dung phỏng vấn ra bên ngoài theo quy chế tuyển quân.',
+                    'Thông báo: Vui lòng kiểm tra email để nhận hướng dẫn chi tiết từ Ban Tuyển quân iSSAC.',
                   ].map((txt, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleQuickReply(txt)}
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 hover:text-[#1559c5] border border-slate-200 text-slate-600 whitespace-nowrap transition-all shrink-0 cursor-pointer"
+                      onClick={() => handleQuickTemplate(txt)}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-amber-50 hover:text-amber-800 border border-slate-200 text-slate-600 whitespace-nowrap transition-all shrink-0 cursor-pointer"
                     >
                       {txt.slice(0, 32)}...
                     </button>
@@ -734,7 +742,7 @@ function AdminMessagesContent() {
                 </div>
               )}
 
-              {/* Input Bar or Read-only Notice */}
+              {/* Warning Sender Bar */}
               {!canChatWithCandidate ? (
                 <div className="border-t border-slate-200 p-4 bg-amber-50/70 shrink-0 z-10">
                   <div className="flex items-start gap-3">
@@ -746,24 +754,23 @@ function AdminMessagesContent() {
                         Chế độ chỉ xem đối với ứng viên {activeConversation.dept_name || 'khác ban'}
                       </h4>
                       <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
-                        Tài khoản của bạn đang có quyền <strong>{roleConfig.label}</strong> nên chỉ có thể gửi tin nhắn cho các ứng viên thuộc <strong>{roleConfig.departmentName}</strong>. Ban Chủ nhiệm có quyền xem và gửi tin nhắn cho toàn bộ ứng viên.
+                        Tài khoản của bạn đang có quyền <strong>{roleConfig.label}</strong> nên chỉ có thể gửi cảnh báo cho các ứng viên thuộc <strong>{roleConfig.departmentName}</strong>. Ban Chủ nhiệm có quyền xem và gửi cảnh báo cho toàn bộ ứng viên.
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="border-t border-slate-200 p-3 sm:p-4 bg-white shrink-0 z-10">
-                  {/* Sender identity banner */}
                   <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2 px-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
                       <span className="truncate">
-                        Đang gửi với tư cách: <strong className="text-slate-800 font-semibold">{senderFormattedName}</strong>
+                        Người gửi cảnh báo: <strong className="text-slate-800 font-semibold">{senderFormattedName}</strong>
                       </span>
                     </div>
                     {isSuperAdmin ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1559c5] border border-blue-200 shrink-0">
-                        Ban Chủ nhiệm (Nhắn All)
+                        Ban Chủ nhiệm (Gửi All)
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
@@ -785,9 +792,9 @@ function AdminMessagesContent() {
                           isComposingRef.current = false
                         }}
                         onKeyDown={handleKeyDown}
-                        placeholder={`Phản hồi cho ứng viên ${activeConversation.candidate_name}...`}
+                        placeholder={`Nhập nội dung cảnh báo hoặc nhắc nhở gửi tới ứng viên ${activeConversation.candidate_name}...`}
                         rows={1}
-                        className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[#1559c5] focus:bg-white transition-all max-h-32 leading-relaxed"
+                        className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-500 focus:bg-white transition-all max-h-32 leading-relaxed"
                         style={{ minHeight: '44px' }}
                         onInput={(e) => {
                           const t = e.currentTarget
@@ -797,12 +804,13 @@ function AdminMessagesContent() {
                       />
                     </div>
                     <button
-                      onClick={handleSend}
+                      onClick={handleSendWarning}
                       disabled={!newMessage.trim()}
-                      className="w-11 h-11 rounded-2xl bg-[#1559c5] hover:bg-[#1147a3] active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
-                      title="Gửi phản hồi (Enter)"
+                      className="h-11 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                      title="Gửi cảnh báo tới ứng viên (Enter)"
                     >
-                      <Send className="w-4 h-4" />
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="hidden sm:inline">Gửi cảnh báo</span>
                     </button>
                   </div>
                 </div>
@@ -810,12 +818,12 @@ function AdminMessagesContent() {
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-3 text-slate-400">
-              <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-slate-400" />
+              <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                <AlertTriangle className="w-8 h-8" />
               </div>
-              <h3 className="text-sm font-bold text-slate-700">Chọn một cuộc trò chuyện</h3>
+              <h3 className="text-sm font-bold text-slate-700">Chọn một ứng viên</h3>
               <p className="text-xs text-slate-500 max-w-sm">
-                Chọn ứng viên từ danh sách bên trái để xem nội dung trao đổi và phản hồi từ Ban Chủ nhiệm.
+                Chọn ứng viên từ danh sách bên trái để xem lịch sử cảnh báo và gửi thông báo nhắc nhở từ Ban Tuyển quân.
               </p>
             </div>
           )}

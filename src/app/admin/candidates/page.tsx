@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Search, Download, Eye, CheckCircle, XCircle, Clock,
-  ArrowUpDown, Users, Loader2, ChevronRight, Filter, Key, Trash2, MessageSquare
+  ArrowUpDown, Users, Loader2, ChevronRight, Filter, Key, Trash2, AlertTriangle
 } from 'lucide-react'
 import { CandidateAccountModal } from "@/components/admin/candidate-account-modal"
 import { isCandidateDeleted, deleteCandidateAccount, getDeletedCandidateIdsFromDB } from "@/lib/candidate-account-manager"
@@ -567,9 +567,9 @@ export default function CandidatesPage() {
                             Tài khoản
                           </Button>
                           <Link href={`/admin/messages?appId=${c.id}`}>
-                            <Button size="sm" variant="ghost" className="h-8 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50" title="Nhắn tin với ứng viên">
-                              <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                              Chat
+                            <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50" title="Gửi cảnh báo cho ứng viên">
+                              <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                              Cảnh báo
                             </Button>
                           </Link>
                           <Link href={`/admin/candidates/${c.id}`}>

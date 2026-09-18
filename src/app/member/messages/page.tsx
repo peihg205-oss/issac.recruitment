@@ -2,28 +2,23 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/use-toast'
 import {
-  MessageSquare, Send, Loader2, CheckCheck, Clock,
-  Sparkles, ShieldCheck, Info, RefreshCw
+  AlertTriangle, Loader2, CheckCheck, Clock,
+  ShieldAlert, ShieldCheck, Info, RefreshCw,
+  ExternalLink, Mail, MessageCircle
 } from 'lucide-react'
 import {
   ChatMessage,
   fetchApplicationMessages,
-  sendChatMessage,
   markChatAsRead,
 } from '@/lib/messages-manager'
 
-export default function MemberMessagesPage() {
+export default function MemberWarningsPage() {
   const supabase = createClient()
-  const { toast } = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const isComposingRef = useRef(false)
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [newMessage, setNewMessage] = useState('')
+  const [warnings, setWarnings] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -64,10 +59,10 @@ export default function MemberMessagesPage() {
       // Conversation key is application.id if submitted, otherwise authUser.id for fresh accounts
       const convKey = app?.id || authUser.id
       const msgs = await fetchApplicationMessages(supabase, convKey, authUser.id)
-      setMessages(msgs)
+      setWarnings(msgs)
       await markChatAsRead(supabase, convKey, 'member', authUser.id)
     } catch (err) {
-      console.error('Error fetching messages:', err)
+      console.error('Error fetching warnings:', err)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -79,26 +74,26 @@ export default function MemberMessagesPage() {
     loadData()
   }, [loadData])
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom when new warnings arrive
   useEffect(() => {
     scrollToBottom(false)
-  }, [messages.length, scrollToBottom])
+  }, [warnings.length, scrollToBottom])
 
-  // Periodic polling to guarantee sync between mobile phones & laptops
+  // Periodic polling to guarantee sync
   useEffect(() => {
     if (!user?.id) return
     const convKey = application?.id || user.id
     const interval = setInterval(async () => {
       try {
         const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
-        setMessages(prev => {
+        setWarnings(prev => {
           if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) {
             return msgs
           }
           return prev
         })
       } catch {}
-    }, 3000)
+    }, 4000)
     return () => clearInterval(interval)
   }, [application?.id, user?.id, supabase])
 
@@ -108,7 +103,7 @@ export default function MemberMessagesPage() {
     const convKey = application?.id || user.id
 
     const channel = supabase
-      .channel(`member-messages-${convKey}`)
+      .channel(`member-warnings-${convKey}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -118,7 +113,7 @@ export default function MemberMessagesPage() {
         const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
         if (target === convKey || target === user.id) {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
-          setMessages(msgs)
+          setWarnings(msgs)
           scrollToBottom()
         }
       })
@@ -129,7 +124,7 @@ export default function MemberMessagesPage() {
       }, async (payload: any) => {
         if (payload?.new?.application_id === convKey || payload?.new?.application_id === user.id) {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
-          setMessages(msgs)
+          setWarnings(msgs)
           scrollToBottom()
         }
       })
@@ -139,68 +134,6 @@ export default function MemberMessagesPage() {
       supabase.removeChannel(channel)
     }
   }, [application?.id, user?.id, supabase, scrollToBottom])
-
-  const handleSend = () => {
-    const trimmed = newMessage.trim()
-    if (!trimmed || !user?.id) return
-
-    // 1. Instant 0ms clear: User can immediately continue typing without waiting for server response
-    setNewMessage('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '44px'
-    }
-
-    const convKey = application?.id || user.id
-    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-    const senderName = profile?.full_name || user.user_metadata?.full_name || 'Ứng viên'
-    const optimisticMsg: ChatMessage = {
-      id: tempId,
-      application_id: convKey,
-      sender_id: user.id,
-      sender_role: 'member',
-      sender_name: senderName,
-      content: trimmed,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    }
-
-    // 2. Append optimistic message immediately
-    setMessages(prev => [...prev, optimisticMsg])
-    scrollToBottom(true)
-
-    // 3. Send in background without freezing UI or disabling inputs
-    sendChatMessage(supabase, {
-      conversation_id: convKey,
-      application_id: application?.id || null,
-      candidate_user_id: user.id,
-      sender_id: user.id,
-      sender_role: 'member',
-      sender_name: senderName,
-      content: trimmed,
-    }).then(savedMsg => {
-      setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
-      scrollToBottom()
-    }).catch(err => {
-      console.error('Send message error:', err)
-      toast({
-        title: 'Không thể gửi tin nhắn',
-        description: err?.message || 'Vui lòng kiểm tra lại kết nối.',
-        variant: 'destructive',
-      })
-      setMessages(prev => prev.filter(m => m.id !== tempId))
-    })
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // CRITICAL: Prevent Vietnamese IME (Telex/VNI) jumping characters / last letter duplication
-    if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
-      return
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
 
   const formatTime = (dateStr: string) => {
     try {
@@ -221,12 +154,15 @@ export default function MemberMessagesPage() {
     }
   }
 
+  // Filter only warnings sent by Admin (or past messages)
+  const adminWarnings = warnings.filter(w => w.sender_role === 'admin' || w.sender_role !== 'member')
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#1657c1] mx-auto" />
-          <p className="text-sm text-slate-500 font-medium">Đang tải tin nhắn...</p>
+          <p className="text-sm text-slate-500 font-medium">Đang tải danh sách cảnh báo...</p>
         </div>
       </div>
     )
@@ -235,22 +171,22 @@ export default function MemberMessagesPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shrink-0 z-10">
+      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white shrink-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shadow-xs shrink-0">
-            <MessageSquare className="w-5 h-5 text-amber-300" />
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shadow-xs shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-white truncate">Ban Tuyển quân & BCN iSSAC</h1>
+              <h1 className="text-base font-bold text-white truncate">Cảnh báo & Nhắc nhở</h1>
               <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full">
-                Kênh chính thức
+                Thông báo 1 chiều
               </span>
             </div>
-            <p className="text-xs text-blue-200 font-medium truncate">
+            <p className="text-xs text-slate-300 font-medium truncate">
               {application?.departments?.name
-                ? `Ban ${application.departments.name} • Giải đáp thắc mắc tuyển quân`
-                : 'Ứng viên Gen 3 • Giải đáp thắc mắc tuyển quân & hồ sơ'}
+                ? `Ban ${application.departments.name} • Kênh thông báo chính thức từ Ban Tuyển quân iSSAC`
+                : 'Ứng viên Gen 3 • Kênh thông báo chính thức từ Ban Tuyển quân iSSAC'}
             </p>
           </div>
         </div>
@@ -259,137 +195,121 @@ export default function MemberMessagesPage() {
           <button
             onClick={() => loadData(true)}
             disabled={refreshing}
-            title="Làm mới tin nhắn"
+            title="Làm mới cảnh báo"
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline">Trực tuyến</span>
-          </div>
         </div>
       </div>
 
-      {/* Notice Banner */}
-      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-amber-50/80 border-b border-amber-200/60 text-xs text-amber-900 shrink-0 z-10">
-        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+      {/* Notice Banner explaining read-only policy */}
+      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 shrink-0 z-10">
+        <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
         <span className="leading-snug">
-          Chào bạn! Bạn có thể trao đổi trực tiếp với Ban Chủ nhiệm về thể lệ ứng tuyển, tiêu chí từng ban, lịch trình hoặc thắc mắc về hồ sơ. Ban Chủ nhiệm sẽ phản hồi sớm nhất!
+          <strong>Lưu ý:</strong> Đây là kênh phát thông báo cảnh báo và nhắc nhở chính thức từ Ban Tuyển quân. Ứng viên <strong>chỉ có quyền đọc</strong> và <strong>không thể phản hồi</strong> qua kênh này.
         </span>
       </div>
 
-      {/* Messages Scroll Area */}
+      {/* Warnings Scroll Area */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/50 overscroll-contain"
+        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-50/50 overscroll-contain"
       >
-        {messages.length === 0 ? (
+        {adminWarnings.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-[#1657c1]">
-              <MessageSquare className="w-7 h-7" />
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+              <ShieldCheck className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-bold text-slate-800">Chưa có tin nhắn nào</p>
-              <p className="text-xs text-slate-500 max-w-xs">
-                Hãy gửi tin nhắn đầu tiên để kết nối trực tiếp với Ban Chủ nhiệm iSSAC!
+              <p className="text-sm font-bold text-slate-800">Không có cảnh báo nào</p>
+              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+                Hiện tại bạn không có thông báo nhắc nhở hoặc cảnh báo vi phạm nào từ Ban Tuyển quân. Hồ sơ và tiến trình ứng tuyển của bạn đang diễn ra bình thường!
               </p>
             </div>
           </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.sender_role === 'member'
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="max-w-[85%] sm:max-w-[75%]">
-                  {/* Sender Label */}
-                  {!isMe && (
-                    <div className="flex items-center gap-1.5 mb-1 px-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#1657c1]" />
-                      <span className="text-[11px] font-bold text-slate-800">
+          adminWarnings.map((msg) => (
+            <div
+              key={msg.id}
+              className="rounded-2xl border border-amber-200/80 bg-white p-4 sm:p-5 shadow-2xs space-y-2.5 animate-fade-in"
+            >
+              {/* Header: Sender & Badge & Time */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 shrink-0">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">
                         {msg.sender_name || 'Ban Tuyển quân iSSAC'}
                       </span>
-                      <span className="text-[9px] font-extrabold bg-blue-100 text-[#1657c1] px-1.5 py-0.2 rounded-full">
-                        Ban Tuyển quân
+                      <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-200 px-1.5 py-0.2 rounded-md">
+                        Cảnh báo
                       </span>
                     </div>
-                  )}
-
-                  {/* Message Bubble */}
-                  <div
-                    className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words shadow-2xs ${
-                      isMe
-                        ? 'bg-[#1657c1] text-white rounded-br-xs'
-                        : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-
-                  {/* Timestamp & Read Status */}
-                  <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {formatTime(msg.created_at)}
-                    </span>
-                    {isMe && (
-                      msg.is_read ? (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 font-semibold">
-                          <CheckCheck className="w-3.5 h-3.5 text-blue-600" /> Đã xem
-                        </span>
-                      ) : (
-                        <Clock className="w-3 h-3 text-slate-300" />
-                      )
-                    )}
                   </div>
                 </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{formatTime(msg.created_at)}</span>
+                </div>
               </div>
-            )
-          })
+
+              {/* Warning Content */}
+              <div className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-100 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
+                {msg.content}
+              </div>
+
+              {/* Footer status */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                  <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> Đã ghi nhận gửi tới bạn
+                </span>
+                <span className="text-[10px] text-slate-400 italic">
+                  Thông báo chỉ đọc
+                </span>
+              </div>
+            </div>
+          ))
         )}
         <div ref={messagesEndRef} className="h-1 shrink-0" />
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0 z-10">
-        <div className="flex items-end gap-2.5">
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onCompositionStart={() => {
-                isComposingRef.current = true
-              }}
-              onCompositionEnd={() => {
-                isComposingRef.current = false
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Nhập câu hỏi hoặc trao đổi với Ban Tuyển quân..."
-              rows={1}
-              className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[#1657c1] focus:bg-white transition-all max-h-32 leading-relaxed"
-              style={{ minHeight: '44px' }}
-              onInput={(e) => {
-                const t = e.currentTarget
-                t.style.height = 'auto'
-                t.style.height = Math.min(t.scrollHeight, 128) + 'px'
-              }}
-            />
+      {/* Readonly Footer with Contact Info (Replaces Input Box) */}
+      <div className="border-t border-slate-200 bg-white p-4 sm:p-5 shrink-0 z-10 shadow-2xs">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 sm:p-4 text-xs space-y-2.5">
+          <div className="flex items-center gap-2 text-slate-800 font-bold">
+            <Info className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>Bạn cần giải đáp thắc mắc hoặc hỗ trợ thêm?</span>
           </div>
-          <button
-            onClick={handleSend}
-            disabled={!newMessage.trim()}
-            className="w-11 h-11 rounded-2xl bg-[#1657c1] hover:bg-[#1147a3] active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
-            title="Gửi tin nhắn (Enter)"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          <p className="text-slate-600 leading-relaxed text-[11px]">
+            Hệ thống Cổng Tuyển quân không hỗ trợ gửi phản hồi trực tiếp tại mục Cảnh báo. Nếu bạn có bất kỳ câu hỏi nào về nội dung cảnh báo hoặc cần hỗ trợ về hồ sơ, vui lòng liên hệ trực tiếp qua các kênh chính thức:
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] shadow-2xs transition-all"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>Fanpage CLB iSSAC</span>
+              <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+            </a>
+
+            <a
+              href="mailto:bcn.issac@gmail.com"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-[11px] transition-all"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>bcn.issac@gmail.com</span>
+            </a>
+          </div>
         </div>
-        <p className="text-[10px] text-slate-400 font-medium text-center mt-2">
-          Nhấn Enter để gửi • Shift+Enter để xuống dòng
-        </p>
       </div>
     </div>
   )

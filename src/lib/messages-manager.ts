@@ -225,11 +225,16 @@ export async function sendChatMessage(
 ): Promise<ChatMessage> {
   const { sender_id, sender_role, sender_name, content } = params
   const trimmed = content.trim()
-  if (!trimmed) throw new Error('Tin nhắn không được để trống')
+  if (!trimmed) throw new Error('Nội dung cảnh báo không được để trống')
+
+  // CHẶN ỨNG VIÊN PHẢN HỒI: Ứng viên chỉ có quyền xem cảnh báo, không có quyền gửi/phản hồi
+  if (sender_role === 'member') {
+    throw new Error('Ứng viên chỉ có quyền xem thông báo cảnh báo từ Ban Tuyển quân và không có quyền phản hồi.')
+  }
 
   const conversationKey = params.conversation_id || params.application_id || params.candidate_user_id || sender_id
   const targetAppId = params.application_id || conversationKey
-  const candidateUserId = params.candidate_user_id || (sender_role === 'member' ? sender_id : undefined)
+  const candidateUserId = params.candidate_user_id
 
   const msgId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `msg_${Date.now()}`
   const nowIso = new Date().toISOString()
@@ -285,7 +290,7 @@ export async function sendChatMessage(
 
     await supabase.from('audit_logs').insert({
       action: 'CHAT_MESSAGE',
-      target_type: 'candidate_chat',
+      target_type: 'candidate_warning',
       target_id: safeTargetId,
       user_id: safeUserId,
       user_name: sender_name,
@@ -305,18 +310,18 @@ export async function sendChatMessage(
       },
     })
   } catch (e) {
-    console.warn('Failed to insert chat into audit_logs:', e)
+    console.warn('Failed to insert warning into audit_logs:', e)
   }
 
-  // 4. Send notification to recipient
+  // 4. Send warning notification to recipient
   try {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (sender_role === 'admin' && candidateUserId && uuidRegex.test(candidateUserId)) {
       await supabase.from('notifications').insert({
         user_id: candidateUserId,
-        title: 'Phản hồi mới từ Ban Tuyển quân iSSAC',
+        title: 'Cảnh báo từ Ban Tuyển quân iSSAC',
         message: `${sender_name}: "${trimmed.slice(0, 100)}${trimmed.length > 100 ? '...' : ''}"`,
-        type: 'info',
+        type: 'warning',
         action_url: '/member/messages',
       })
     }
@@ -545,7 +550,7 @@ export async function fetchAllConversations(
       dept_name: deptName,
       dept_slug: deptSlug,
       has_application: Boolean(app),
-      last_message: lastMsg ? lastMsg.content : 'Chưa có tin nhắn nào',
+      last_message: lastMsg ? lastMsg.content : 'Chưa có cảnh báo nào',
       last_time: lastMsg ? lastMsg.created_at : prof.created_at,
       unread_count: unread,
       total_messages: profMsgs.length,

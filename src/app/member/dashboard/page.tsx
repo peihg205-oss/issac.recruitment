@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { formatDate, formatFullTimestamp, getCandidateCode } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
+import { useMemberChatUnread } from '@/hooks/use-chat-unread'
 
 export default function MemberDashboardPage() {
   const supabase = createClient()
@@ -28,6 +29,7 @@ export default function MemberDashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const chatUnread = useMemberChatUnread(user?.id)
   const [application, setApplication] = useState<any>(null)
   const [candidateCode, setCandidateCode] = useState<string>('ISSAC-01')
   const [interview, setInterview] = useState<any>(null)
@@ -878,25 +880,42 @@ export default function MemberDashboardPage() {
       {/* 4.5 KÊNH CHAT TUYỂN QUÂN VÀ GIẢI ĐÁP BCN */}
       <div className="rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-5 sm:p-6 text-white border border-blue-400/30 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300 relative">
             <MessageSquare className="w-6 h-6" />
+            {chatUnread > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
+                {chatUnread > 9 ? '9+' : chatUnread}
+              </span>
+            )}
           </div>
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-bold text-white">Chat Tuyển quân & Hỏi đáp BCN</h3>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
-                Trực tuyến
-              </span>
+              {chatUnread > 0 ? (
+                <span className="px-2.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+                  {chatUnread} phản hồi mới
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
+                  Trực tuyến
+                </span>
+              )}
             </div>
             <p className="text-xs text-blue-200">
-              Có thắc mắc về hồ sơ, lịch phỏng vấn hoặc kết quả? Trao đổi trực tiếp để nhận phản hồi từ Ban Chủ nhiệm.
+              {chatUnread > 0
+                ? 'Ban Tuyển quân vừa gửi phản hồi mới cho bạn. Nhấn vào bên dưới để xem ngay.'
+                : 'Có thắc mắc về hồ sơ, lịch phỏng vấn hoặc kết quả? Trao đổi trực tiếp để nhận phản hồi từ Ban Chủ nhiệm.'}
             </p>
           </div>
         </div>
         <Link href="/member/messages" className="shrink-0">
-          <Button className="w-full sm:w-auto bg-[#fdc455] hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-2xl px-5 py-2.5 shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-            <MessageSquare className="w-4 h-4 text-slate-950" />
-            Nhắn tin với BCN
+          <Button className={`w-full sm:w-auto font-bold text-xs rounded-2xl px-5 py-2.5 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
+            chatUnread > 0
+              ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+              : 'bg-[#fdc455] hover:bg-amber-400 text-slate-950'
+          }`}>
+            <MessageSquare className="w-4 h-4" />
+            {chatUnread > 0 ? `Xem ${chatUnread} tin nhắn mới` : 'Nhắn tin với BCN'}
           </Button>
         </Link>
       </div>

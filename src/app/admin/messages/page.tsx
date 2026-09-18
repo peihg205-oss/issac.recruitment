@@ -26,6 +26,8 @@ function AdminMessagesContent() {
   const initialAppId = searchParams.get('appId')
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isComposingRef = useRef(false)
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [activeConv, setActiveConv] = useState<string | null>(initialAppId)
@@ -33,7 +35,6 @@ function AdminMessagesContent() {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [sending, setSending] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all')
   const [adminUser, setAdminUser] = useState<any>(null)
@@ -193,10 +194,15 @@ function AdminMessagesContent() {
     loadMessages(appId)
   }
 
-  const handleSend = async () => {
+  const handleSend = () => {
     const trimmed = newMessage.trim()
     if (!trimmed || !adminUser || !activeConv) return
-    setSending(true)
+
+    // 1. Instant 0ms clear: no lag, can immediately type next message
+    setNewMessage('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
 
     let senderName = adminProfile?.full_name || 'Ban Chủ nhiệm iSSAC'
     if (typeof document !== 'undefined') {
@@ -205,7 +211,7 @@ function AdminMessagesContent() {
     }
 
     const currentConv = conversations.find(c => c.application_id === activeConv)
-    const tempId = `tmp_${Date.now()}`
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
     const optimisticMsg: ChatMessage = {
       id: tempId,
       application_id: activeConv,
@@ -217,52 +223,53 @@ function AdminMessagesContent() {
       created_at: new Date().toISOString(),
     }
 
+    // 2. Immediate local optimistic updates
     setMessages(prev => [...prev, optimisticMsg])
-    setNewMessage('')
     scrollToBottom(true)
 
-    try {
-      const savedMsg = await sendChatMessage(supabase, {
-        conversation_id: activeConv,
-        application_id: currentConv?.has_application ? activeConv : null,
-        candidate_user_id: currentConv?.candidate_id || activeConv,
-        sender_id: adminUser.id,
-        sender_role: 'admin',
-        sender_name: senderName,
-        content: trimmed,
-      })
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.application_id === activeConv)
+      if (idx >= 0) {
+        const updated = [...prev]
+        updated[idx] = {
+          ...updated[idx],
+          last_message: trimmed,
+          last_time: new Date().toISOString(),
+          total_messages: updated[idx].total_messages + 1,
+        }
+        return updated.sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime())
+      }
+      return prev
+    })
 
+    // 3. Send in background without freezing UI
+    sendChatMessage(supabase, {
+      conversation_id: activeConv,
+      application_id: currentConv?.has_application ? activeConv : null,
+      candidate_user_id: currentConv?.candidate_id || activeConv,
+      sender_id: adminUser.id,
+      sender_role: 'admin',
+      sender_name: senderName,
+      content: trimmed,
+    }).then(savedMsg => {
       setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
       scrollToBottom()
-
-      // Update conversation list last message
-      setConversations(prev => {
-        const idx = prev.findIndex(c => c.application_id === activeConv)
-        if (idx >= 0) {
-          const updated = [...prev]
-          updated[idx] = {
-            ...updated[idx],
-            last_message: trimmed,
-            last_time: new Date().toISOString(),
-            total_messages: updated[idx].total_messages + 1,
-          }
-          return updated.sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime())
-        }
-        return prev
-      })
-    } catch (err: any) {
+    }).catch(err => {
+      console.error('Send message error:', err)
       toast({
         title: 'Không thể gửi tin nhắn',
-        description: err?.message || 'Vui lòng thử lại sau.',
+        description: err?.message || 'Vui lòng kiểm tra lại kết nối.',
         variant: 'destructive',
       })
       setMessages(prev => prev.filter(m => m.id !== tempId))
-    } finally {
-      setSending(false)
-    }
+    })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // CRITICAL: Prevent Vietnamese IME (Telex/VNI) jumping characters / last letter duplication
+    if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -620,8 +627,15 @@ function AdminMessagesContent() {
                 <div className="flex items-end gap-2.5">
                   <div className="flex-1 relative">
                     <textarea
+                      ref={textareaRef}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
+                      onCompositionStart={() => {
+                        isComposingRef.current = true
+                      }}
+                      onCompositionEnd={() => {
+                        isComposingRef.current = false
+                      }}
                       onKeyDown={handleKeyDown}
                       placeholder={`Phản hồi cho ứng viên ${activeConversation.candidate_name}...`}
                       rows={1}
@@ -636,15 +650,11 @@ function AdminMessagesContent() {
                   </div>
                   <button
                     onClick={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                    className="w-11 h-11 rounded-2xl bg-[#1559c5] hover:bg-[#1147a3] disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
-                    title="Gửi phản hồi"
+                    disabled={!newMessage.trim()}
+                    className="w-11 h-11 rounded-2xl bg-[#1559c5] hover:bg-[#1147a3] active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                    title="Gửi phản hồi (Enter)"
                   >
-                    {sending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                    <Send className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium text-center mt-2">

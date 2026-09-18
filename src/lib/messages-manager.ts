@@ -29,6 +29,20 @@ export interface ConversationSummary {
 const LOCAL_STORAGE_PREFIX = 'issac_chat_msgs_'
 
 /**
+ * Broadcast an unread change event to all components & tabs
+ */
+export function notifyUnreadChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('issac_chat_unread_changed'))
+    try {
+      const bc = new BroadcastChannel('issac_chat_channel')
+      bc.postMessage({ type: 'unread_changed', timestamp: Date.now() })
+      bc.close()
+    } catch {}
+  }
+}
+
+/**
  * Helper to get locally cached messages
  */
 function getLocalMessages(key: string): ChatMessage[] {
@@ -238,10 +252,12 @@ export async function sendChatMessage(
     saveLocalMessages(candidateUserId, updated)
   }
 
+  // Notify tabs immediately of unread change
+  notifyUnreadChanged()
+
   // 2. Try inserting into Supabase `messages` table
   let insertedToTable = false
   try {
-    // Only attempt if targetAppId is a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (uuidRegex.test(targetAppId)) {
       const { error: tableErr } = await supabase.from('messages').insert({
@@ -298,6 +314,9 @@ export async function sendChatMessage(
     }
   } catch {}
 
+  // Broadcast again after DB insert
+  notifyUnreadChanged()
+
   return newMsg
 }
 
@@ -330,6 +349,8 @@ export async function markChatAsRead(
     if (changed) saveLocalMessages(id, updated)
   })
 
+  notifyUnreadChanged()
+
   // 2. Update `messages` table if possible
   try {
     const filterRole = readerRole === 'member' ? 'admin' : 'member'
@@ -357,6 +378,37 @@ export async function markChatAsRead(
       },
     })
   } catch {}
+
+  notifyUnreadChanged()
+}
+
+/**
+ * Get total unread messages count for a candidate/member (messages from admin that are not read)
+ */
+export async function getMemberUnreadCount(
+  supabase: SupabaseClient,
+  userId: string,
+  applicationId?: string | null
+): Promise<number> {
+  if (!userId) return 0
+  try {
+    const msgs = await fetchApplicationMessages(supabase, applicationId || userId, userId)
+    return msgs.filter(m => m.sender_role === 'admin' && !m.is_read).length
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Get total unread messages count for Admin (messages from members that are not read)
+ */
+export async function getAdminUnreadCount(supabase: SupabaseClient): Promise<number> {
+  try {
+    const convs = await fetchAllConversations(supabase)
+    return convs.reduce((sum, c) => sum + c.unread_count, 0)
+  } catch {
+    return 0
+  }
 }
 
 /**
@@ -452,14 +504,8 @@ export async function fetchAllConversations(
   } catch {}
 
   // C. Map all messages to candidate profiles
-  // We match by:
-  // - app.id === msg.application_id
-  // - profile.id === msg.application_id
-  // - profile.id === msg.candidate_user_id
-  // - profile.id === msg.sender_id (when member)
   const msgsByProfileId: Record<string, ChatMessage[]> = {}
   allMessagesMap.forEach(m => {
-    // Find matching profile
     let matchedProfile = candidateProfiles.find(p => {
       const app = appsByUserId.get(p.id)
       return (

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from '@/lib/permissions'
+import { useAdminChatUnread } from '@/hooks/use-chat-unread'
 
 interface NavItem {
   href: string
@@ -42,6 +43,7 @@ export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProp
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const unreadCount = useAdminChatUnread()
 
   const [activeRole, setActiveRole] = useState<AdminRoleType>(() => {
     if (typeof document !== 'undefined') {
@@ -146,6 +148,11 @@ export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProp
                 >
                   <Icon className={`w-4 h-4 ${active ? 'text-blue-950' : 'text-blue-300'}`} />
                   <span className="flex-1">{item.label}</span>
+                  {item.href === '/admin/messages' && unreadCount > 0 && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                   {item.href === '/admin/evaluation' && !isSuper && (
                     <span className="text-[10px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200">
                       Ban mình

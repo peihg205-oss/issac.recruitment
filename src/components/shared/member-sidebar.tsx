@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useMemberChatUnread } from '@/hooks/use-chat-unread'
 import {
   LayoutDashboard, User, FileText, HelpCircle,
   Calendar, Trophy, LogOut, Bell, ChevronRight, Info, X, MessageSquare
@@ -31,6 +32,7 @@ export function MemberSidebar({ user, isOpen = false, onClose }: MemberSidebarPr
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const chatUnread = useMemberChatUnread()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -81,6 +83,11 @@ export function MemberSidebar({ user, isOpen = false, onClose }: MemberSidebarPr
             >
               <item.icon className={cn('w-4.5 h-4.5', active ? 'text-white' : 'text-gray-400 group-hover:text-blue-600')} size={18} />
               <span className="flex-1">{item.label}</span>
+              {item.href === '/member/messages' && chatUnread > 0 && (
+                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+                  {chatUnread > 9 ? '9+' : chatUnread}
+                </span>
+              )}
               {active && <ChevronRight className="w-3 h-3 text-blue-200" />}
             </Link>
           )

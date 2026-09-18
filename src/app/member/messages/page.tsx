@@ -19,12 +19,13 @@ export default function MemberMessagesPage() {
   const { toast } = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isComposingRef = useRef(false)
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [sending, setSending] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
@@ -118,6 +119,7 @@ export default function MemberMessagesPage() {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setMessages(msgs)
           scrollToBottom()
+          markChatAsRead(supabase, convKey, 'member', user.id)
         }
       })
       .on('postgres_changes', {
@@ -129,6 +131,7 @@ export default function MemberMessagesPage() {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setMessages(msgs)
           scrollToBottom()
+          markChatAsRead(supabase, convKey, 'member', user.id)
         }
       })
       .subscribe()
@@ -138,13 +141,18 @@ export default function MemberMessagesPage() {
     }
   }, [application?.id, user?.id, supabase, scrollToBottom])
 
-  const handleSend = async () => {
+  const handleSend = () => {
     const trimmed = newMessage.trim()
     if (!trimmed || !user?.id) return
-    setSending(true)
+
+    // 1. Instant 0ms clear: User can immediately continue typing without waiting for server response
+    setNewMessage('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
 
     const convKey = application?.id || user.id
-    const tempId = `tmp_${Date.now()}`
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
     const senderName = profile?.full_name || user.user_metadata?.full_name || 'Ứng viên'
     const optimisticMsg: ChatMessage = {
       id: tempId,
@@ -157,37 +165,38 @@ export default function MemberMessagesPage() {
       created_at: new Date().toISOString(),
     }
 
+    // 2. Append optimistic message immediately
     setMessages(prev => [...prev, optimisticMsg])
-    setNewMessage('')
     scrollToBottom(true)
 
-    try {
-      const savedMsg = await sendChatMessage(supabase, {
-        conversation_id: convKey,
-        application_id: application?.id || null,
-        candidate_user_id: user.id,
-        sender_id: user.id,
-        sender_role: 'member',
-        sender_name: senderName,
-        content: trimmed,
-      })
-
-      // Replace optimistic message with actual saved message
+    // 3. Send in background without freezing UI or disabling inputs
+    sendChatMessage(supabase, {
+      conversation_id: convKey,
+      application_id: application?.id || null,
+      candidate_user_id: user.id,
+      sender_id: user.id,
+      sender_role: 'member',
+      sender_name: senderName,
+      content: trimmed,
+    }).then(savedMsg => {
       setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
       scrollToBottom()
-    } catch (err: any) {
+    }).catch(err => {
+      console.error('Send message error:', err)
       toast({
         title: 'Không thể gửi tin nhắn',
-        description: err?.message || 'Vui lòng thử lại sau.',
+        description: err?.message || 'Vui lòng kiểm tra lại kết nối.',
         variant: 'destructive',
       })
       setMessages(prev => prev.filter(m => m.id !== tempId))
-    } finally {
-      setSending(false)
-    }
+    })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // CRITICAL: Prevent Vietnamese IME (Telex/VNI) jumping characters / last letter duplication
+    if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -346,8 +355,15 @@ export default function MemberMessagesPage() {
         <div className="flex items-end gap-2.5">
           <div className="flex-1 relative">
             <textarea
+              ref={textareaRef}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onCompositionStart={() => {
+                isComposingRef.current = true
+              }}
+              onCompositionEnd={() => {
+                isComposingRef.current = false
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Nhập câu hỏi hoặc trao đổi với Ban Tuyển quân..."
               rows={1}
@@ -362,15 +378,11 @@ export default function MemberMessagesPage() {
           </div>
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
-            className="w-11 h-11 rounded-2xl bg-[#1657c1] hover:bg-[#1147a3] disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
-            title="Gửi tin nhắn"
+            disabled={!newMessage.trim()}
+            className="w-11 h-11 rounded-2xl bg-[#1657c1] hover:bg-[#1147a3] active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
+            title="Gửi tin nhắn (Enter)"
           >
-            {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            <Send className="w-4 h-4" />
           </button>
         </div>
         <p className="text-[10px] text-slate-400 font-medium text-center mt-2">

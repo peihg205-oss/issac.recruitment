@@ -3,7 +3,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { MemberSidebar } from '@/components/shared/member-sidebar'
 import { MemberNotificationBell } from '@/components/shared/member-notification-bell'
-import { Sparkles, Home, Menu } from 'lucide-react'
+import { Sparkles, Home, Menu, MessageSquare } from 'lucide-react'
+import { useMemberChatUnread } from '@/hooks/use-chat-unread'
 
 interface MemberLayoutClientProps {
   children: React.ReactNode
@@ -21,6 +22,7 @@ interface MemberLayoutClientProps {
 
 export function MemberLayoutClient({ children, userProfile, studentDisplay }: MemberLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const chatUnread = useMemberChatUnread()
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
@@ -66,6 +68,20 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
               title="Về Trang chủ"
             >
               <Home className="w-4.5 h-4.5" />
+            </Link>
+
+            {/* Quick Chat Tuyển quân & Realtime Unread Counter */}
+            <Link
+              href="/member/messages"
+              className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-[#1657c1] text-slate-600 border border-slate-200/80 transition-all"
+              title="Chat Tuyển quân & Hỏi đáp BCN"
+            >
+              <MessageSquare className="w-4.5 h-4.5" />
+              {chatUnread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
+                  {chatUnread > 9 ? '9+' : chatUnread}
+                </span>
+              )}
             </Link>
 
             {/* Realtime Notification Bell */}

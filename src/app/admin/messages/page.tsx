@@ -199,7 +199,7 @@ function AdminMessagesContent() {
 
   const handleSend = () => {
     const trimmed = newMessage.trim()
-    if (!trimmed || !adminUser || !activeConv) return
+    if (!trimmed || !activeConv) return
 
     // 1. Instant 0ms clear: no lag, can immediately type next message
     setNewMessage('')
@@ -208,9 +208,17 @@ function AdminMessagesContent() {
     }
 
     let senderName = adminProfile?.full_name || 'Ban Chủ nhiệm iSSAC'
+    let senderId = adminUser?.id || 'admin_chu-nhiem'
+
     if (typeof document !== 'undefined') {
-      const nameCookie = document.cookie.match(/issac_logged_admin_name=([^;]+)/)
-      if (nameCookie) senderName = decodeURIComponent(nameCookie[1])
+      const nameCookie = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
+      if (nameCookie) {
+        try { senderName = decodeURIComponent(nameCookie[1]) } catch {}
+      }
+      const roleCookie = document.cookie.match(/(?:^|;\s*)issac_admin_role=([^;]+)/)
+      if (roleCookie && !adminUser?.id) {
+        senderId = `admin_${roleCookie[1]}`
+      }
     }
 
     const currentConv = conversations.find(c => c.application_id === activeConv)
@@ -218,7 +226,7 @@ function AdminMessagesContent() {
     const optimisticMsg: ChatMessage = {
       id: tempId,
       application_id: activeConv,
-      sender_id: adminUser.id,
+      sender_id: senderId,
       sender_role: 'admin',
       sender_name: senderName,
       content: trimmed,
@@ -250,7 +258,7 @@ function AdminMessagesContent() {
       conversation_id: activeConv,
       application_id: currentConv?.has_application ? activeConv : null,
       candidate_user_id: currentConv?.candidate_id || activeConv,
-      sender_id: adminUser.id,
+      sender_id: senderId,
       sender_role: 'admin',
       sender_name: senderName,
       content: trimmed,

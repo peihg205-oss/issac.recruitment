@@ -276,11 +276,17 @@ export async function sendChatMessage(
 
   // 3. Always insert into Supabase `audit_logs` (unrestricted cross-device persistence across phone & laptop)
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const safeUserId = uuidRegex.test(sender_id) ? sender_id : null
+    const safeTargetId = uuidRegex.test(conversationKey)
+      ? conversationKey
+      : (candidateUserId && uuidRegex.test(candidateUserId) ? candidateUserId : null)
+
     await supabase.from('audit_logs').insert({
       action: 'CHAT_MESSAGE',
       target_type: 'candidate_chat',
-      target_id: conversationKey,
-      user_id: sender_id,
+      target_id: safeTargetId,
+      user_id: safeUserId,
       user_name: sender_name,
       description: trimmed,
       metadata: {
@@ -303,7 +309,8 @@ export async function sendChatMessage(
 
   // 4. Send notification to recipient
   try {
-    if (sender_role === 'admin' && candidateUserId) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (sender_role === 'admin' && candidateUserId && uuidRegex.test(candidateUserId)) {
       await supabase.from('notifications').insert({
         user_id: candidateUserId,
         title: 'Phản hồi mới từ Ban Tuyển quân iSSAC',

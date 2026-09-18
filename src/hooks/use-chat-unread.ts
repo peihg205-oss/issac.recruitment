@@ -84,10 +84,20 @@ export function useMemberChatUnread(userId?: string | null, applicationId?: stri
 /**
  * Hook to get real-time unread messages count for Admin.
  */
-export function useAdminChatUnread() {
+export function useAdminChatUnread(adminRole?: string) {
   const [unreadCount, setUnreadCount] = useState(0)
   const supabase = useMemo(() => createClient(), [])
   const isUpdatingRef = useRef(false)
+
+  // Resolve role from param or cookie
+  const effectiveRole = useMemo(() => {
+    if (adminRole) return adminRole
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)issac_admin_role=([^;]+)/)
+      if (match) return match[1]
+    }
+    return 'chu-nhiem'
+  }, [adminRole])
 
   useEffect(() => {
     let isMounted = true
@@ -96,7 +106,7 @@ export function useAdminChatUnread() {
       if (isUpdatingRef.current) return
       isUpdatingRef.current = true
       try {
-        const count = await getAdminUnreadCount(supabase)
+        const count = await getAdminUnreadCount(supabase, effectiveRole)
         if (isMounted) {
           setUnreadCount(count)
         }
@@ -137,7 +147,7 @@ export function useAdminChatUnread() {
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [effectiveRole]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return unreadCount
 }

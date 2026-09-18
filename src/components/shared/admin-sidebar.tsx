@@ -43,7 +43,6 @@ export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProp
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const unreadCount = useAdminChatUnread()
 
   const [activeRole, setActiveRole] = useState<AdminRoleType>(() => {
     if (typeof document !== 'undefined') {
@@ -54,6 +53,8 @@ export function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProp
     }
     return (user?.admin_role && user.admin_role in ADMIN_ROLE_CONFIGS ? user.admin_role : 'chu-nhiem') as AdminRoleType
   })
+
+  const unreadCount = useAdminChatUnread(activeRole)
 
   useEffect(() => {
     const readRole = () => {

@@ -308,9 +308,12 @@ export default function MemberMessagesPage() {
                   {/* Sender Label */}
                   {!isMe && (
                     <div className="flex items-center gap-1.5 mb-1 px-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                      <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">
-                        {msg.sender_name || 'Ban Chủ nhiệm iSSAC'}
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#1657c1]" />
+                      <span className="text-[11px] font-bold text-slate-800">
+                        {msg.sender_name || 'Ban Tuyển quân iSSAC'}
+                      </span>
+                      <span className="text-[9px] font-extrabold bg-blue-100 text-[#1657c1] px-1.5 py-0.2 rounded-full">
+                        Ban Tuyển quân
                       </span>
                     </div>
                   )}

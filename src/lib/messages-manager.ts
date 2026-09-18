@@ -19,6 +19,7 @@ export interface ConversationSummary {
   candidate_email?: string
   candidate_phone?: string
   dept_name: string
+  dept_slug?: string | null
   has_application: boolean
   last_message: string
   last_time: string
@@ -393,10 +394,12 @@ export async function getMemberUnreadCount(
 /**
  * Get total unread messages count for Admin (messages from members that are not read)
  */
-export async function getAdminUnreadCount(supabase: SupabaseClient): Promise<number> {
+export async function getAdminUnreadCount(supabase: SupabaseClient, adminRole?: string): Promise<number> {
   try {
     const convs = await fetchAllConversations(supabase)
-    return convs.reduce((sum, c) => sum + c.unread_count, 0)
+    const isSuper = !adminRole || adminRole === 'chu-nhiem' || adminRole === 'super_admin'
+    const filtered = isSuper ? convs : convs.filter(c => c.dept_slug === adminRole)
+    return filtered.reduce((sum, c) => sum + c.unread_count, 0)
   } catch {
     return 0
   }
@@ -423,7 +426,7 @@ export async function fetchAllConversations(
     .from('applications')
     .select(`
       id, user_id, status, created_at,
-      departments!applications_department_id_fkey(name)
+      departments!applications_department_id_fkey(name, slug)
     `)
     .order('created_at', { ascending: false })
 
@@ -524,8 +527,10 @@ export async function fetchAllConversations(
     const unread = profMsgs.filter(m => m.sender_role === 'member' && !m.is_read).length
 
     let deptName = 'Tài khoản mới (Chưa nộp đơn)'
+    let deptSlug: string | null = null
     if (app?.departments?.name) {
       deptName = `Ban ${app.departments.name}`
+      deptSlug = app.departments.slug || null
     } else if (app) {
       deptName = 'Đơn ứng tuyển (Đang chọn ban)'
     }
@@ -538,6 +543,7 @@ export async function fetchAllConversations(
       candidate_email: prof.email || '',
       candidate_phone: prof.phone || '',
       dept_name: deptName,
+      dept_slug: deptSlug,
       has_application: Boolean(app),
       last_message: lastMsg ? lastMsg.content : 'Chưa có tin nhắn nào',
       last_time: lastMsg ? lastMsg.created_at : prof.created_at,

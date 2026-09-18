@@ -38,8 +38,8 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
+        {/* Top Header - Luôn nằm trên các phần tử bên dưới (z-50) */}
+        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 relative z-50">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger — only on mobile */}
             <button
@@ -118,7 +118,7 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative z-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
             <CandidateDeadlineBanner
               userId={userProfile.id}

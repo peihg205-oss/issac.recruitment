@@ -37,18 +37,60 @@ export function MemberNotificationBell() {
 
       let dbNotifs = (data as NotificationItem[]) || []
 
-      // Merge local in-app notifications
+      // Merge local in-app notifications and sanitize legacy ones
       if (typeof window !== 'undefined') {
         try {
           const userNotifsKey = `issac_user_notifs_${user.id}`
-          const localNotifs = JSON.parse(localStorage.getItem(userNotifsKey) || '[]')
-          if (Array.isArray(localNotifs) && localNotifs.length > 0) {
-            const existingIds = new Set(dbNotifs.map(n => n.id))
-            const filteredLocal = localNotifs.filter(n => !existingIds.has(n.id))
-            dbNotifs = [...filteredLocal, ...dbNotifs]
+          const raw = localStorage.getItem(userNotifsKey)
+          if (raw) {
+            const localNotifs = JSON.parse(raw)
+            if (Array.isArray(localNotifs) && localNotifs.length > 0) {
+              const sanitizedLocal = localNotifs.map((n: any) => {
+                if (
+                  n.action_url === '/member/messages' ||
+                  n.type === 'message' ||
+                  n.type === 'warning' ||
+                  n.title?.toLowerCase().includes('phản hồi') ||
+                  n.title?.toLowerCase().includes('tin nhắn')
+                ) {
+                  return {
+                    ...n,
+                    title: 'Cảnh báo từ Ban Chủ nhiệm iSSAC',
+                    type: 'warning',
+                    action_url: '/member/messages',
+                    message: typeof n.message === 'string' ? n.message.replace(/tin nhắn/gi, 'cảnh báo') : n.message
+                  }
+                }
+                return n
+              })
+              localStorage.setItem(userNotifsKey, JSON.stringify(sanitizedLocal))
+              const existingIds = new Set(dbNotifs.map(n => n.id))
+              const filteredLocal = sanitizedLocal.filter((n: any) => !existingIds.has(n.id))
+              dbNotifs = [...filteredLocal, ...dbNotifs]
+            }
           }
         } catch {}
       }
+
+      // Map any items with action_url = /member/messages to warning title
+      dbNotifs = dbNotifs.map(n => {
+        if (
+          n.action_url === '/member/messages' ||
+          n.type === 'warning' ||
+          n.type === 'message' ||
+          n.title?.toLowerCase().includes('phản hồi') ||
+          n.title?.toLowerCase().includes('tin nhắn')
+        ) {
+          return {
+            ...n,
+            title: 'Cảnh báo từ Ban Chủ nhiệm iSSAC',
+            type: 'warning',
+            action_url: '/member/messages',
+            message: typeof n.message === 'string' ? n.message.replace(/tin nhắn/gi, 'cảnh báo') : n.message
+          }
+        }
+        return n
+      })
 
       setNotifications(dbNotifs.slice(0, 6))
     } catch (err) {
@@ -158,7 +200,7 @@ export function MemberNotificationBell() {
   }
 
   return (
-    <div className="relative z-[100]" ref={dropdownRef}>
+    <div className="relative z-[9999]" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -174,7 +216,7 @@ export function MemberNotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border-2 border-slate-200 shadow-2xl overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border-2 border-slate-200 shadow-2xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-100">
           {/* Header */}
           <div className="px-4 py-3 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">

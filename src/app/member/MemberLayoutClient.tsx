@@ -38,8 +38,8 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header - Luôn nằm trên các phần tử bên dưới (z-50) */}
-        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 relative z-50">
+        {/* Top Header - Luôn nằm trên các phần tử bên dưới (z-[9999] isolate) */}
+        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 relative z-[9999] isolate">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger — only on mobile */}
             <button

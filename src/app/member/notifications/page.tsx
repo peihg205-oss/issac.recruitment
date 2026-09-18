@@ -48,14 +48,55 @@ export default function MemberNotificationsPage() {
       if (typeof window !== 'undefined') {
         try {
           const userNotifsKey = `issac_user_notifs_${user.id}`
-          const localNotifs = JSON.parse(localStorage.getItem(userNotifsKey) || '[]')
-          if (Array.isArray(localNotifs) && localNotifs.length > 0) {
-            const existingIds = new Set(allNotifs.map(n => n.id))
-            const filteredLocal = localNotifs.filter(n => !existingIds.has(n.id))
-            allNotifs = [...filteredLocal, ...allNotifs]
+          const raw = localStorage.getItem(userNotifsKey)
+          if (raw) {
+            const localNotifs = JSON.parse(raw)
+            if (Array.isArray(localNotifs) && localNotifs.length > 0) {
+              const sanitizedLocal = localNotifs.map((n: any) => {
+                if (
+                  n.action_url === '/member/messages' ||
+                  n.type === 'message' ||
+                  n.type === 'warning' ||
+                  n.title?.toLowerCase().includes('phản hồi') ||
+                  n.title?.toLowerCase().includes('tin nhắn')
+                ) {
+                  return {
+                    ...n,
+                    title: 'Cảnh báo từ Ban Chủ nhiệm iSSAC',
+                    type: 'warning',
+                    action_url: '/member/messages',
+                    message: typeof n.message === 'string' ? n.message.replace(/tin nhắn/gi, 'cảnh báo') : n.message
+                  }
+                }
+                return n
+              })
+              localStorage.setItem(userNotifsKey, JSON.stringify(sanitizedLocal))
+              const existingIds = new Set(allNotifs.map(n => n.id))
+              const filteredLocal = sanitizedLocal.filter((n: any) => !existingIds.has(n.id))
+              allNotifs = [...filteredLocal, ...allNotifs]
+            }
           }
         } catch {}
       }
+
+      allNotifs = allNotifs.map(n => {
+        if (
+          n.action_url === '/member/messages' ||
+          n.type === 'warning' ||
+          n.type === 'message' ||
+          n.title?.toLowerCase().includes('phản hồi') ||
+          n.title?.toLowerCase().includes('tin nhắn')
+        ) {
+          return {
+            ...n,
+            title: 'Cảnh báo từ Ban Chủ nhiệm iSSAC',
+            type: 'warning',
+            action_url: '/member/messages',
+            message: typeof n.message === 'string' ? n.message.replace(/tin nhắn/gi, 'cảnh báo') : n.message
+          }
+        }
+        return n
+      })
 
       setNotifications(allNotifs)
     } catch (err) {

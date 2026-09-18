@@ -18,7 +18,7 @@ const navItems = [
   { href: '/member/application', icon: FileText, label: 'Ứng tuyển' },
   { href: '/member/interview', icon: Calendar, label: 'Lịch phỏng vấn' },
   { href: '/member/result', icon: Trophy, label: 'Kết quả' },
-  { href: '/member/messages', icon: AlertTriangle, label: 'Cảnh báo & Nhắc nhở' },
+  { href: '/member/messages', icon: AlertTriangle, label: 'Cảnh báo của BCN iSSAC', isAlert: true },
 ]
 
 interface MemberSidebarProps {
@@ -69,21 +69,39 @@ export function MemberSidebar({ user, isOpen = false, onClose, chatUnread = 0 }:
       <nav className="px-3 pt-3 pb-1 space-y-1">
         {navItems.map(item => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isAlert = (item as any).isAlert
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all group',
                 active
                   ? 'bg-[#1559c5] text-white shadow-sm font-bold'
-                  : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
+                  : isAlert && chatUnread > 0
+                    ? 'bg-rose-50 text-rose-700 border-2 border-rose-300 font-black hover:bg-rose-100 animate-pulse'
+                    : isAlert
+                      ? 'text-rose-700 font-bold hover:bg-rose-50 hover:text-rose-800'
+                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 font-medium'
               )}
             >
-              <item.icon className={cn('w-4.5 h-4.5', active ? 'text-white' : 'text-gray-400 group-hover:text-blue-600')} size={18} />
-              <span className="flex-1">{item.label}</span>
-              {item.href === '/member/messages' && chatUnread > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+              <item.icon
+                className={cn(
+                  'w-4.5 h-4.5 shrink-0',
+                  active
+                    ? 'text-white'
+                    : isAlert
+                      ? 'text-rose-600'
+                      : 'text-gray-400 group-hover:text-blue-600'
+                )}
+                size={18}
+              />
+              <span className={cn('flex-1 truncate', isAlert && 'font-black tracking-tight')}>
+                {item.label}
+              </span>
+              {isAlert && chatUnread > 0 && (
+                <span className="px-2 py-0.5 text-xs font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md shadow-rose-500/80 ring-2 ring-rose-300">
                   {chatUnread > 9 ? '9+' : chatUnread}
                 </span>
               )}

@@ -414,14 +414,14 @@ function AdminMessagesContent() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
-            Cảnh báo Ứng viên
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-              Kênh 1 chiều
+            <AlertTriangle className="w-6 h-6 text-rose-600" />
+            Cảnh báo của Ban Chủ nhiệm iSSAC
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-300">
+              Kênh 1 chiều (Ứng viên chỉ đọc)
             </span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Gửi thông báo cảnh báo và nhắc nhở trực tiếp cho từng ứng viên (Ứng viên chỉ đọc, không có quyền phản hồi)
+            Admin phát thông báo cảnh báo và nhắc nhở trực tiếp cho từng ứng viên (Ứng viên chỉ đọc được và không có quyền phản hồi)
           </p>
         </div>
 
@@ -806,11 +806,11 @@ function AdminMessagesContent() {
                     <button
                       onClick={handleSendWarning}
                       disabled={!newMessage.trim()}
-                      className="h-11 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
-                      title="Gửi cảnh báo tới ứng viên (Enter)"
+                      className="h-11 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center gap-1.5 text-xs font-black transition-all shadow-sm shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                      title="Gửi cảnh báo của BCN tới ứng viên (Enter)"
                     >
                       <AlertTriangle className="w-4 h-4" />
-                      <span className="hidden sm:inline">Gửi cảnh báo</span>
+                      <span className="hidden sm:inline">Gửi cảnh báo của BCN</span>
                     </button>
                   </div>
                 </div>

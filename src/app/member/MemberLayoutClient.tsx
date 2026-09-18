@@ -75,15 +75,19 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
               <Home className="w-4.5 h-4.5" />
             </Link>
 
-            {/* Quick Cảnh báo & Realtime Unread Counter */}
+            {/* Quick Cảnh báo của BCN iSSAC & Realtime Unread Counter */}
             <Link
               href="/member/messages"
-              className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 border border-slate-200/80 transition-all"
-              title="Cảnh báo & Nhắc nhở từ Ban Tuyển quân"
+              className={`relative flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${
+                chatUnread > 0
+                  ? 'bg-rose-500 text-white border-rose-600 shadow-md shadow-rose-500/50 animate-pulse'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-300'
+              }`}
+              title="Cảnh báo của Ban Chủ nhiệm iSSAC"
             >
-              <AlertTriangle className="w-4.5 h-4.5" />
+              <AlertTriangle className={`w-4.5 h-4.5 ${chatUnread > 0 ? 'text-white' : 'text-amber-600'}`} />
               {chatUnread > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-600 text-white text-[11px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md shadow-rose-500/80 ring-2 ring-white">
                   {chatUnread > 9 ? '9+' : chatUnread}
                 </span>
               )}

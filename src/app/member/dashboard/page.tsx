@@ -518,6 +518,38 @@ export default function MemberDashboardPage() {
         </div>
       </div>
 
+      {/* CẢNH BÁO TỪ BAN CHỦ NHIỆM iSSAC - SIÊU NỔI BẬT GÂY CHÚ Ý TỐI ĐA KHI ỨNG VIÊN VÀO */}
+      {chatUnread > 0 && (
+        <div className="relative rounded-3xl bg-gradient-to-r from-rose-600 via-rose-700 to-red-800 text-white p-5 sm:p-6 shadow-xl border-2 border-rose-300 animate-pulse">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center text-white shrink-0 shadow-lg">
+                <AlertTriangle className="w-8 h-8 text-amber-300 animate-bounce" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-white text-rose-700 rounded-md shadow-xs">
+                    CẢNH BÁO QUAN TRỌNG
+                  </span>
+                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                    CẢNH BÁO CỦA BAN CHỦ NHIỆM iSSAC ({chatUnread} CẢNH BÁO MỚI)
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-rose-100 font-medium">
+                  Ban Chủ nhiệm CLB iSSAC đã phát thông báo cảnh báo/nhắc nhở quan trọng tới tài khoản của bạn. Vui lòng kiểm tra ngay!
+                </p>
+              </div>
+            </div>
+            <Link href="/member/messages" className="shrink-0">
+              <Button className="w-full sm:w-auto bg-[#fdc455] hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-2xl px-6 py-3 shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105">
+                <AlertTriangle className="w-4 h-4 text-slate-950" />
+                <span>XEM CẢNH BÁO NGAY ({chatUnread})</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* BANNER NHẮC NHỞ NẾU CHƯA NỘP ĐƠN */}
       {!hasApplication && (
         <div className="bg-gradient-to-r from-[#1559c5] via-[#1a66dc] to-[#1249a8] rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden">
@@ -877,45 +909,45 @@ export default function MemberDashboardPage() {
         </div>
       </div>
 
-      {/* 4.5 KÊNH CẢNH BÁO & NHẮC NHỞ TỪ BAN TUYỂN QUÂN */}
-      <div className="rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-5 sm:p-6 text-white border border-blue-400/30 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 4.5 KÊNH CẢNH BÁO CỦA BAN CHỦ NHIỆM iSSAC */}
+      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 p-5 sm:p-6 text-white border-2 border-amber-400/50 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-amber-400 relative">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center shrink-0 text-amber-400 relative">
             <AlertTriangle className="w-6 h-6" />
             {chatUnread > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/50">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-rose-500/80 ring-2 ring-white">
                 {chatUnread > 9 ? '9+' : chatUnread}
               </span>
             )}
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base font-bold text-white">Cảnh báo & Nhắc nhở từ Ban Tuyển quân</h3>
+              <h3 className="text-base font-black text-white uppercase tracking-tight">CẢNH BÁO CỦA BAN CHỦ NHIỆM iSSAC</h3>
               {chatUnread > 0 ? (
-                <span className="px-2.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
-                  {chatUnread} cảnh báo mới
+                <span className="px-2.5 py-0.5 text-[10px] font-black bg-rose-600 text-white rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+                  {chatUnread} CẢNH BÁO MỚI
                 </span>
               ) : (
                 <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30 rounded-full">
-                  Thông báo 1 chiều
+                  Kênh 1 chiều (Chỉ đọc)
                 </span>
               )}
             </div>
             <p className="text-xs text-blue-200">
               {chatUnread > 0
-                ? 'Ban Tuyển quân vừa gửi thông báo cảnh báo/nhắc nhở mới cho bạn. Nhấn vào bên dưới để xem ngay.'
-                : 'Theo dõi các thông báo nhắc nhở, cảnh báo về thời hạn nộp đơn, lịch phỏng vấn và quy chế từ Ban Chủ nhiệm.'}
+                ? 'Ban Chủ nhiệm CLB iSSAC vừa phát thông báo cảnh báo/nhắc nhở mới cho bạn. Nhấn vào bên dưới để đọc ngay.'
+                : 'Theo dõi các thông báo nhắc nhở, cảnh báo về thời hạn nộp đơn, lịch phỏng vấn và quy chế từ Ban Chủ nhiệm CLB iSSAC.'}
             </p>
           </div>
         </div>
         <Link href="/member/messages" className="shrink-0">
-          <Button className={`w-full sm:w-auto font-bold text-xs rounded-2xl px-5 py-2.5 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
+          <Button className={`w-full sm:w-auto font-black text-xs rounded-2xl px-5 py-2.5 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
             chatUnread > 0
-              ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/40'
               : 'bg-[#fdc455] hover:bg-amber-400 text-slate-950'
           }`}>
             <AlertTriangle className="w-4 h-4" />
-            {chatUnread > 0 ? `Xem ${chatUnread} cảnh báo mới` : 'Xem cảnh báo'}
+            {chatUnread > 0 ? `XEM ${chatUnread} CẢNH BÁO MỚI` : 'XEM CẢNH BÁO CỦA BCN'}
           </Button>
         </Link>
       </div>

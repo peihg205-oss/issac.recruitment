@@ -171,22 +171,22 @@ export default function MemberWarningsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white shrink-0 z-10">
+      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-red-950 via-slate-900 to-indigo-950 text-white shrink-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shadow-xs shrink-0">
-            <AlertTriangle className="w-5 h-5 text-amber-400" />
+            <AlertTriangle className="w-5 h-5 text-amber-400 animate-bounce" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-white truncate">Cảnh báo & Nhắc nhở</h1>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full">
-                Thông báo 1 chiều
+              <h1 className="text-base font-black text-white truncate uppercase tracking-tight">Cảnh báo của Ban Chủ nhiệm iSSAC</h1>
+              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-black bg-rose-500/30 text-rose-300 border border-rose-400/40 rounded-full">
+                Kênh 1 chiều (Chỉ đọc)
               </span>
             </div>
             <p className="text-xs text-slate-300 font-medium truncate">
               {application?.departments?.name
-                ? `Ban ${application.departments.name} • Kênh thông báo chính thức từ Ban Tuyển quân iSSAC`
-                : 'Ứng viên Gen 3 • Kênh thông báo chính thức từ Ban Tuyển quân iSSAC'}
+                ? `Ban ${application.departments.name} • Thông báo cảnh báo & nhắc nhở từ Ban Chủ nhiệm CLB iSSAC`
+                : 'Ứng viên Gen 3 • Thông báo cảnh báo & nhắc nhở từ Ban Chủ nhiệm CLB iSSAC'}
             </p>
           </div>
         </div>
@@ -204,10 +204,10 @@ export default function MemberWarningsPage() {
       </div>
 
       {/* Notice Banner explaining read-only policy */}
-      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 shrink-0 z-10">
-        <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-rose-50 border-b border-rose-200 text-xs text-rose-950 shrink-0 z-10">
+        <ShieldAlert className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
         <span className="leading-snug">
-          <strong>Lưu ý:</strong> Đây là kênh phát thông báo cảnh báo và nhắc nhở chính thức từ Ban Tuyển quân. Ứng viên <strong>chỉ có quyền đọc</strong> và <strong>không thể phản hồi</strong> qua kênh này.
+          <strong>LƯU Ý QUAN TRỌNG:</strong> Đây là kênh phát thông báo cảnh báo chính thức từ <strong>Ban Chủ nhiệm CLB iSSAC</strong>. Ứng viên <strong>chỉ có quyền đọc</strong> và <strong>hoàn toàn không có quyền phản hồi</strong> qua kênh này.
         </span>
       </div>
 
@@ -224,7 +224,7 @@ export default function MemberWarningsPage() {
             <div className="space-y-1">
               <p className="text-sm font-bold text-slate-800">Không có cảnh báo nào</p>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                Hiện tại bạn không có thông báo nhắc nhở hoặc cảnh báo vi phạm nào từ Ban Tuyển quân. Hồ sơ và tiến trình ứng tuyển của bạn đang diễn ra bình thường!
+                Hiện tại bạn không có thông báo nhắc nhở hoặc cảnh báo vi phạm nào từ Ban Chủ nhiệm CLB iSSAC. Hồ sơ và tiến trình ứng tuyển của bạn đang diễn ra bình thường!
               </p>
             </div>
           </div>
@@ -232,21 +232,21 @@ export default function MemberWarningsPage() {
           adminWarnings.map((msg) => (
             <div
               key={msg.id}
-              className="rounded-2xl border border-amber-200/80 bg-white p-4 sm:p-5 shadow-2xs space-y-2.5 animate-fade-in"
+              className="rounded-2xl border-2 border-rose-200/90 bg-white p-4 sm:p-5 shadow-xs space-y-2.5 animate-fade-in"
             >
               {/* Header: Sender & Badge & Time */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 shrink-0">
-                    <AlertTriangle className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                    <AlertTriangle className="w-4.5 h-4.5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900">
-                        {msg.sender_name || 'Ban Tuyển quân iSSAC'}
+                      <span className="text-xs font-black text-slate-900">
+                        {msg.sender_name || 'Ban Chủ nhiệm CLB iSSAC'}
                       </span>
-                      <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-200 px-1.5 py-0.2 rounded-md">
-                        Cảnh báo
+                      <span className="text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded-md uppercase">
+                        Cảnh báo BCN
                       </span>
                     </div>
                   </div>

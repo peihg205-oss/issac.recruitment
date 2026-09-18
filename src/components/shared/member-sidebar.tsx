@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useMemberChatUnread } from '@/hooks/use-chat-unread'
 import {
   LayoutDashboard, User, FileText, HelpCircle,
   Calendar, Trophy, LogOut, Bell, ChevronRight, Info, X, MessageSquare
@@ -26,13 +25,13 @@ interface MemberSidebarProps {
   user?: { full_name?: string; email?: string; avatar_url?: string | null }
   isOpen?: boolean
   onClose?: () => void
+  chatUnread?: number
 }
 
-export function MemberSidebar({ user, isOpen = false, onClose }: MemberSidebarProps) {
+export function MemberSidebar({ user, isOpen = false, onClose, chatUnread = 0 }: MemberSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const chatUnread = useMemberChatUnread()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

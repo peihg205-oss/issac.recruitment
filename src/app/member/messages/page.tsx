@@ -110,16 +110,16 @@ export default function MemberMessagesPage() {
     const channel = supabase
       .channel(`member-messages-${convKey}`)
       .on('postgres_changes', {
-        event: '*',
+        event: 'INSERT',
         schema: 'public',
         table: 'audit_logs',
       }, async (payload: any) => {
+        if (payload?.new?.action !== 'CHAT_MESSAGE') return
         const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
         if (target === convKey || target === user.id) {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setMessages(msgs)
           scrollToBottom()
-          markChatAsRead(supabase, convKey, 'member', user.id)
         }
       })
       .on('postgres_changes', {
@@ -131,7 +131,6 @@ export default function MemberMessagesPage() {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setMessages(msgs)
           scrollToBottom()
-          markChatAsRead(supabase, convKey, 'member', user.id)
         }
       })
       .subscribe()

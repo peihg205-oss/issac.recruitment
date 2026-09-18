@@ -1,25 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getMemberUnreadCount, getAdminUnreadCount } from '@/lib/messages-manager'
 
 /**
  * Hook to get real-time unread messages count for a candidate/member.
- * Subscribes to:
- * 1. window CustomEvent 'issac_chat_unread_changed'
- * 2. BroadcastChannel 'issac_chat_channel'
- * 3. Supabase Realtime postgres_changes on audit_logs & messages
- * 4. Fallback interval
+ * Safe, debounced, and does not cause infinite re-renders.
  */
 export function useMemberChatUnread(userId?: string | null, applicationId?: string | null) {
   const [unreadCount, setUnreadCount] = useState(0)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const isUpdatingRef = useRef(false)
 
   useEffect(() => {
     let isMounted = true
 
     const updateCount = async () => {
+      if (isUpdatingRef.current) return
+      isUpdatingRef.current = true
       try {
         let uid = userId
         if (!uid) {
@@ -34,9 +33,12 @@ export function useMemberChatUnread(userId?: string | null, applicationId?: stri
         }
       } catch (e) {
         // silent fail
+      } finally {
+        isUpdatingRef.current = false
       }
     }
 
+    // Run once on mount
     updateCount()
 
     // 1. In-app custom event
@@ -50,15 +52,22 @@ export function useMemberChatUnread(userId?: string | null, applicationId?: stri
       bc.onmessage = () => updateCount()
     } catch {}
 
-    // 3. Supabase Realtime Channel
+    // 3. Supabase Realtime Channel (Only listen for new messages, avoid loops)
+    const channelName = `rt-m-unread-${userId || 'me'}-${Math.random().toString(36).slice(2, 6)}`
     const channel = supabase
-      .channel(`rt-member-unread-${userId || 'me'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => updateCount())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => updateCount())
+      .channel(channelName)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload: any) => {
+        if (payload?.new?.action === 'CHAT_MESSAGE') {
+          updateCount()
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        updateCount()
+      })
       .subscribe()
 
-    // 4. Polling fallback every 6 seconds
-    const interval = setInterval(updateCount, 6000)
+    // 4. Fallback interval every 12 seconds
+    const interval = setInterval(updateCount, 12000)
 
     return () => {
       isMounted = false
@@ -67,7 +76,7 @@ export function useMemberChatUnread(userId?: string | null, applicationId?: stri
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [userId, applicationId, supabase])
+  }, [userId, applicationId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return unreadCount
 }
@@ -77,18 +86,23 @@ export function useMemberChatUnread(userId?: string | null, applicationId?: stri
  */
 export function useAdminChatUnread() {
   const [unreadCount, setUnreadCount] = useState(0)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const isUpdatingRef = useRef(false)
 
   useEffect(() => {
     let isMounted = true
 
     const updateCount = async () => {
+      if (isUpdatingRef.current) return
+      isUpdatingRef.current = true
       try {
         const count = await getAdminUnreadCount(supabase)
         if (isMounted) {
           setUnreadCount(count)
         }
-      } catch {}
+      } catch {} finally {
+        isUpdatingRef.current = false
+      }
     }
 
     updateCount()
@@ -103,12 +117,18 @@ export function useAdminChatUnread() {
     } catch {}
 
     const channel = supabase
-      .channel('rt-admin-unread')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => updateCount())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => updateCount())
+      .channel(`rt-adm-unread-${Math.random().toString(36).slice(2, 6)}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload: any) => {
+        if (payload?.new?.action === 'CHAT_MESSAGE') {
+          updateCount()
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        updateCount()
+      })
       .subscribe()
 
-    const interval = setInterval(updateCount, 6000)
+    const interval = setInterval(updateCount, 12000)
 
     return () => {
       isMounted = false
@@ -117,7 +137,7 @@ export function useAdminChatUnread() {
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [supabase])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return unreadCount
 }

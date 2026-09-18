@@ -363,22 +363,6 @@ export async function markChatAsRead(
     }
   } catch {}
 
-  // 3. Log read event in audit_logs so all other devices receive the read status
-  try {
-    await supabase.from('audit_logs').insert({
-      action: 'CHAT_READ',
-      target_type: 'candidate_chat',
-      target_id: conversationId,
-      description: `Messages read by ${readerRole}`,
-      metadata: {
-        conversation_id: conversationId,
-        candidate_user_id: candidateUserId || null,
-        reader_role: readerRole,
-        read_at: new Date().toISOString(),
-      },
-    })
-  } catch {}
-
   notifyUnreadChanged()
 }
 

@@ -100,29 +100,32 @@ function AdminMessagesContent() {
   }, [loadConversations])
 
   // Fetch messages for active conversation
-  const loadMessages = useCallback(async (appId: string, isSilent = false) => {
+  const loadMessages = useCallback(async (appId: string) => {
     try {
-      const conv = conversations.find(c => c.application_id === appId)
-      const msgs = await fetchApplicationMessages(supabase, appId, conv?.candidate_id)
+      const msgs = await fetchApplicationMessages(supabase, appId)
       setMessages(msgs)
-      await markChatAsRead(supabase, appId, 'admin', conv?.candidate_id)
+      await markChatAsRead(supabase, appId, 'admin')
 
-      // Update local unread badge
-      setConversations(prev => prev.map(c =>
-        c.application_id === appId ? { ...c, unread_count: 0 } : c
-      ))
+      // Update local unread badge without creating state change loop
+      setConversations(prev => {
+        const item = prev.find(c => c.application_id === appId)
+        if (!item || item.unread_count === 0) return prev
+        return prev.map(c =>
+          c.application_id === appId ? { ...c, unread_count: 0 } : c
+        )
+      })
 
       scrollToBottom(true)
     } catch (err) {
       console.error('Error fetching messages for app:', err)
     }
-  }, [supabase, conversations, scrollToBottom])
+  }, [supabase, scrollToBottom])
 
   useEffect(() => {
     if (activeConv) {
       loadMessages(activeConv)
     }
-  }, [activeConv, loadMessages])
+  }, [activeConv]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll to bottom when messages change
   useEffect(() => {

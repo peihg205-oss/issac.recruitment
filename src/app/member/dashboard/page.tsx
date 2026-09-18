@@ -269,16 +269,44 @@ export default function MemberDashboardPage() {
   const candidateName = profile?.full_name || user?.user_metadata?.full_name || 'ỨNG VIÊN'
   const hasApplication = !!application && application.status !== 'draft'
 
+  // Kiểm tra thông tin cá nhân & học vấn đã được cung cấp chưa
+  const hasPart1 = Boolean(
+    profile?.full_name?.trim() &&
+    profile?.phone?.trim() &&
+    profile?.date_of_birth &&
+    profile?.gender
+  )
+
+  const hasPart2 = Boolean(
+    profile?.student_id?.trim() &&
+    profile?.cohort?.trim() &&
+    profile?.major?.trim()
+  )
+
+  // Nếu ứng viên đã có đơn ứng tuyển nộp thì mặc định hồ sơ đã hoàn thành
+  const isProfileComplete = Boolean(hasApplication || (hasPart1 && hasPart2))
+
   // XÁC ĐỊNH VÒNG HIỆN TẠI VÀ TRẠNG THÁI THEO THỜI GIAN THỰC
   const getRoundAndStatus = () => {
     if (!hasApplication) {
+      if (!isProfileComplete) {
+        return {
+          roundNumber: 1,
+          roundTotal: 5,
+          roundName: 'Hoàn thiện hồ sơ cá nhân',
+          roundTag: 'Bước 1 / 5',
+          statusLabel: 'Chưa điền hồ sơ',
+          statusDesc: 'Vui lòng cập nhật thông tin cá nhân & học vấn',
+          themeColor: 'amber',
+        }
+      }
       return {
         roundNumber: 1,
         roundTotal: 5,
         roundName: 'Nộp hồ sơ ứng tuyển',
         roundTag: 'Vòng 1 / 5',
         statusLabel: 'Chưa nộp đơn',
-        statusDesc: 'Vui lòng hoàn thành đơn ứng tuyển',
+        statusDesc: 'Hồ sơ sẵn sàng • Chưa gửi đơn',
         themeColor: 'amber',
       }
     }
@@ -404,20 +432,23 @@ export default function MemberDashboardPage() {
       id: 1,
       name: 'Hồ sơ',
       desc: 'Thông tin cá nhân',
-      status: 'done', // Đã tạo tài khoản thành công
-      note: '✓ Hoàn thành',
+      href: '/member/profile',
+      status: isProfileComplete ? 'done' : 'active',
+      note: isProfileComplete ? '✓ Hoàn thành' : '● Chưa điền',
     },
     {
       id: 2,
       name: 'Đơn',
       desc: 'Câu trả lời & CV',
-      status: hasApplication ? 'done' : 'active',
-      note: hasApplication ? '✓ Đã nộp' : '● Chưa gửi đơn',
+      href: '/member/application',
+      status: hasApplication ? 'done' : (isProfileComplete ? 'active' : 'pending'),
+      note: hasApplication ? '✓ Đã nộp' : (isProfileComplete ? '● Chưa gửi đơn' : '○ Chờ hồ sơ'),
     },
     {
       id: 3,
       name: 'PV',
       desc: 'Phỏng vấn trực tiếp',
+      href: '/member/interview',
       status: ['interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status) || interview?.status === 'completed'
         ? 'done'
         : (application?.status === 'interview_scheduled' || interview ? 'active' : 'pending'),
@@ -440,6 +471,7 @@ export default function MemberDashboardPage() {
       id: 5,
       name: 'Kết quả',
       desc: 'Công bố chính thức',
+      href: '/member/result',
       status: canViewResult
         ? (hasOpenedEnvelope ? 'done' : 'active')
         : 'pending',
@@ -491,21 +523,25 @@ export default function MemberDashboardPage() {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950">
-                <Sparkles className="w-3.5 h-3.5" /> BƯỚC QUAN TRỌNG
+                <Sparkles className="w-3.5 h-3.5" /> {!isProfileComplete ? 'BƯỚC 1: CẬP NHẬT HỒ SƠ' : 'BƯỚC 2: NỘP ĐƠN ỨNG TUYỂN'}
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white">
-                Bạn chưa hoàn thành đơn ứng tuyển Gen 3!
+                {!isProfileComplete
+                  ? 'Bạn chưa hoàn tất thông tin cá nhân!'
+                  : 'Bạn chưa hoàn thành đơn ứng tuyển Gen 3!'}
               </h2>
               <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
-                Hãy lựa chọn Ban chuyên môn yêu thích (Truyền thông, Tư vấn, Nhân sự) và điền câu hỏi ứng tuyển để Hội đồng tiếp nhận hồ sơ xét duyệt.
+                {!isProfileComplete
+                  ? 'Vui lòng cập nhật đầy đủ thông tin cá nhân và học vấn (MSSV, SĐT, khóa, ngành học) để mở khóa nộp đơn ứng tuyển.'
+                  : 'Hãy lựa chọn Ban chuyên môn yêu thích (Truyền thông, Tư vấn, Nhân sự) và điền câu hỏi ứng tuyển để Hội đồng tiếp nhận hồ sơ xét duyệt.'}
               </p>
             </div>
-            <Link href="/member/application" className="shrink-0">
+            <Link href={!isProfileComplete ? '/member/profile' : '/member/application'} className="shrink-0">
               <Button
                 size="lg"
                 className="bg-[#fdc455] hover:bg-[#f59e0b] text-slate-950 font-black rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all text-sm px-6 py-6 cursor-pointer"
               >
-                Nộp đơn ứng tuyển ngay
+                {!isProfileComplete ? 'Cập nhật hồ sơ cá nhân ngay' : 'Nộp đơn ứng tuyển ngay'}
                 <ChevronRight className="w-4 h-4 ml-1.5" />
               </Button>
             </Link>
@@ -618,15 +654,15 @@ export default function MemberDashboardPage() {
                 const isDone = step.status === 'done'
                 const isActive = step.status === 'active'
 
-                return (
-                  <div key={step.id} className="flex flex-col items-center text-center space-y-2">
+                const content = (
+                  <div className="flex flex-col items-center text-center space-y-2 group cursor-pointer">
                     {/* Circle Node */}
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-all ${
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-all group-hover:scale-105 ${
                       isDone
                         ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md shadow-blue-200 ring-4 ring-blue-100'
                         : isActive
                         ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-300 ring-4 ring-amber-200 scale-110 animate-pulse'
-                        : 'bg-white border-2 border-slate-300 text-slate-400'
+                        : 'bg-white border-2 border-slate-300 text-slate-400 group-hover:border-slate-400'
                     }`}>
                       {isDone ? (
                         <Check className="w-5 h-5 stroke-[3]" />
@@ -637,8 +673,8 @@ export default function MemberDashboardPage() {
 
                     {/* Step Title */}
                     <div>
-                      <div className={`text-xs sm:text-sm font-extrabold ${
-                        isDone ? 'text-slate-900' : isActive ? 'text-amber-800' : 'text-slate-400'
+                      <div className={`text-xs sm:text-sm font-extrabold transition-colors ${
+                        isDone ? 'text-slate-900 group-hover:text-blue-700' : isActive ? 'text-amber-800' : 'text-slate-400 group-hover:text-slate-600'
                       }`}>
                         {step.name}
                       </div>
@@ -663,6 +699,16 @@ export default function MemberDashboardPage() {
                         </span>
                       )}
                     </div>
+                  </div>
+                )
+
+                return step.href ? (
+                  <Link key={step.id} href={step.href}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={step.id}>
+                    {content}
                   </div>
                 )
               })}
@@ -719,14 +765,18 @@ export default function MemberDashboardPage() {
                 <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                   <FileText className="w-6 h-6" />
                 </div>
-                <div className="text-sm font-bold text-slate-700">Chưa có hồ sơ ứng tuyển nào</div>
+                <div className="text-sm font-bold text-slate-700">
+                  {!isProfileComplete ? 'Chưa hoàn tất hồ sơ cá nhân' : 'Chưa có đơn ứng tuyển nào'}
+                </div>
                 <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Bạn cần hoàn thiện thông tin ứng tuyển và trả lời câu hỏi chuyên môn để nộp đơn xét duyệt.
+                  {!isProfileComplete
+                    ? 'Bạn cần cập nhật đầy đủ thông tin cá nhân (MSSV, SĐT, ngành học) trước khi có thể nộp đơn.'
+                    : 'Bạn cần hoàn thiện thông tin ứng tuyển và trả lời câu hỏi chuyên môn để nộp đơn xét duyệt.'}
                 </p>
                 <div className="pt-2">
-                  <Link href="/member/application">
+                  <Link href={!isProfileComplete ? '/member/profile' : '/member/application'}>
                     <Button size="sm" className="bg-[#1559c5] text-white hover:bg-blue-700 font-bold text-xs rounded-xl cursor-pointer">
-                      Bắt đầu nộp đơn ngay
+                      {!isProfileComplete ? 'Cập nhật thông tin cá nhân' : 'Bắt đầu nộp đơn ngay'}
                     </Button>
                   </Link>
                 </div>

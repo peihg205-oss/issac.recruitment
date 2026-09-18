@@ -15,7 +15,7 @@ import {
   ChevronRight, User, Sparkles, Building2, MapPin,
   ExternalLink, Mail, Eye, Heart, PartyPopper,
   ShieldCheck, Layers, ArrowRight, RefreshCw, AlertCircle,
-  Clock3, HelpCircle, FileCheck2
+  Clock3, HelpCircle, FileCheck2, MessageSquare
 } from 'lucide-react'
 import { formatDate, formatFullTimestamp, getCandidateCode } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -823,6 +823,32 @@ export default function MemberDashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* 4.5 KÊNH CHAT TUYỂN QUÂN VÀ GIẢI ĐÁP BCN */}
+      <div className="rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-5 sm:p-6 text-white border border-blue-400/30 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-white">Chat Tuyển quân & Hỏi đáp BCN</h3>
+              <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full">
+                Trực tuyến
+              </span>
+            </div>
+            <p className="text-xs text-blue-200">
+              Có thắc mắc về hồ sơ, lịch phỏng vấn hoặc kết quả? Trao đổi trực tiếp để nhận phản hồi từ Ban Chủ nhiệm.
+            </p>
+          </div>
+        </div>
+        <Link href="/member/messages" className="shrink-0">
+          <Button className="w-full sm:w-auto bg-[#fdc455] hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-2xl px-5 py-2.5 shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+            <MessageSquare className="w-4 h-4 text-slate-950" />
+            Nhắn tin với BCN
+          </Button>
+        </Link>
       </div>
 
       {/* 5. THÔNG BÁO TỪ iSSAC & HỘP THƯ KẾT QUẢ: CHỈ MỞ KHI ĐÃ CÓ KẾT QUẢ CHÍNH THỨC */}

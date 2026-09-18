@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast'
 import {
   Download, Users, Trophy, ClipboardList, FileSpreadsheet,
   Loader2, CheckCircle2, FolderArchive, ArrowDownToLine,
-  FileCheck, Sparkles, ClipboardCheck
+  FileCheck, Sparkles, ClipboardCheck, ListChecks
 } from 'lucide-react'
 import { formatDate, formatDateTime, exportToCSV, APPLICATION_STATUS_LABELS, buildCandidateCodeMap } from '@/lib/utils'
 import { getStoredSystemSettings } from '@/lib/system-settings'
@@ -401,7 +401,120 @@ export default function ExportPage() {
     }
   }
 
-  // Xuất trọn bộ 4 tệp cùng lúc
+  // 5. XUẤT CÂU TRẢ LỜI THEO ỨNG VIÊN (MỖI ỨNG VIÊN = 1 DÒNG CSV)
+  const exportCandidateAnswers = async () => {
+    setLoading('candidate-answers')
+    try {
+      const { data: apps } = await supabase
+        .from('applications')
+        .select(`
+          id, user_id, status, review_note, submitted_at, created_at,
+          departments!applications_department_id_fkey(name)
+        `)
+        .in('status', ['submitted', 'received', 'reviewing', 'approved', 'interview_scheduled', 'interviewed', 'evaluating', 'evaluated', 'finalized'])
+        .order('created_at', { ascending: true })
+
+      if (!apps || apps.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Hiện tại chưa có ứng viên đã nộp đơn nào.', variant: 'destructive' })
+        return
+      }
+
+      // Fetch profiles
+      const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
+      let profilesMap: Record<string, any> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, student_id, phone')
+          .in('id', userIds)
+        if (profs) profs.forEach((p: any) => { profilesMap[p.id] = p })
+      }
+
+      const codeMap = buildCandidateCodeMap(apps)
+
+      // Collect all unique questions across all review_notes
+      const allQuestionTexts: string[] = []
+      const allCandidateData: Array<{
+        app: any
+        profile: any
+        answerMap: Record<string, string>
+      }> = []
+
+      for (const app of apps) {
+        const p = profilesMap[(app as any).user_id] || {}
+        const answerMap: Record<string, string> = {}
+
+        if ((app as any).review_note) {
+          try {
+            const parsed = JSON.parse((app as any).review_note)
+            if (parsed && Array.isArray(parsed.answers)) {
+              for (const ans of parsed.answers) {
+                const qText = ans.question_text || `Câu ${ans.question_order || '?'}`
+                if (!allQuestionTexts.includes(qText)) {
+                  allQuestionTexts.push(qText)
+                }
+                const ansText = ans.answer_text || (Array.isArray(ans.answer_options) ? ans.answer_options.join(', ') : '') || ''
+                answerMap[qText] = ansText
+              }
+            }
+          } catch {}
+        }
+
+        // Fallback: check application_answers table
+        if (Object.keys(answerMap).length === 0) {
+          const { data: dbAnswers } = await supabase
+            .from('application_answers')
+            .select('answer_text, answer_options, questions(question_text)')
+            .eq('application_id', (app as any).id)
+          if (dbAnswers && dbAnswers.length > 0) {
+            for (const da of dbAnswers) {
+              const qText = (da as any).questions?.question_text || 'Câu hỏi'
+              if (!allQuestionTexts.includes(qText)) {
+                allQuestionTexts.push(qText)
+              }
+              answerMap[qText] = (da as any).answer_text || (Array.isArray((da as any).answer_options) ? (da as any).answer_options.join(', ') : '') || ''
+            }
+          }
+        }
+
+        allCandidateData.push({ app, profile: p, answerMap })
+      }
+
+      // Build CSV rows
+      const rows = allCandidateData.map((item, i) => {
+        const row: Record<string, unknown> = {
+          'STT': i + 1,
+          'Mã hồ sơ': codeMap[item.app.id] || `ISSAC-${String(i + 1).padStart(2, '0')}`,
+          'Họ và tên': item.profile.full_name || '',
+          'MSSV': item.profile.student_id || '',
+          'Email': item.profile.email || '',
+          'SĐT': item.profile.phone || '',
+          'Ban NV1': (item.app.departments as any)?.name || '',
+          'Trạng thái': APPLICATION_STATUS_LABELS[item.app.status as ApplicationStatus] ?? item.app.status,
+        }
+
+        // Add question columns dynamically
+        allQuestionTexts.forEach(qText => {
+          row[qText] = item.answerMap[qText] || ''
+        })
+
+        return row
+      })
+
+      exportToCSV(rows, `cau_tra_loi_theo_ung_vien_issac_${new Date().toISOString().slice(0, 10)}`)
+      toast({
+        title: `Đã xuất câu trả lời ${rows.length} ứng viên!`,
+        description: `Mỗi ứng viên 1 dòng, ${allQuestionTexts.length} câu hỏi trải ngang thành cột.`,
+        variant: 'success'
+      } as Parameters<typeof toast>[0])
+    } catch {
+      toast({ title: 'Có lỗi xảy ra khi xuất câu trả lời', variant: 'destructive' })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  // Xuất trọn bộ 5 tệp cùng lúc
   const exportAllBundle = async () => {
     setLoading('all')
     try {
@@ -412,8 +525,10 @@ export default function ExportPage() {
       await exportEvaluations()
       await new Promise(r => setTimeout(r, 400))
       await exportAnswers()
+      await new Promise(r => setTimeout(r, 400))
+      await exportCandidateAnswers()
       toast({
-        title: '✅ Đã xuất toàn bộ 4 tệp dữ liệu!',
+        title: '✅ Đã xuất toàn bộ 5 tệp dữ liệu!',
         description: 'Tất cả các báo cáo tuyển quân iSSAC 2026 đã được tải xuống máy.',
         variant: 'success'
       } as Parameters<typeof toast>[0])
@@ -446,7 +561,7 @@ export default function ExportPage() {
           ) : (
             <FolderArchive className="w-4 h-4" />
           )}
-          <span>Xuất tất cả dữ liệu (4 tệp)</span>
+          <span>Xuất tất cả dữ liệu (5 tệp)</span>
         </Button>
       </div>
 
@@ -541,6 +656,15 @@ export default function ExportPage() {
             desc: 'Tổng hợp câu trả lời tự luận, câu hỏi trắc nghiệm chuyên môn từng Ban và đường dẫn portfolio sản phẩm ứng viên.',
             action: exportAnswers,
             theme: 'gold',
+          },
+          {
+            key: 'candidate-answers',
+            tag: 'CÂU TRẢ LỜI THEO ỨNG VIÊN',
+            subtext: `${stats.totalCandidates} ứng viên`,
+            title: 'Câu Trả Lời Theo Từng Ứng Viên',
+            desc: 'Mỗi ứng viên 1 dòng, tất cả câu hỏi & câu trả lời trải ngang thành cột. Parse từ đơn ứng tuyển đã hoàn thành.',
+            action: exportCandidateAnswers,
+            theme: 'blue',
           },
         ].map(item => {
           const isBlue = item.theme === 'blue'

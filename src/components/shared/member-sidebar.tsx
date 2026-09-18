@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, User, FileText, HelpCircle,
-  Calendar, Trophy, LogOut, Bell, ChevronRight, Info, X
+  Calendar, Trophy, LogOut, Bell, ChevronRight, Info, X, MessageSquare
 } from 'lucide-react'
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
   { href: '/member/application', icon: FileText, label: 'Ứng tuyển' },
   { href: '/member/interview', icon: Calendar, label: 'Lịch phỏng vấn' },
   { href: '/member/result', icon: Trophy, label: 'Kết quả' },
+  { href: '/member/messages', icon: MessageSquare, label: 'Chat Tuyển quân' },
 ]
 
 interface MemberSidebarProps {

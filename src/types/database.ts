@@ -319,6 +319,25 @@ export interface Database {
         Insert: Partial<Database['public']['Tables']['system_settings']['Row']> & { key: string }
         Update: Partial<Database['public']['Tables']['system_settings']['Row']>
       }
+      messages: {
+        Row: {
+          id: string
+          application_id: string
+          sender_id: string
+          sender_role: 'member' | 'admin'
+          sender_name: string | null
+          content: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['messages']['Row']> & {
+          application_id: string
+          sender_id: string
+          sender_role: 'member' | 'admin'
+          content: string
+        }
+        Update: Partial<Database['public']['Tables']['messages']['Row']>
+      }
     }
   }
 }
@@ -362,3 +381,4 @@ export type FinalResult = Database['public']['Tables']['final_results']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
 export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
 export type SystemSetting = Database['public']['Tables']['system_settings']['Row']
+export type Message = Database['public']['Tables']['messages']['Row']

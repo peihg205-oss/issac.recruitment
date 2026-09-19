@@ -36,11 +36,11 @@ export default function HomePage() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <Image
-              src="/issac-logo-2026.png"
+              src="/issac-logo-banner.png"
               alt="iSSAC - VNU-IS Ambassadors Club"
-              width={200}
-              height={50}
-              className="h-8 sm:h-11 w-auto object-contain max-w-[110px] sm:max-w-[180px] lg:max-w-none"
+              width={220}
+              height={64}
+              className="h-9 sm:h-11 w-auto object-contain"
               priority
             />
           </Link>
@@ -562,13 +562,15 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 pb-8 border-b border-white/10">
             {/* Logo */}
             <div className="shrink-0">
-              <Image
-                src="/issac-logo-2026.png"
-                alt="iSSAC VNU-IS Logo"
-                width={200}
-                height={55}
-                className="h-11 sm:h-12 w-auto object-contain"
-              />
+              <Link href="/" className="inline-block">
+                <Image
+                  src="/issac-logo-banner.png"
+                  alt="iSSAC VNU-IS Logo"
+                  width={220}
+                  height={64}
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
+              </Link>
             </div>
 
             {/* Social Links */}

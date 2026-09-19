@@ -5,13 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import {
   AlertTriangle, Loader2, CheckCheck, Clock,
   ShieldCheck, RefreshCw, Bell, Check,
-  ExternalLink, Radio
+  ExternalLink, Radio, CalendarDays, ArrowRight
 } from 'lucide-react'
 import {
   ChatMessage,
   fetchApplicationMessages,
   markChatAsRead,
 } from '@/lib/messages-manager'
+import Link from 'next/link'
 
 export default function MemberWarningsPage() {
   const supabase = createClient()
@@ -22,6 +23,7 @@ export default function MemberWarningsPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
+  const [now, setNow] = useState(Date.now())
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
@@ -52,6 +54,12 @@ export default function MemberWarningsPage() {
   }, [supabase])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Live countdown ticker
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (!user?.id) return
@@ -202,26 +210,96 @@ export default function MemberWarningsPage() {
           <p className="text-sm text-slate-500 mt-1">Các thông báo quan trọng, cảnh báo và nhắc nhở dành cho ứng viên.</p>
         </div>
 
-        {/* Info box - Deadline reminder OR warnings list */}
-        {adminWarnings.length === 0 ? (
-          <div className="flex items-start gap-3.5 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-xs">
-              <Bell className="w-4.5 h-4.5 text-slate-500" />
-            </div>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm đăng ký tài khoản
-              {profile?.created_at ? (() => {
+        {/* Deadline banner OR warnings list */}
+        {adminWarnings.length === 0 ? (() => {
+          // Compute deadline & remaining
+          let deadlineStr = ''
+          let remainingStr = ''
+          let remainDays = 0
+          let remainHours = 0
+          if (profile?.created_at) {
+            try {
+              const created = new Date(profile.created_at)
+              const deadline = new Date(created.getTime() + 3 * 24 * 60 * 60 * 1000)
+              deadlineStr = `${deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+              const msLeft = deadline.getTime() - now
+              if (msLeft > 0) {
+                remainDays = Math.floor(msLeft / (1000 * 60 * 60 * 24))
+                remainHours = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+                remainingStr = remainDays > 0 ? `${remainDays} ngày ${remainHours} giờ` : `${remainHours} giờ`
+              } else {
+                remainingStr = 'Đã hết hạn'
+              }
+            } catch {}
+          }
+
+          const createdStr = profile?.created_at
+            ? (() => {
                 try {
                   const d = new Date(profile.created_at)
-                  const deadline = new Date(d.getTime() + 3 * 24 * 60 * 60 * 1000)
-                  const time = deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
-                  const date = deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                  return ` (${time} ngày ${date}).`
-                } catch { return '.' }
-              })() : '.'} Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
-            </p>
-          </div>
-        ) : (
+                  return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+                } catch { return '' }
+              })()
+            : ''
+
+          return (
+            <div className="rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+              <div className="flex flex-col sm:flex-row">
+                {/* LEFT: Orange countdown panel */}
+                <div className="relative sm:w-[220px] shrink-0 bg-gradient-to-br from-amber-400/30 via-orange-300/20 to-amber-200/10 px-5 py-4 flex flex-col items-start justify-between gap-3 border-b sm:border-b-0 sm:border-r border-amber-200">
+                  {/* Badge */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    <Bell className="w-2.5 h-2.5" />
+                    THÔNG BÁO TỪ BAN TUYỂN QUÂN
+                  </span>
+
+                  {/* Clock + Countdown */}
+                  <div className="flex items-center gap-3 w-full">
+                    {/* Clock icon with halo rings */}
+                    <div className="relative shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-rose-400/20 scale-150" />
+                      <div className="absolute inset-0 rounded-full bg-rose-400/10 scale-[2]" />
+                      <div className="relative w-12 h-12 rounded-full bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/40">
+                        <Clock className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                    {/* Text */}
+                    <div>
+                      <div className="text-[11px] font-bold text-amber-700">Còn lại:</div>
+                      <div className="text-lg font-black text-rose-700 leading-tight">
+                        {remainingStr || '3 ngày'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT: Info + CTA */}
+                <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-black text-slate-800">
+                      <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
+                      Hạn chót điền đơn:{' '}
+                      <span className="text-[#1657c1]">{deadlineStr || '3 ngày kể từ khi đăng ký'}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm đăng ký tài khoản
+                      {createdStr ? ` (${createdStr})` : ''}. Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
+                    </p>
+                  </div>
+                  <div>
+                    <Link
+                      href="/member/application"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-sm"
+                    >
+                      Điền đơn ứng tuyển ngay
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })() : (
           <div className="space-y-3">
             {adminWarnings.map((msg, idx) => (
               <div
@@ -257,6 +335,7 @@ export default function MemberWarningsPage() {
           </div>
         )}
       </div>
+
 
       {/* ── CARD 2: 3 STATS ───────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">

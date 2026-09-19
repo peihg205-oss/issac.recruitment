@@ -18,7 +18,7 @@ const navItems = [
   { href: '/member/application', icon: FileText, label: 'Ứng tuyển' },
   { href: '/member/interview', icon: Calendar, label: 'Lịch phỏng vấn' },
   { href: '/member/result', icon: Trophy, label: 'Kết quả' },
-  { href: '/member/messages', icon: AlertTriangle, label: 'Cảnh báo của BCN iSSAC', isAlert: true },
+  { href: '/member/messages', icon: Bell, label: 'Thông báo từ CLB' },
 ]
 
 interface MemberSidebarProps {

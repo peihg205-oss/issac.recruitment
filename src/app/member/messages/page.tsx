@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import {
   AlertTriangle, Loader2, CheckCheck, Clock,
   ShieldCheck, RefreshCw, Bell, Check,
-  ExternalLink, Radio, CalendarDays, ArrowRight
+  ExternalLink, Radio, CalendarDays, ArrowRight,
+  Sparkles
 } from 'lucide-react'
 import {
   ChatMessage,
@@ -180,179 +181,243 @@ export default function MemberWarningsPage() {
   ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
 
-      {/* ── CARD 1: THÔNG BÁO BCN ─────────────────────────── */}
-      <div className="bg-white border-2 border-[#1657c1]/30 rounded-2xl p-5 sm:p-6 space-y-4">
+      {/* ── CARD 1: THÔNG BÁO TỪ CLB ─────────────────────────── */}
+      <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1657c1] text-white text-[11px] font-black uppercase tracking-wider shrink-0 mt-0.5">
-              <Radio className="w-3 h-3" />
-              THÔNG BÁO BCN
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1657c1] text-white text-[10px] font-black uppercase tracking-wider">
+                <Radio className="w-3 h-3" />
+                THÔNG BÁO TỪ CLB
+              </span>
+              <span className="text-xs font-semibold text-slate-500">Kênh phát tin chính thức một chiều</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Thông báo từ CLB
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Hòm thư lưu trữ các thông báo quan trọng, văn bản hướng dẫn và nhắc nhở gửi đến ứng viên.
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-semibold text-slate-500">Kênh một chiều</span>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
             <button
               onClick={() => loadData(true)}
               disabled={refreshing}
-              title="Làm mới"
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-all disabled:opacity-50 cursor-pointer"
+              title="Đồng bộ hòm thư mới nhất"
+              className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
+            <Link
+              href="/member/dashboard"
+              className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all"
+            >
+              Về Tổng quan
+            </Link>
           </div>
         </div>
 
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Thông báo từ BCN ISSAC</h1>
-          <p className="text-sm text-slate-500 mt-1">Các thông báo quan trọng, cảnh báo và nhắc nhở dành cho ứng viên.</p>
-        </div>
+        {/* ── HỘP TIN NHẮN ĐƯỢC GỬI VÀ XEM ĐƯỢC ── */}
+        <div className="space-y-4">
+          {adminWarnings.length === 0 ? (() => {
+            // Compute deadline & remaining
+            let deadlineStr = ''
+            let remainingStr = ''
+            let remainDays = 0
+            let remainHours = 0
+            if (profile?.created_at) {
+              try {
+                const created = new Date(profile.created_at)
+                const deadline = new Date(created.getTime() + 3 * 24 * 60 * 60 * 1000)
+                deadlineStr = `${deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+                const msLeft = deadline.getTime() - now
+                if (msLeft > 0) {
+                  remainDays = Math.floor(msLeft / (1000 * 60 * 60 * 24))
+                  remainHours = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+                  remainingStr = remainDays > 0 ? `${remainDays} ngày ${remainHours} giờ` : `${remainHours} giờ`
+                } else {
+                  remainingStr = 'Đã hết hạn 3 ngày'
+                }
+              } catch {}
+            }
 
-        {/* Deadline banner OR warnings list */}
-        {adminWarnings.length === 0 ? (() => {
-          // Compute deadline & remaining
-          let deadlineStr = ''
-          let remainingStr = ''
-          let remainDays = 0
-          let remainHours = 0
-          if (profile?.created_at) {
-            try {
-              const created = new Date(profile.created_at)
-              const deadline = new Date(created.getTime() + 3 * 24 * 60 * 60 * 1000)
-              deadlineStr = `${deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
-              const msLeft = deadline.getTime() - now
-              if (msLeft > 0) {
-                remainDays = Math.floor(msLeft / (1000 * 60 * 60 * 24))
-                remainHours = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-                remainingStr = remainDays > 0 ? `${remainDays} ngày ${remainHours} giờ` : `${remainHours} giờ`
-              } else {
-                remainingStr = 'Đã hết hạn'
-              }
-            } catch {}
-          }
+            const createdStr = profile?.created_at
+              ? (() => {
+                  try {
+                    const d = new Date(profile.created_at)
+                    return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+                  } catch { return '' }
+                })()
+              : ''
 
-          const createdStr = profile?.created_at
-            ? (() => {
-                try {
-                  const d = new Date(profile.created_at)
-                  return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} ngày ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
-                } catch { return '' }
-              })()
-            : ''
-
-          return (
-            <div className="rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
-              <div className="flex flex-col sm:flex-row">
-                {/* LEFT: Orange countdown panel */}
-                <div className="relative sm:w-[220px] shrink-0 bg-gradient-to-br from-amber-400/30 via-orange-300/20 to-amber-200/10 px-5 py-4 flex flex-col items-start justify-between gap-3 border-b sm:border-b-0 sm:border-r border-amber-200">
-                  {/* Badge */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
-                    <Bell className="w-2.5 h-2.5" />
-                    THÔNG BÁO TỪ BAN TUYỂN QUÂN
-                  </span>
-
-                  {/* Clock + Countdown */}
-                  <div className="flex items-center gap-3 w-full">
-                    {/* Clock icon with halo rings */}
-                    <div className="relative shrink-0">
-                      <div className="absolute inset-0 rounded-full bg-rose-400/20 scale-150" />
-                      <div className="absolute inset-0 rounded-full bg-rose-400/10 scale-[2]" />
-                      <div className="relative w-12 h-12 rounded-full bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/40">
-                        <Clock className="w-6 h-6 text-white" />
-                      </div>
+            return (
+              <div className="rounded-2xl border-2 border-blue-200/80 bg-white shadow-xs overflow-hidden transition-all hover:border-blue-400/80">
+                {/* Message Header: Người gửi, Huy hiệu & Thời gian */}
+                <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-slate-50 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-[#1657c1] text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20 shrink-0">
+                      <Sparkles className="w-5 h-5 text-amber-300" />
                     </div>
-                    {/* Text */}
                     <div>
-                      <div className="text-[11px] font-bold text-amber-700">Còn lại:</div>
-                      <div className="text-lg font-black text-rose-700 leading-tight">
-                        {remainingStr || '3 ngày'}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-slate-900 text-sm sm:text-base">
+                          Ban Chủ nhiệm CLB Đại sứ Sinh viên (iSSAC)
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-[#1657c1] text-[10px] font-black uppercase tracking-wide">
+                          <ShieldCheck className="w-3 h-3" />
+                          Chính thức
+                        </span>
                       </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Người nhận: <strong className="text-slate-800">{profile?.full_name || 'Ứng viên'}</strong> · Ban Tuyển quân Gen 3
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      {createdStr ? `Gửi lúc: ${createdStr}` : 'Hôm nay'}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      Đã nhận
+                    </span>
                   </div>
                 </div>
 
-                {/* RIGHT: Info + CTA */}
-                <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-sm font-black text-slate-800">
-                      <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
-                      Hạn chót điền đơn:{' '}
-                      <span className="text-[#1657c1]">{deadlineStr || '3 ngày kể từ khi đăng ký'}</span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm đăng ký tài khoản
-                      {createdStr ? ` (${createdStr})` : ''}. Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
+                {/* Message Content: Thân tin nhắn dạng box công văn / thư thông báo */}
+                <div className="p-5 sm:p-7 space-y-4">
+                  <div className="border-l-4 border-[#1657c1] pl-3.5 space-y-1">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                      Thông báo tiếp nhận tài khoản & Hướng dẫn hoàn thiện hồ sơ Vòng 1
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Mã văn bản điện tử: <span className="font-mono font-bold text-[#1657c1]">TB-ISSAC-2026/GEN3-01</span>
                     </p>
                   </div>
-                  <div>
+
+                  <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2.5 text-justify">
+                    <p>
+                      Thân gửi bạn <strong>{profile?.full_name || 'ứng viên'}</strong>,
+                    </p>
+                    <p>
+                      Ban Chủ nhiệm và Ban Tuyển quân Câu lạc bộ Đại sứ Sinh viên (iSSAC) - Trường Quốc tế, Đại học Quốc gia Hà Nội nhiệt liệt chào đón bạn đã đăng ký tham gia kỳ tuyển chọn Đại sứ Sinh viên Gen 3 (nhiệm kỳ 2026 - 2027).
+                    </p>
+                    <p>
+                      Nhằm đảm bảo tiến độ xét duyệt tập trung và tính minh bạch công bằng cho toàn bộ thí sinh, bạn vui lòng hoàn thành <strong>Hồ sơ cá nhân</strong> và gửi <strong>Đơn ứng tuyển Vòng 1 trong thời hạn 3 ngày</strong> kể từ khi mở tài khoản. Sau thời hạn quy định, hệ thống sẽ tự động khóa quyền nộp đơn để Hội đồng tuyển chọn bước vào giai đoạn đánh giá.
+                    </p>
+                    <p>
+                      Chúc bạn có một hành trình ứng tuyển tràn đầy năng lượng và thể hiện xuất sắc bản lĩnh của một Đại sứ Sinh viên!
+                    </p>
+                  </div>
+
+                  {/* Chi tiết hạn chót & Nút hành động xem/điền đơn */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800">
+                        <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Hạn chót nộp đơn:</span>
+                        <span className="text-[#1657c1] font-black">{deadlineStr || '3 ngày kể từ khi đăng ký'}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Thời gian còn lại: <strong className="text-rose-600 font-bold">{remainingStr || 'Đang cập nhật'}</strong>
+                      </p>
+                    </div>
+
                     <Link
                       href="/member/application"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-sm"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#1657c1] hover:bg-blue-800 text-white font-bold text-xs shadow-xs transition-all shrink-0 cursor-pointer self-start sm:self-auto"
                     >
-                      Điền đơn ứng tuyển ngay
+                      <span>Vào xem & Điền đơn ngay</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>
-              </div>
-            </div>
-          )
-        })() : (
-          <div className="space-y-3">
-            {adminWarnings.map((msg, idx) => (
-              <div
-                key={msg.id}
-                className="border border-rose-200 bg-rose-50/40 rounded-xl p-4 space-y-2"
-              >
-                <div className="flex items-center justify-between gap-2 flex-wrap">
+
+                {/* Message Footer */}
+                <div className="px-5 sm:px-7 py-3 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                    </div>
-                    <span className="text-xs font-black text-slate-900">
-                      {msg.sender_name || 'Ban Chủ nhiệm CLB iSSAC'}
-                    </span>
-                    <span className="text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md uppercase">
-                      Cảnh báo BCN
-                    </span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>Tin nhắn chính thức từ Ban Tuyển quân iSSAC Gen 3</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                    <Clock className="w-3 h-3" />
-                    {formatTime(msg.created_at)}
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                    <span>Hòm thư cá nhân · Lưu trữ tự động</span>
                   </div>
-                </div>
-                <div className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap pl-9">
-                  {msg.content}
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 pl-9">
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span className="font-medium">Đã ghi nhận · Chỉ đọc</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            )
+          })() : (
+            <div className="space-y-3">
+              {adminWarnings.map((msg, idx) => (
+                <div
+                  key={msg.id}
+                  className="border-2 border-rose-200 bg-white rounded-2xl shadow-xs overflow-hidden transition-all"
+                >
+                  {/* Sender header */}
+                  <div className="p-4 bg-rose-50/60 border-b border-rose-100 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs sm:text-sm font-black text-slate-900">
+                            {msg.sender_name || 'Ban Chủ nhiệm CLB iSSAC'}
+                          </span>
+                          <span className="text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md uppercase">
+                            Thông báo từ CLB
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      {formatTime(msg.created_at)}
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-5 space-y-3">
+                    <div className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap text-justify">
+                      {msg.content}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 pt-2 border-t border-slate-100">
+                      <CheckCheck className="w-4 h-4" />
+                      <span className="font-medium">Đã ghi nhận vào hòm thư ứng viên</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
 
       {/* ── CARD 2: 3 STATS ───────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
-        {/* Tổng cảnh báo */}
-        <div className="bg-white border-2 border-slate-200 rounded-2xl p-4 sm:p-5 text-center">
-          <div className="text-3xl font-black text-slate-900 leading-none mb-2">{adminWarnings.length}</div>
-          <div className="text-[11px] sm:text-xs font-semibold text-slate-500">Tổng cảnh báo</div>
+        {/* Tổng thông báo */}
+        <div className="bg-white border-2 border-slate-200/90 rounded-2xl p-4 sm:p-5 text-center shadow-xs">
+          <div className="text-3xl font-black text-slate-900 leading-none mb-2">
+            {adminWarnings.length > 0 ? adminWarnings.length : 1}
+          </div>
+          <div className="text-[11px] sm:text-xs font-semibold text-slate-500">Tổng thông báo</div>
         </div>
 
-        {/* Từ BCN ISSAC */}
-        <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 text-center">
-          <div className="text-3xl font-black text-amber-600 leading-none mb-2">{adminWarnings.length}</div>
-          <div className="text-[11px] sm:text-xs font-semibold text-slate-500">Từ BCN ISSAC</div>
+        {/* Từ CLB */}
+        <div className="bg-white border-2 border-blue-200 rounded-2xl p-4 sm:p-5 text-center shadow-xs">
+          <div className="text-3xl font-black text-[#1657c1] leading-none mb-2">
+            {adminWarnings.length > 0 ? adminWarnings.length : 1}
+          </div>
+          <div className="text-[11px] sm:text-xs font-semibold text-slate-500">Từ CLB</div>
         </div>
 
         {/* Không vi phạm / Đã vi phạm */}
-        <div className="bg-white border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 text-center">
+        <div className="bg-white border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 text-center shadow-xs">
           {adminWarnings.length === 0 ? (
             <>
               <div className="flex items-center justify-center mb-2">
@@ -368,6 +433,7 @@ export default function MemberWarningsPage() {
           )}
         </div>
       </div>
+
 
       {/* ── CARD 3: KẾT NỐI VỚI ISSAC ───────────────────── */}
       <div className="bg-white border-2 border-amber-300 rounded-2xl p-5 sm:p-6 space-y-4">

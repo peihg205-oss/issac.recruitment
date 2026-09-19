@@ -90,90 +90,90 @@ export function CandidateDeadlineBanner({
 
   // CASE 2: ACTIVE COUNTDOWN (Within 3 days)
   return (
-    <div className="mb-6 rounded-2xl overflow-hidden border-2 border-amber-300/70 shadow-md animate-slide-up">
+    <div className="mb-6 rounded-2xl overflow-hidden border-2 border-amber-400/90 shadow-md animate-slide-up">
       <div className="flex flex-col sm:flex-row">
 
-        {/* ══ LEFT PANEL: single column, one divider border, plenty of width ══ */}
-        <div className="sm:w-[300px] w-full shrink-0 flex flex-col justify-between
-                        bg-gradient-to-br from-amber-400/35 via-orange-200/25 to-amber-100/45
-                        border-b-2 sm:border-b-0 sm:border-r-2 border-amber-300/70">
+        {/* ══ LEFT PANEL: Deeper warm amber tone, zero glare, spacious ══ */}
+        <div className="sm:w-[320px] w-full shrink-0 flex flex-col justify-between
+                        bg-gradient-to-br from-amber-100 via-orange-100/70 to-amber-50/90
+                        border-b-2 sm:border-b-0 sm:border-r-2 border-amber-400/80">
 
           {/* Row A: Badge */}
           <div className="flex items-center px-5 pt-4 pb-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                            bg-amber-500 text-white shadow-sm
-                            text-[9.5px] font-black uppercase tracking-wide leading-none">
-              <Bell className="w-3 h-3 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
+                            bg-amber-600 text-white shadow-sm
+                            text-[11px] font-black uppercase tracking-wider leading-none">
+              <Bell className="w-3.5 h-3.5 shrink-0" />
               THÔNG BÁO TỪ BAN TUYỂN QUÂN
             </div>
           </div>
 
-          {/* Row B: Clock + countdown (centered horizontally & vertically in the cell) */}
-          <div className="flex-1 flex items-center justify-center gap-3.5 px-4 pb-4 pt-2">
+          {/* Row B: Clock + countdown (larger fonts, centered, high contrast) */}
+          <div className="flex-1 flex items-center justify-center gap-4 px-5 pb-5 pt-2">
             {/* Clock with continuous radar ping animation */}
-            <div className="relative shrink-0 flex items-center justify-center w-[52px] h-[52px]">
+            <div className="relative shrink-0 flex items-center justify-center w-[58px] h-[58px]">
               {/* Outer ping ring */}
-              <span className="absolute inline-flex w-full h-full rounded-full bg-rose-400/50 animate-ping" />
+              <span className="absolute inline-flex w-full h-full rounded-full bg-rose-500/30 animate-ping" />
               {/* Inner delayed ping */}
               <span
-                className="absolute inline-flex w-[44px] h-[44px] rounded-full bg-rose-400/30"
+                className="absolute inline-flex w-[48px] h-[48px] rounded-full bg-rose-500/20"
                 style={{ animation: 'ping 1.8s cubic-bezier(0,0,0.2,1) 0.5s infinite' }}
               />
               {/* Clock disc */}
-              <div className="relative w-[52px] h-[52px] rounded-full
-                              bg-gradient-to-br from-rose-500 to-rose-700
+              <div className="relative w-[58px] h-[58px] rounded-full
+                              bg-gradient-to-br from-rose-600 to-rose-800
                               flex items-center justify-center
-                              shadow-lg shadow-rose-500/40">
-                <Clock className="w-6 h-6 text-white" />
+                              shadow-lg shadow-rose-600/40">
+                <Clock className="w-7 h-7 text-white" />
               </div>
             </div>
 
-            {/* Countdown text — blinks continuously to draw attention */}
+            {/* Countdown text — larger, high contrast, blinks continuously */}
             <div className="min-w-0">
-              <div className="text-[10px] font-bold text-amber-800 leading-none mb-1 uppercase tracking-wider">
+              <div className="text-xs font-black text-amber-950 leading-none mb-1.5 uppercase tracking-wider">
                 Còn lại:
               </div>
-              <div className="text-xl sm:text-2xl font-black text-rose-700 leading-none whitespace-nowrap animate-banner-blink">
+              <div className="text-2xl sm:text-3xl font-black text-rose-700 leading-none whitespace-nowrap animate-banner-blink">
                 {status.remainingText}
               </div>
             </div>
           </div>
         </div>
 
-        {/* ══ RIGHT PANEL: Deadline, description & action button ══ */}
-        <div className="flex-1 flex flex-col justify-between gap-3 px-6 py-4 sm:py-5
-                        bg-gradient-to-br from-[#fffbf2] to-[#fff7e6]">
+        {/* ══ RIGHT PANEL: Crisp text, deeper warm tones, larger font ══ */}
+        <div className="flex-1 flex flex-col justify-between gap-3.5 px-6 sm:px-8 py-5 sm:py-6
+                        bg-gradient-to-br from-white via-[#fffdf9] to-[#fff9ee]">
 
           {/* Deadline heading */}
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
-            <p className="text-sm font-bold text-slate-700 leading-snug">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100/90 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
+              <CalendarDays className="w-4.5 h-4.5" />
+            </div>
+            <p className="text-base sm:text-lg font-black text-slate-900 leading-snug">
               Hạn chót điền đơn:{' '}
-              <span className="text-[#1657c1] font-black">{status.deadlineFormatted}</span>
+              <span className="text-[#1657c1] font-black underline decoration-blue-300 underline-offset-4">
+                {status.deadlineFormatted}
+              </span>
             </p>
           </div>
 
-          {/* Description */}
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm
+          {/* Description — larger, darker, highly legible text */}
+          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
+            Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong className="text-amber-950 font-black">3 ngày</strong> kể từ thời điểm
             đăng ký tài khoản ({status.createdFormatted}). Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống
             sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
           </p>
 
-          {/* CTA with shimmer animation */}
+          {/* CTA button with rich amber-orange gradient */}
           <div>
             <Link
               href="/member/application"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-sm text-white
-                         transition-all active:scale-95 hover:shadow-lg hover:shadow-amber-400/40 shadow-md"
-              style={{
-                background: 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 40%, #f59e0b 60%, #f97316 100%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 2.4s linear infinite',
-              }}
+              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl font-black text-sm sm:text-base text-white
+                         bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 hover:from-amber-700 hover:to-orange-600
+                         transition-all active:scale-95 shadow-md shadow-orange-500/25 hover:shadow-lg hover:shadow-orange-500/35"
             >
-              Điền đơn ứng tuyển ngay
-              <ArrowRight className="w-4 h-4" />
+              <span>Điền đơn ứng tuyển ngay</span>
+              <ArrowRight className="w-4.5 h-4.5" />
             </Link>
           </div>
         </div>

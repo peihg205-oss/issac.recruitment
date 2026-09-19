@@ -521,7 +521,7 @@ export default function MemberInterviewPage() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
               Bạn chưa hoàn thành nộp đơn ứng tuyển (Vòng 1)
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-3xl font-medium">
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium text-justify">
               Theo quy chế tuyển quân iSSAC Gen 3, bạn cần hoàn thiện hồ sơ và gửi đơn ứng tuyển trong vòng 3 ngày kể từ khi tạo tài khoản. Chỉ những ứng viên đã hoàn thành nộp đơn và được Hội đồng duyệt qua vòng đơn mới có quyền đặt lịch phỏng vấn.
             </p>
           </div>
@@ -580,7 +580,7 @@ export default function MemberInterviewPage() {
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
               Chưa mở đặt lịch phỏng vấn
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl">
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
               Hồ sơ đơn ứng tuyển của bạn hiện đang trong giai đoạn chấm duyệt. Sau khi có thông báo vượt qua vòng đơn, cổng đặt lịch phỏng vấn sẽ tự động mở tại trang này.
             </p>
           </div>
@@ -638,7 +638,7 @@ export default function MemberInterviewPage() {
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
               Chưa có lịch phỏng vấn khả dụng
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-xl leading-relaxed">
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
               Các ca phỏng vấn cho Ban của bạn đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ Ban Nhân sự.
             </p>
           </div>

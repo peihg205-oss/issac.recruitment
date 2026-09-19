@@ -108,8 +108,8 @@ export function CandidateDeadlineBanner({
             </div>
           </div>
 
-          {/* Row B: Clock + countdown (both animate/blink continuously) */}
-          <div className="flex items-center gap-3.5 px-5 pb-4 pt-2">
+          {/* Row B: Clock + countdown (centered horizontally & vertically in the cell) */}
+          <div className="flex-1 flex items-center justify-center gap-3.5 px-4 pb-4 pt-2">
             {/* Clock with continuous radar ping animation */}
             <div className="relative shrink-0 flex items-center justify-center w-[52px] h-[52px]">
               {/* Outer ping ring */}

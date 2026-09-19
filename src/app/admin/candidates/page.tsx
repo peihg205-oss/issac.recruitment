@@ -209,8 +209,8 @@ export default function CandidatesPage() {
           message = 'Hội đồng tuyển quân đã công bố kết quả tuyển chọn. Nhấn để tra cứu kết quả của bạn.'
           action_url = '/member/result'
         } else if (newStatus === 'rejected') {
-          title = 'Thông báo về hồ sơ ứng tuyển'
-          message = 'Cảm ơn bạn đã quan tâm ứng tuyển vào iSSAC. Rất tiếc hồ sơ đợt này chưa phù hợp.'
+          title = 'Thông báo kết quả Vòng 1: Hồ sơ chưa phù hợp'
+          message = 'Hội đồng Tuyển quân iSSAC rất tiếc phải thông báo hồ sơ của bạn chưa đáp ứng đủ điều kiện để đi tiếp vào Vòng Phỏng vấn.'
           action_url = '/member/dashboard'
         }
 
@@ -540,19 +540,65 @@ export default function CandidatesPage() {
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {c.status === 'submitted' && (
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          {/* Nút Duyệt & Từ chối cho hồ sơ chờ duyệt / đang xem xét */}
+                          {(c.status === 'submitted' || c.status === 'reviewing' || c.status === 'received') && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs text-green-700 border-green-300 hover:bg-green-50 font-bold cursor-pointer"
+                                onClick={() => handleStatusChange(c.id, 'approved')}
+                                disabled={updating === c.id}
+                                title="Duyệt hồ sơ cho ứng viên đi tiếp vào Vòng Phỏng vấn"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
+                                Duyệt
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs text-rose-700 border-rose-300 hover:bg-rose-50 font-bold cursor-pointer"
+                                onClick={() => handleStatusChange(c.id, 'rejected')}
+                                disabled={updating === c.id}
+                                title="Từ chối hồ sơ (Ứng viên sẽ dừng bước tại Vòng 1)"
+                              >
+                                <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                                Từ chối
+                              </Button>
+                            </>
+                          )}
+
+                          {/* Nếu đã Duyệt, cho phép đổi sang Từ chối nếu cần */}
+                          {c.status === 'approved' && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="h-8 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                              onClick={() => handleStatusChange(c.id, 'approved')}
+                              variant="ghost"
+                              className="h-8 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
+                              onClick={() => handleStatusChange(c.id, 'rejected')}
                               disabled={updating === c.id}
+                              title="Chuyển trạng thái sang Từ chối"
                             >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
-                              Duyệt
+                              <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                              Từ chối
                             </Button>
                           )}
+
+                          {/* Nếu đã Từ chối, cho phép Duyệt lại */}
+                          {c.status === 'rejected' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 text-xs text-green-700 hover:text-green-900 hover:bg-green-50 font-semibold cursor-pointer"
+                              onClick={() => handleStatusChange(c.id, 'approved')}
+                              disabled={updating === c.id}
+                              title="Duyệt lại hồ sơ này để ứng viên được đi tiếp"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
+                              Duyệt lại
+                            </Button>
+                          )}
+
                           <Button
                             size="sm"
                             variant="ghost"

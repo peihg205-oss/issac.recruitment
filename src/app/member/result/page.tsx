@@ -100,6 +100,16 @@ export default function MemberResultPage() {
           return
         }
 
+        if (appStatus === 'rejected') {
+          setFinalResult({
+            result: 'fail',
+            announcement_message: 'Hội đồng Tuyển quân iSSAC rất tiếc phải thông báo hồ sơ Vòng 1 của bạn chưa phù hợp để đi tiếp vào các vòng tiếp theo.',
+            is_published: true,
+          })
+          setPublished(true)
+          return
+        }
+
         if (effectiveFr || rankingResult) {
           const dec = effectiveFr?.result || rankingResult
           const defaultMsg = dec === 'pass'

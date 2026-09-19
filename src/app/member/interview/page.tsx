@@ -3,7 +3,7 @@ import { MOCK_INTERVIEW_SLOTS } from '@/lib/mock-data'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, ArrowLeftRight, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, ArrowLeftRight, Calendar, Clock, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -544,7 +544,73 @@ export default function MemberInterviewPage() {
     )
   }
 
-  // 3. Trường hợp ĐÃ NỘP ĐƠN nhưng đang trong giai đoạn chấm duyệt
+  // 3. Trường hợp BỊ TỪ CHỐI Ở VÒNG 1 (KHÔNG ĐƯỢC THAM GIA VÒNG PHỎNG VẤN)
+  if (application.status === 'rejected') {
+    return (
+      <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
+        <div className="flex items-end justify-between border-b border-slate-200 pb-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              LỊCH PHỎNG VẤN iSSAC 2026
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Vòng phỏng vấn tuyển chọn Đại sứ Sinh viên Gen 3
+            </p>
+          </div>
+          <div className="shrink-0 -mb-4 pl-3 mr-3 sm:mr-6">
+            <Image
+              src="/images/isaris-interview.png"
+              alt="ISARIS"
+              width={295}
+              height={383}
+              className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm select-none pointer-events-none opacity-80"
+              priority
+            />
+          </div>
+        </div>
+
+        {/* THÔNG BÁO TO ĐÙNG */}
+        <div className="bg-gradient-to-br from-rose-50 via-white to-red-50 border-2 border-rose-300 rounded-3xl p-6 sm:p-8 shadow-md space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-white bg-rose-600 uppercase tracking-wide px-3 py-1 rounded-full shadow-2xs">
+              Trạng thái hồ sơ
+            </span>
+            <span className="text-xs font-bold text-rose-800 bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded-full">
+              Chưa đủ điều kiện
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Bạn không thuộc danh sách tham gia Vòng Phỏng vấn
+            </h2>
+            <p className="text-slate-700 text-xs sm:text-sm leading-relaxed font-medium text-justify">
+              Theo thông báo từ Hội đồng Tuyển quân iSSAC, hồ sơ Vòng 1 của bạn <strong>chưa đạt yêu cầu để đi tiếp</strong> vào Vòng Phỏng vấn. Cổng đặt lịch phỏng vấn chỉ mở cho các ứng viên đã được Ban Tuyển quân chính thức phê duyệt vượt qua Vòng đơn.
+            </p>
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
+              iSSAC xin chân thành cảm ơn bạn đã quan tâm nộp đơn ứng tuyển và chúc bạn luôn giữ vững nhiệt huyết trong học tập và rèn luyện tại VNU-IS!
+            </p>
+          </div>
+
+          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-rose-200">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-100 border border-rose-300 px-3 py-1.5 rounded-xl self-start">
+              <XCircle className="w-4 h-4 text-rose-600" />
+              Vòng 1 (Vòng đơn): Đã dừng bước
+            </span>
+
+            <Link
+              href="/member/dashboard"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-all shadow-xs self-start sm:self-auto"
+            >
+              Về trang Tổng quan
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 4. Trường hợp ĐÃ NỘP ĐƠN nhưng đang trong giai đoạn chấm duyệt
   if (application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
     return (
       <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">

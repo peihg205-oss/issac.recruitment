@@ -15,7 +15,7 @@ import {
   ChevronRight, User, Sparkles, Building2, MapPin,
   ExternalLink, Mail, Eye, Heart, PartyPopper,
   ShieldCheck, Layers, ArrowRight, RefreshCw, AlertCircle,
-  Clock3, HelpCircle, FileCheck2, AlertTriangle
+  Clock3, HelpCircle, FileCheck2, AlertTriangle, XCircle, X
 } from 'lucide-react'
 import { formatDate, formatFullTimestamp, getCandidateCode } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
@@ -404,10 +404,10 @@ export default function MemberDashboardPage() {
       return {
         roundNumber: 1,
         roundTotal: 5,
-        roundName: 'Vòng đơn',
+        roundName: 'Vòng 1 (Vòng đơn)',
         roundTag: 'Vòng 1 / 5',
         statusLabel: 'Chưa phù hợp',
-        statusDesc: 'Hồ sơ chưa đạt yêu cầu đợt này',
+        statusDesc: 'Dừng bước tại Vòng đơn',
         themeColor: 'rose',
       }
     }
@@ -427,6 +427,8 @@ export default function MemberDashboardPage() {
   const deptName = application?.departments?.name || (hasApplication ? 'Chưa xác định' : 'Chưa đăng ký ban')
   const isPassed = finalResult?.result === 'pass'
   const canViewResult = (finalResult && (finalResult.is_published || isResultsPublished)) || application?.status === 'finalized'
+  const isRejected = application?.status === 'rejected'
+  const isApproved = ['approved', 'interview_scheduled', 'interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status)
 
   // 5 BƯỚC HÀNH TRÌNH ĐỒNG BỘ THỜI GIAN THỰC
   const journeySteps = [
@@ -443,29 +445,37 @@ export default function MemberDashboardPage() {
       name: 'Đơn',
       desc: 'Câu trả lời & CV',
       href: '/member/application',
-      status: hasApplication ? 'done' : (isProfileComplete ? 'active' : 'pending'),
-      note: hasApplication ? '✓ Đã nộp' : (isProfileComplete ? '● Chưa gửi đơn' : '○ Chờ hồ sơ'),
+      status: isRejected ? 'rejected' : hasApplication ? 'done' : (isProfileComplete ? 'active' : 'pending'),
+      note: isRejected ? '✕ Chưa đạt' : hasApplication ? '✓ Đã nộp' : (isProfileComplete ? '● Chưa gửi đơn' : '○ Chờ hồ sơ'),
     },
     {
       id: 3,
       name: 'PV',
       desc: 'Phỏng vấn trực tiếp',
-      href: '/member/interview',
-      status: ['interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status) || interview?.status === 'completed'
+      href: isRejected ? undefined : isApproved ? '/member/interview' : undefined,
+      status: isRejected
+        ? 'locked'
+        : ['interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status) || interview?.status === 'completed'
         ? 'done'
-        : (application?.status === 'interview_scheduled' || interview ? 'active' : 'pending'),
-      note: ['interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status) || interview?.status === 'completed'
+        : (application?.status === 'interview_scheduled' || interview ? 'active' : isApproved ? 'active' : 'pending'),
+      note: isRejected
+        ? '— Dừng bước'
+        : ['interviewed', 'evaluating', 'evaluated', 'finalized'].includes(application?.status) || interview?.status === 'completed'
         ? '✓ Đã PV'
-        : (application?.status === 'interview_scheduled' || interview ? '● Đã có lịch' : '○ Chờ duyệt'),
+        : (application?.status === 'interview_scheduled' || interview ? '● Đã có lịch' : isApproved ? '● Chọn ca PV' : '○ Chờ duyệt'),
     },
     {
       id: 4,
       name: 'Đánh giá',
       desc: 'Hội đồng chấm điểm',
-      status: ['evaluated', 'finalized'].includes(application?.status)
+      status: isRejected
+        ? 'locked'
+        : ['evaluated', 'finalized'].includes(application?.status)
         ? 'done'
         : (['interviewed', 'evaluating'].includes(application?.status) ? 'active' : 'pending'),
-      note: ['evaluated', 'finalized'].includes(application?.status)
+      note: isRejected
+        ? '— Dừng bước'
+        : ['evaluated', 'finalized'].includes(application?.status)
         ? '✓ Hoàn tất chấm'
         : (['interviewed', 'evaluating'].includes(application?.status) ? '● Đang chấm' : '○ Chờ đến lượt'),
     },
@@ -474,10 +484,14 @@ export default function MemberDashboardPage() {
       name: 'Kết quả',
       desc: 'Công bố chính thức',
       href: '/member/result',
-      status: canViewResult
+      status: isRejected
+        ? 'done'
+        : canViewResult
         ? (hasOpenedEnvelope ? 'done' : 'active')
         : 'pending',
-      note: canViewResult
+      note: isRejected
+        ? '✕ Chưa đạt'
+        : canViewResult
         ? (hasOpenedEnvelope ? '✓ Đã xem' : '● Đã mở kết quả')
         : '○ Chưa công bố',
     },
@@ -546,6 +560,57 @@ export default function MemberDashboardPage() {
                 <span>XEM CẢNH BÁO NGAY ({chatUnread})</span>
               </Button>
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* THÔNG BÁO TO ĐÙNG CHO TÀI KHOẢN ỨNG VIÊN KHI HỒ SƠ BỊ TỪ CHỐI / CHƯA ĐẠT VÒNG 1 */}
+      {isRejected && (
+        <div className="rounded-3xl border-2 border-rose-400 bg-gradient-to-br from-rose-50 via-white to-red-50/80 p-6 sm:p-8 shadow-lg relative overflow-hidden animate-fade-in">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-rose-200/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start gap-5 relative z-10">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-500/20">
+              <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs">
+                  THÔNG BÁO TỪ BAN TUYỂN QUÂN
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                  Kết quả Vòng 1 (Vòng đơn)
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Rất tiếc! Hồ sơ ứng tuyển của bạn chưa đạt yêu cầu để đi tiếp
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                Chào bạn <strong>{candidateName}</strong>, Hội đồng Tuyển quân CLB Đại sứ Sinh viên (iSSAC) xin chân thành cảm ơn sự quan tâm và tâm huyết của bạn khi nộp hồ sơ ứng tuyển Gen 3 vào <strong>{application.departments?.name || 'CLB iSSAC'}</strong>. Sau quá trình xem xét và đối chiếu kỹ lưỡng các tiêu chí của Vòng 1, Hội đồng rất tiếc phải thông báo hồ sơ của bạn <strong>chưa đáp ứng đủ điều kiện để tiếp tục bước vào Vòng Phỏng vấn</strong>.
+              </p>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Hành trình tại Trường Quốc tế - ĐHQGHN còn rất nhiều cơ hội tuyệt vời phía trước. iSSAC luôn trân trọng nỗ lực của bạn và chúc bạn luôn giữ vững ngọn lửa nhiệt huyết, tự tin tỏa sáng và đạt nhiều thành tựu trong học tập cũng như hoạt động phong trào!
+              </p>
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-100/90 border border-rose-300 px-3.5 py-2 rounded-xl">
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  Trạng thái: Dừng bước tại Vòng 1 (Vòng đơn)
+                </span>
+                <Link
+                  href="/member/application"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-2xs"
+                >
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Xem lại đơn đã gửi</span>
+                </Link>
+                <Link
+                  href="/member/about"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs"
+                >
+                  <Heart className="w-3.5 h-3.5" />
+                  <span>Tìm hiểu thêm về CLB</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -687,18 +752,26 @@ export default function MemberDashboardPage() {
               {journeySteps.map((step) => {
                 const isDone = step.status === 'done'
                 const isActive = step.status === 'active'
+                const isStepRejected = step.status === 'rejected'
+                const isLocked = step.status === 'locked'
 
                 const content = (
-                  <div className="flex flex-col items-center text-center space-y-2 group cursor-pointer">
+                  <div className={`flex flex-col items-center text-center space-y-2 group ${step.href ? 'cursor-pointer' : 'cursor-default'}`}>
                     {/* Circle Node */}
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-all group-hover:scale-105 ${
-                      isDone
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-all ${
+                      isStepRejected
+                        ? 'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md shadow-rose-200 ring-4 ring-rose-100'
+                        : isDone
                         ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md shadow-blue-200 ring-4 ring-blue-100'
                         : isActive
                         ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-300 ring-4 ring-amber-200 scale-110 animate-pulse'
+                        : isLocked
+                        ? 'bg-slate-100 border-2 border-slate-200 text-slate-300'
                         : 'bg-white border-2 border-slate-300 text-slate-400 group-hover:border-slate-400'
                     }`}>
-                      {isDone ? (
+                      {isStepRejected ? (
+                        <X className="w-5 h-5 stroke-[3]" />
+                      ) : isDone ? (
                         <Check className="w-5 h-5 stroke-[3]" />
                       ) : (
                         <span>{step.id}</span>
@@ -708,7 +781,7 @@ export default function MemberDashboardPage() {
                     {/* Step Title */}
                     <div>
                       <div className={`text-xs sm:text-sm font-extrabold transition-colors ${
-                        isDone ? 'text-slate-900 group-hover:text-blue-700' : isActive ? 'text-amber-800' : 'text-slate-400 group-hover:text-slate-600'
+                        isStepRejected ? 'text-rose-700' : isDone ? 'text-slate-900 group-hover:text-blue-700' : isActive ? 'text-amber-800' : isLocked ? 'text-slate-400' : 'text-slate-400 group-hover:text-slate-600'
                       }`}>
                         {step.name}
                       </div>
@@ -719,12 +792,20 @@ export default function MemberDashboardPage() {
 
                     {/* Badge trạng thái */}
                     <div>
-                      {isDone ? (
+                      {isStepRejected ? (
+                        <span className="inline-flex items-center text-[11px] font-bold text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-200 shadow-2xs">
+                          {step.note}
+                        </span>
+                      ) : isDone ? (
                         <span className="inline-flex items-center text-[11px] font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
                           {step.note}
                         </span>
                       ) : isActive ? (
                         <span className="inline-flex items-center text-[11px] font-black text-amber-950 bg-amber-200 px-2.5 py-0.5 rounded-full border border-amber-400 shadow-xs">
+                          {step.note}
+                        </span>
+                      ) : isLocked ? (
+                        <span className="inline-flex items-center text-[11px] text-slate-400 font-semibold">
                           {step.note}
                         </span>
                       ) : (

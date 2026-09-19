@@ -18,6 +18,7 @@ import {
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, getCandidateApplicationAnswers } from '@/lib/mock-data'
 import { CandidateDetailAccountBtn } from "@/components/admin/candidate-detail-account-btn"
+import { CandidateDetailReviewActions } from "@/components/admin/candidate-detail-review-actions"
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = await params
@@ -245,7 +246,13 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           {/* Action Buttons & Submission Time */}
           <div className="flex flex-wrap items-center lg:flex-col lg:items-end gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <CandidateDetailReviewActions
+                applicationId={appData.id}
+                candidateUserId={appData.user_id}
+                candidateName={profile?.full_name || 'Ứng viên'}
+                initialStatus={appData.status}
+              />
               <CandidateDetailAccountBtn candidate={appData} />
               {facebookUrl && (
                 <a

@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { AdminSidebar } from '@/components/shared/admin-sidebar'
 import { AdminProfileBadge } from '@/components/admin/admin-profile-badge'
-import { ShieldCheck, Home, Menu } from 'lucide-react'
+import { Home, Menu } from 'lucide-react'
 import type { AdminRoleType } from '@/lib/permissions'
 
 interface AdminLayoutClientProps {
@@ -37,8 +38,15 @@ export function AdminLayoutClient({ children, profile, activeRole, acc }: AdminL
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-600 shadow-2xs shrink-0">
-              <ShieldCheck className="w-4.5 h-4.5 text-amber-600" />
+            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-2xs shrink-0">
+              <Image
+                src="/issac-logo.png"
+                alt="iSSAC Logo"
+                width={28}
+                height={28}
+                className="object-contain"
+                priority
+              />
             </div>
             <div className="min-w-0">
               <div className="flex items-center">

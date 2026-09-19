@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { MemberSidebar } from '@/components/shared/member-sidebar'
 import { MemberNotificationBell } from '@/components/shared/member-notification-bell'
-import { Sparkles, Home, Menu, AlertTriangle } from 'lucide-react'
+import { Home, Menu, AlertTriangle } from 'lucide-react'
 import { useMemberChatUnread } from '@/hooks/use-chat-unread'
 import { CandidateDeadlineBanner } from '@/components/candidate/candidate-deadline-banner'
 
@@ -50,8 +51,15 @@ export function MemberLayoutClient({ children, userProfile, studentDisplay }: Me
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-[#1657c1] shadow-2xs">
-              <Sparkles className="w-4.5 h-4.5 text-[#1657c1]" />
+            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-2xs shrink-0">
+              <Image
+                src="/issac-logo.png"
+                alt="iSSAC Logo"
+                width={28}
+                height={28}
+                className="object-contain"
+                priority
+              />
             </div>
             <div>
               <div className="flex items-center">

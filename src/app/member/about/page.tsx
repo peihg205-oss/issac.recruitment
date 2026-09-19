@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function MemberAboutPage() {
   return (
-    <div className="space-y-8 max-w-4xl mx-auto animate-fade-in pb-16 font-sans text-slate-800">
+    <div className="space-y-8 w-full animate-fade-in pb-16 font-sans text-slate-800">
       {/* 1. Header Trang: Căn chỉnh đẹp mắt, chuẩn mực, có nút Đăng ký ngay */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div className="space-y-1">

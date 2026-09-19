@@ -160,6 +160,15 @@
   75%, 100% { transform: scale(2); opacity: 0; }
 }
 
+@keyframes bannerBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.animate-banner-blink {
+  animation: bannerBlink 1.2s ease-in-out infinite;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }

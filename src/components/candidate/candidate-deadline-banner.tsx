@@ -88,72 +88,85 @@ export function CandidateDeadlineBanner({
     )
   }
 
-  // CASE 2: ACTIVE COUNTDOWN (Within 3 days) — match screenshot design
+  // CASE 2: ACTIVE COUNTDOWN (Within 3 days)
   return (
-    <div className="mb-6 rounded-2xl overflow-hidden border border-amber-200 shadow-sm animate-fade-in">
-      <div className="flex flex-col sm:flex-row bg-gradient-to-br from-[#fff8ee] to-[#fff3e0]">
+    <div className="mb-6 rounded-2xl overflow-hidden border-2 border-amber-300/70 shadow-md animate-slide-up">
+      {/* Outer shimmer border glow */}
+      <div className="relative flex flex-col sm:flex-row min-h-[100px]">
 
-        {/* ── LEFT: Orange countdown panel ─────────────────────── */}
-        <div className="relative sm:w-[210px] shrink-0 flex flex-col justify-between gap-4 px-5 pt-4 pb-5
-                        bg-gradient-to-br from-amber-100/80 via-orange-50 to-amber-50
-                        border-b sm:border-b-0 sm:border-r border-amber-200">
+        {/* ── LEFT: Orange countdown panel ── */}
+        <div className="relative sm:w-[230px] shrink-0 flex flex-col items-center justify-center gap-3
+                        px-5 py-5 sm:py-6
+                        bg-gradient-to-br from-amber-400/40 via-orange-300/25 to-amber-100/60
+                        border-b-2 sm:border-b-0 sm:border-r-2 border-amber-300/60">
 
-          {/* Badge */}
-          <span className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-full
-                           bg-amber-500 text-white text-[10px] font-black uppercase tracking-wide shadow-sm leading-tight">
+          {/* Badge — fixed single line, no break */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                          bg-amber-500 text-white shadow-sm self-start
+                          text-[10px] font-black uppercase tracking-wide whitespace-nowrap">
             <Bell className="w-3 h-3 shrink-0" />
-            THÔNG BÁO TỪ BAN<br className="hidden" />TUYỂN QUÂN
-          </span>
+            THÔNG BÁO TỪ BAN TUYỂN QUÂN
+          </div>
 
-          {/* Clock + remaining time */}
-          <div className="flex items-center gap-3">
-            {/* Animated clock with halo rings */}
-            <div className="relative shrink-0 w-14 h-14 flex items-center justify-center">
-              {/* Outer halo */}
-              <div className="absolute inset-0 rounded-full bg-rose-300/25 scale-[1.55]" />
-              {/* Inner halo */}
-              <div className="absolute inset-0 rounded-full bg-rose-300/20 scale-[1.25]" />
-              {/* Clock circle */}
-              <div className="relative w-14 h-14 rounded-full bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/40">
-                <Clock className="w-7 h-7 text-white" />
+          {/* Clock + countdown — perfectly centered row, no wrapping */}
+          <div className="flex items-center gap-4 w-full">
+            {/* Clock with animated halo rings */}
+            <div className="relative shrink-0 flex items-center justify-center w-16 h-16">
+              {/* Outer animated ring */}
+              <div className="absolute w-16 h-16 rounded-full bg-rose-400/30 animate-pulse-ring-slow" />
+              {/* Inner animated ring */}
+              <div className="absolute w-16 h-16 rounded-full bg-rose-400/20 animate-pulse-ring" />
+              {/* Clock disc */}
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-rose-500 to-rose-700
+                              flex items-center justify-center
+                              shadow-xl shadow-rose-500/50">
+                <Clock className="w-7 h-7 text-white drop-shadow" />
               </div>
             </div>
 
-            {/* Countdown text */}
-            <div>
-              <div className="text-[11px] font-bold text-amber-700 mb-0.5">Còn lại:</div>
-              <div className="text-xl font-black text-rose-700 leading-none">
+            {/* Countdown text — nowrap */}
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold text-amber-800 leading-none mb-1">Còn lại:</div>
+              <div className="text-xl sm:text-2xl font-black text-rose-700 leading-none whitespace-nowrap animate-countdown-pop">
                 {status.remainingText}
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── RIGHT: Deadline info + CTA ───────────────────────── */}
-        <div className="flex-1 flex flex-col justify-between gap-3 px-5 py-4 sm:py-5">
-          <div className="space-y-2">
-            {/* Deadline date */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <CalendarDays className="w-4 h-4 text-slate-500 shrink-0" />
-              <span className="text-sm font-bold text-slate-700">
-                Hạn chót điền đơn:{' '}
-                <span className="text-[#1657c1] font-black">{status.deadlineFormatted}</span>
-              </span>
-            </div>
+        {/* ── RIGHT: Info + CTA ── */}
+        <div className="flex-1 flex flex-col justify-center gap-3
+                        px-5 py-5 sm:py-6
+                        bg-gradient-to-br from-[#fffbf2] to-[#fff7e6]">
 
-            {/* Description */}
-            <p className="text-xs text-slate-600 leading-relaxed max-w-lg">
-              Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm đăng ký tài khoản ({status.createdFormatted}). Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
+          {/* Deadline heading */}
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-sm font-bold text-slate-700 leading-snug">
+              Hạn chót điền đơn:{' '}
+              <span className="text-[#1657c1] font-black">{status.deadlineFormatted}</span>
             </p>
           </div>
 
-          {/* CTA Button */}
+          {/* Description */}
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Bạn cần hoàn thành và nộp đơn ứng tuyển trong vòng <strong>3 ngày</strong> kể từ thời điểm
+            đăng ký tài khoản ({status.createdFormatted}). Sau 3 ngày, nếu chưa hoàn thành đơn, hệ thống
+            sẽ tự động khóa tài khoản và không thể tham gia các vòng tiếp theo.
+          </p>
+
+          {/* CTA with shimmer animation */}
           <div>
             <Link
               href="/member/application"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
-                         bg-amber-500 hover:bg-amber-600 active:scale-95
-                         text-white text-sm font-black shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-sm text-white
+                         relative overflow-hidden transition-all active:scale-95 hover:shadow-lg hover:shadow-amber-400/40
+                         shadow-md"
+              style={{
+                background: 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 40%, #f59e0b 60%, #f97316 100%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 2.4s linear infinite',
+              }}
             >
               Điền đơn ứng tuyển ngay
               <ArrowRight className="w-4 h-4" />
@@ -165,3 +178,4 @@ export function CandidateDeadlineBanner({
     </div>
   )
 }
+

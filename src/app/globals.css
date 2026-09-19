@@ -116,6 +116,19 @@
   .animate-slide-up {
     animation: slideUp 0.4s ease-out;
   }
+  .animate-pulse-ring {
+    animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .animate-pulse-ring-slow {
+    animation: pulseRing 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s;
+  }
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2.4s linear infinite;
+  }
+  .animate-countdown-pop {
+    animation: countdownPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
 }
 
 @keyframes fadeIn {
@@ -126,6 +139,21 @@
 @keyframes slideUp {
   from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseRing {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.12; transform: scale(1.18); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes countdownPop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* Scrollbar */

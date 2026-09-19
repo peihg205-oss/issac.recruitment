@@ -131,8 +131,8 @@ export default function MemberWarningsPage() {
   const socialLinks = [
     {
       name: 'Facebook',
-      handle: '@ISSAC.VNUIS',
-      url: 'https://www.facebook.com/issac.vnuis',
+      handle: '@ambassadorsClub.VNUIS',
+      url: 'https://www.facebook.com/ambassadorsClub.VNUIS',
       bg: '#1877F2',
       btnClass: 'bg-[#1877F2] hover:bg-[#1565d8] text-white',
       icon: (
@@ -443,7 +443,7 @@ export default function MemberWarningsPage() {
             KẾT NỐI VỚI ISSAC
           </span>
           <a
-            href="https://www.facebook.com/issac.vnuis"
+            href="https://www.facebook.com/ambassadorsClub.VNUIS"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-bold text-amber-600 hover:underline shrink-0"

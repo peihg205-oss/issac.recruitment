@@ -266,7 +266,7 @@ export default function MemberInterviewPage() {
     )
 
     return (
-      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+      <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
         {/* Header đồng bộ font chữ & phong cách */}
         <div className="flex items-end justify-between border-b border-slate-200 pb-4">
           <div className="space-y-1">
@@ -488,7 +488,7 @@ export default function MemberInterviewPage() {
   // 2. Trường hợp CHƯA HOÀN THÀNH VÒNG ĐƠN (Chỉ mới tạo tài khoản)
   if (!application || application.status === 'draft') {
     return (
-      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+      <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
         <div className="flex items-end justify-between border-b border-slate-200 pb-4">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
@@ -521,7 +521,7 @@ export default function MemberInterviewPage() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
               Bạn chưa hoàn thành nộp đơn ứng tuyển (Vòng 1)
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-3xl font-medium">
               Theo quy chế tuyển quân iSSAC Gen 3, bạn cần hoàn thiện hồ sơ và gửi đơn ứng tuyển trong vòng 3 ngày kể từ khi tạo tài khoản. Chỉ những ứng viên đã hoàn thành nộp đơn và được Hội đồng duyệt qua vòng đơn mới có quyền đặt lịch phỏng vấn.
             </p>
           </div>
@@ -547,7 +547,7 @@ export default function MemberInterviewPage() {
   // 3. Trường hợp ĐÃ NỘP ĐƠN nhưng đang trong giai đoạn chấm duyệt
   if (application.status === 'submitted' || application.status === 'received' || application.status === 'reviewing') {
     return (
-      <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+      <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
         <div className="flex items-end justify-between border-b border-slate-200 pb-4">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
@@ -605,7 +605,7 @@ export default function MemberInterviewPage() {
 
   // Trường hợp ĐƯỢC MỜI VÀ ĐANG CHỌN KHUNG GIỜ
   return (
-    <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+    <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
       <div className="flex items-end justify-between border-b border-slate-200 pb-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">

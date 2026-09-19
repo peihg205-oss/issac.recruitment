@@ -225,9 +225,9 @@ export default function MemberResultPage() {
   const isWaitlist = finalResult?.result === 'waitlist'
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in pb-12 font-sans">
-      {/* 1. Header: Đồng bộ tone Xanh - Vàng iSSAC */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+    <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
+      {/* 1. Header: Đồng bộ phong cách */}
+      <div className="flex items-end justify-between border-b border-slate-200 pb-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
             KẾT QUẢ ỨNG TUYỂN iSSAC 2026
@@ -236,21 +236,29 @@ export default function MemberResultPage() {
             Cổng thông tin tuyển chọn Đại sứ Sinh viên Gen 3
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-end gap-3 shrink-0 -mb-4 pl-3 mr-2 sm:mr-4">
           <button
             type="button"
             onClick={() => fetchResult(false)}
             title="Đồng bộ kết quả mới nhất"
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer mb-4 self-center sm:self-end"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <Link
             href="/member/dashboard"
-            className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all"
+            className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all mb-4 self-center sm:self-end"
           >
             Về Tổng quan
           </Link>
+          <Image
+            src="/images/isaris-study.png"
+            alt="ISARIS"
+            width={295}
+            height={383}
+            className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm select-none pointer-events-none"
+            priority
+          />
         </div>
       </div>
 
@@ -260,89 +268,68 @@ export default function MemberResultPage() {
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Đang tải dữ liệu kết quả tuyển chọn...</p>
         </div>
       ) : !hasApplication ? (
-        <div className="bg-white border-2 border-rose-300 rounded-3xl p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-4 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-rose-950 bg-rose-200 uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
-                  Chưa nộp đơn ứng tuyển
-                </span>
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Chưa có kết quả do chưa hoàn thành Vòng 1
-                </h2>
-                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
-                  Bạn chỉ mới tạo tài khoản và chưa hoàn thành nộp đơn ứng tuyển cho kỳ tuyển quân iSSAC Gen 3. Vui lòng hoàn tất nộp đơn trong vòng 3 ngày kể từ khi tạo tài khoản để được Hội đồng tuyển chọn xét duyệt sang các vòng tiếp theo.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-rose-100">
-                <Link
-                  href="/member/application"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1657c1] hover:bg-blue-800 text-white font-bold text-xs transition-all shadow-sm"
-                >
-                  Điền đơn ứng tuyển ngay
-                </Link>
-              </div>
-            </div>
-            <div className="shrink-0 flex justify-center lg:justify-end">
-              <Image
-                src="/images/isaris-waiting.png"
-                alt="ISARIS"
-                width={200}
-                height={200}
-                className="w-36 sm:w-44 h-auto object-contain drop-shadow-sm select-none pointer-events-none"
-              />
-            </div>
+        <div className="bg-white border-2 border-rose-300 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-rose-950 bg-rose-200 uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
+              Chưa nộp đơn ứng tuyển
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Chưa có kết quả do chưa hoàn thành Vòng 1
+            </h2>
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium text-justify">
+              Bạn chỉ mới tạo tài khoản và chưa hoàn thành nộp đơn ứng tuyển cho kỳ tuyển quân iSSAC Gen 3. Vui lòng hoàn tất nộp đơn trong vòng 3 ngày kể từ khi tạo tài khoản để được Hội đồng tuyển chọn xét duyệt sang các vòng tiếp theo.
+            </p>
+          </div>
+
+          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-rose-100">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl self-start">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+              Yêu cầu hoàn thành Vòng 1 trước
+            </span>
+
+            <Link
+              href="/member/application"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1657c1] hover:bg-blue-800 text-white font-bold text-xs transition-all shadow-sm self-start sm:self-auto"
+            >
+              <span>Điền đơn ứng tuyển ngay</span>
+            </Link>
           </div>
         </div>
       ) : !published || !finalResult ? (
-        <div className="bg-white border-2 border-[#fdc455] rounded-3xl p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Cột trái: Thông tin thông báo & Thao tác */}
-            <div className="space-y-4 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-amber-950 bg-[#fdc455] uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
-                  Thông báo tuyển quân
-                </span>
-              </div>
+        <div className="bg-white border-2 border-[#fdc455] rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-amber-950 bg-[#fdc455] uppercase tracking-wide px-2.5 py-0.5 rounded shadow-2xs">
+              Thông báo tuyển quân
+            </span>
+          </div>
 
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
-                  Kết quả chưa được công bố
-                </h2>
-                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl">
-                  Ban Tuyển quân của CLB đang hoàn tất quá trình phê duyệt danh sách chính thức theo chỉ tiêu hệ thống. Vui lòng theo dõi các kênh thông tin của CLB để cập nhật sớm nhất nha!
-                </p>
-              </div>
+          <div className="space-y-1.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Kết quả chưa được công bố
+            </h2>
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
+              Ban Tuyển quân của CLB đang hoàn tất quá trình phê duyệt danh sách chính thức theo chỉ tiêu hệ thống. Vui lòng theo dõi các kênh thông tin của CLB để cập nhật sớm nhất nha!
+            </p>
+          </div>
 
-              <div className="pt-3 flex flex-wrap items-center gap-3 border-t border-amber-100/70">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-lg">
-                  <span className="w-2 h-2 rounded-full bg-amber-600" />
-                  Đang hoàn tất phê duyệt danh sách chính thức
-                </span>
+          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-amber-100/70">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-lg self-start">
+              <span className="w-2 h-2 rounded-full bg-amber-600" />
+              Đang hoàn tất phê duyệt danh sách chính thức
+            </span>
 
-                <Link href="/member/about">
-                  <Button className="bg-[#1657c1] hover:bg-[#0f449e] text-white font-bold text-xs sm:text-sm rounded-xl px-5 py-2.5 h-auto shadow-2xs cursor-pointer">
-                    Tìm hiểu các Ban chuyên môn
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Cột phải: Hình ảnh Mascot Học hỏi nè! */}
-            <div className="shrink-0 flex items-center justify-center lg:justify-end">
-              <Image
-                src="/images/isaris-study.png"
-                alt="ISARIS - Học hỏi nè!"
-                width={299}
-                height={375}
-                className="w-44 sm:w-52 md:w-60 lg:w-64 h-auto object-contain drop-shadow-sm select-none pointer-events-none"
-                priority
-              />
-            </div>
+            <Link
+              href="/member/about"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1657c1] hover:bg-[#0f449e] text-white font-bold text-xs transition-all shadow-sm self-start sm:self-auto"
+            >
+              <span>Tìm hiểu các Ban chuyên môn</span>
+            </Link>
           </div>
         </div>
+
       ) : (
         <div className="space-y-5 animate-fade-in">
           {/* Main result card: Sang trọng, màu xanh navy & vàng iSSAC, tuyệt đối không lộ điểm */}

@@ -539,32 +539,32 @@ export default function CandidatesPage() {
                           <span className="text-gray-300 text-xs">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1 flex-nowrap whitespace-nowrap">
                           {/* Nút Duyệt & Từ chối cho hồ sơ chờ duyệt / đang xem xét */}
                           {(c.status === 'submitted' || c.status === 'reviewing' || c.status === 'received') && (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 text-xs text-green-700 border-green-300 hover:bg-green-50 font-bold cursor-pointer"
+                                className="h-8 px-2.5 text-xs text-green-700 border-green-300 hover:bg-green-50 font-bold shrink-0 cursor-pointer"
                                 onClick={() => handleStatusChange(c.id, 'approved')}
                                 disabled={updating === c.id}
                                 title="Duyệt hồ sơ cho ứng viên đi tiếp vào Vòng Phỏng vấn"
                               >
-                                <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
-                                Duyệt
+                                <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600 shrink-0" />
+                                <span>Duyệt</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 text-xs text-rose-700 border-rose-300 hover:bg-rose-50 font-bold cursor-pointer"
+                                className="h-8 px-2.5 text-xs text-rose-700 border-rose-300 hover:bg-rose-50 font-bold shrink-0 cursor-pointer"
                                 onClick={() => handleStatusChange(c.id, 'rejected')}
                                 disabled={updating === c.id}
                                 title="Từ chối hồ sơ (Ứng viên sẽ dừng bước tại Vòng 1)"
                               >
-                                <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600" />
-                                Từ chối
+                                <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600 shrink-0" />
+                                <span>Từ chối</span>
                               </Button>
                             </>
                           )}
@@ -574,13 +574,13 @@ export default function CandidatesPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
+                              className="h-8 px-2 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 shrink-0 cursor-pointer"
                               onClick={() => handleStatusChange(c.id, 'rejected')}
                               disabled={updating === c.id}
                               title="Chuyển trạng thái sang Từ chối"
                             >
-                              <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600" />
-                              Từ chối
+                              <XCircle className="w-3.5 h-3.5 mr-1 text-rose-600 shrink-0" />
+                              <span>Từ chối</span>
                             </Button>
                           )}
 
@@ -589,51 +589,51 @@ export default function CandidatesPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 text-xs text-green-700 hover:text-green-900 hover:bg-green-50 font-semibold cursor-pointer"
+                              className="h-8 px-2 text-xs text-green-700 hover:text-green-900 hover:bg-green-50 font-semibold shrink-0 cursor-pointer"
                               onClick={() => handleStatusChange(c.id, 'approved')}
                               disabled={updating === c.id}
                               title="Duyệt lại hồ sơ này để ứng viên được đi tiếp"
                             >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600" />
-                              Duyệt lại
+                              <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-600 shrink-0" />
+                              <span>Duyệt lại</span>
                             </Button>
                           )}
 
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                            className="h-8 px-2 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50 shrink-0"
                             onClick={() => {
                               setAccountModalCandidate(c)
                               setShowAccountModal(true)
                             }}
                             title="Kiểm tra mật khẩu & Quản lý tài khoản"
                           >
-                            <Key className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                            Tài khoản
+                            <Key className="w-3.5 h-3.5 mr-1 text-amber-600 shrink-0" />
+                            <span>Tài khoản</span>
                           </Button>
-                          <Link href={`/admin/messages?appId=${c.id}`}>
-                            <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50" title="Gửi cảnh báo cho ứng viên">
-                              <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                              Cảnh báo
+                          <Link href={`/admin/messages?appId=${c.id}`} className="shrink-0">
+                            <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50 shrink-0" title="Gửi cảnh báo cho ứng viên">
+                              <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600 shrink-0" />
+                              <span>Cảnh báo</span>
                             </Button>
                           </Link>
-                          <Link href={`/admin/candidates/${c.id}`}>
-                            <Button size="sm" variant="ghost" className="h-8 text-xs text-blue-600 hover:bg-blue-50">
-                              <Eye className="w-3.5 h-3.5 mr-1" />
-                              Hồ sơ
+                          <Link href={`/admin/candidates/${c.id}`} className="shrink-0">
+                            <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-blue-600 hover:bg-blue-50 shrink-0">
+                              <Eye className="w-3.5 h-3.5 mr-1 shrink-0" />
+                              <span>Hồ sơ</span>
                             </Button>
                           </Link>
                           {isSuperAdmin && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
+                              className="h-8 px-2 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 shrink-0 cursor-pointer"
                               onClick={() => handleDeleteCandidate(c)}
                               title="Xóa vĩnh viễn tài khoản & hồ sơ ứng viên"
                             >
-                              <Trash2 className="w-3.5 h-3.5 mr-1" />
-                              Xóa
+                              <Trash2 className="w-3.5 h-3.5 mr-1 shrink-0" />
+                              <span>Xóa</span>
                             </Button>
                           )}
                         </div>

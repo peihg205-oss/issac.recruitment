@@ -169,7 +169,7 @@ export default function MemberProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto animate-fade-in pb-12 font-sans">
+    <div className="space-y-6 w-full animate-fade-in pb-12 font-sans">
       {/* 1. Header: Đồng bộ font chữ & phong cách iSSAC */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div className="space-y-1">

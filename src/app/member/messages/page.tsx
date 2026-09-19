@@ -4,19 +4,20 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   AlertTriangle, Loader2, CheckCheck, Clock,
-  ShieldAlert, ShieldCheck, Info, RefreshCw,
-  ExternalLink, Mail, MessageCircle
+  ShieldCheck, RefreshCw, Mail, MessageCircle,
+  ExternalLink, ShieldAlert, Info, BellRing
 } from 'lucide-react'
 import {
   ChatMessage,
   fetchApplicationMessages,
   markChatAsRead,
 } from '@/lib/messages-manager'
+import Link from 'next/link'
+import Image from 'next/image'
 
 export default function MemberWarningsPage() {
   const supabase = createClient()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [warnings, setWarnings] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,16 +25,6 @@ export default function MemberWarningsPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
-
-  const scrollToBottom = useCallback((instant = false) => {
-    setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'end' })
-      } else if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-      }
-    }, 50)
-  }, [])
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
@@ -56,7 +47,6 @@ export default function MemberWarningsPage() {
       setProfile(prof)
       setApplication(app)
 
-      // Conversation key is application.id if submitted, otherwise authUser.id for fresh accounts
       const convKey = app?.id || authUser.id
       const msgs = await fetchApplicationMessages(supabase, convKey, authUser.id)
       setWarnings(msgs)
@@ -66,20 +56,14 @@ export default function MemberWarningsPage() {
     } finally {
       setLoading(false)
       setRefreshing(false)
-      scrollToBottom(true)
     }
-  }, [supabase, scrollToBottom])
+  }, [supabase])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
-  // Scroll to bottom when new warnings arrive
-  useEffect(() => {
-    scrollToBottom(false)
-  }, [warnings.length, scrollToBottom])
-
-  // Periodic polling to guarantee sync
+  // Periodic polling
   useEffect(() => {
     if (!user?.id) return
     const convKey = application?.id || user.id
@@ -87,9 +71,7 @@ export default function MemberWarningsPage() {
       try {
         const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
         setWarnings(prev => {
-          if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) {
-            return msgs
-          }
+          if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) return msgs
           return prev
         })
       } catch {}
@@ -104,36 +86,24 @@ export default function MemberWarningsPage() {
 
     const channel = supabase
       .channel(`member-warnings-${convKey}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'audit_logs',
-      }, async (payload: any) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, async (payload: any) => {
         if (payload?.new?.action !== 'CHAT_MESSAGE') return
         const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
         if (target === convKey || target === user.id) {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setWarnings(msgs)
-          scrollToBottom()
         }
       })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-      }, async (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async (payload: any) => {
         if (payload?.new?.application_id === convKey || payload?.new?.application_id === user.id) {
           const msgs = await fetchApplicationMessages(supabase, convKey, user.id)
           setWarnings(msgs)
-          scrollToBottom()
         }
       })
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [application?.id, user?.id, supabase, scrollToBottom])
+    return () => { supabase.removeChannel(channel) }
+  }, [application?.id, user?.id, supabase])
 
   const formatTime = (dateStr: string) => {
     try {
@@ -143,18 +113,13 @@ export default function MemberWarningsPage() {
       const yesterday = new Date(now)
       yesterday.setDate(yesterday.getDate() - 1)
       const isYesterday = d.toDateString() === yesterday.toDateString()
-
       const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
-
-      if (isToday) return time
-      if (isYesterday) return `Hôm qua ${time}`
-      return `${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${time}`
-    } catch {
-      return ''
-    }
+      if (isToday) return `Hôm nay, ${time}`
+      if (isYesterday) return `Hôm qua, ${time}`
+      return `${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, ${time}`
+    } catch { return '' }
   }
 
-  // Filter only warnings sent by Admin (or past messages)
   const adminWarnings = warnings.filter(w => w.sender_role === 'admin' || w.sender_role !== 'member')
 
   if (loading) {
@@ -169,147 +134,225 @@ export default function MemberWarningsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-red-950 via-slate-900 to-indigo-950 text-white shrink-0 z-10">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shadow-xs shrink-0">
-            <AlertTriangle className="w-5 h-5 text-amber-400 animate-bounce" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-black text-white truncate uppercase tracking-tight">Cảnh báo của Ban Chủ nhiệm iSSAC</h1>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-black bg-rose-500/30 text-rose-300 border border-rose-400/40 rounded-full">
-                Kênh 1 chiều (Chỉ đọc)
-              </span>
+    <div className="max-w-3xl mx-auto space-y-5">
+
+      {/* ── HERO HEADER ─────────────────────────────────────── */}
+      <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+        {/* Top gradient banner */}
+        <div className="bg-gradient-to-r from-rose-900 via-slate-900 to-indigo-900 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5.5 h-5.5 text-amber-400 animate-bounce" />
             </div>
-            <p className="text-xs text-slate-300 font-medium truncate">
-              {application?.departments?.name
-                ? `Ban ${application.departments.name} • Thông báo cảnh báo & nhắc nhở từ Ban Chủ nhiệm CLB iSSAC`
-                : 'Ứng viên Gen 3 • Thông báo cảnh báo & nhắc nhở từ Ban Chủ nhiệm CLB iSSAC'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => loadData(true)}
-            disabled={refreshing}
-            title="Làm mới cảnh báo"
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-50 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Notice Banner explaining read-only policy */}
-      <div className="flex items-start gap-2.5 px-4 py-2.5 bg-rose-50 border-b border-rose-200 text-xs text-rose-950 shrink-0 z-10">
-        <ShieldAlert className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
-        <span className="leading-snug">
-          <strong>LƯU Ý QUAN TRỌNG:</strong> Đây là kênh phát thông báo cảnh báo chính thức từ <strong>Ban Chủ nhiệm CLB iSSAC</strong>. Ứng viên <strong>chỉ có quyền đọc</strong> và <strong>hoàn toàn không có quyền phản hồi</strong> qua kênh này.
-        </span>
-      </div>
-
-      {/* Warnings Scroll Area */}
-      <div
-        ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-50/50 overscroll-contain"
-      >
-        {adminWarnings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-slate-800">Không có cảnh báo nào</p>
-              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                Hiện tại bạn không có thông báo nhắc nhở hoặc cảnh báo vi phạm nào từ Ban Chủ nhiệm CLB iSSAC. Hồ sơ và tiến trình ứng tuyển của bạn đang diễn ra bình thường!
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-white uppercase tracking-tight leading-tight">
+                Cảnh báo của Ban Chủ nhiệm iSSAC
+              </h1>
+              <p className="text-xs text-slate-300 font-medium mt-0.5 truncate">
+                {application?.departments?.name
+                  ? `Ban ${application.departments.name} · Thông báo 1 chiều từ BCN CLB iSSAC`
+                  : 'Ứng viên Gen 3 · Thông báo 1 chiều từ BCN CLB iSSAC'}
               </p>
             </div>
           </div>
-        ) : (
-          adminWarnings.map((msg) => (
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-rose-500/30 text-rose-300 border border-rose-400/40">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Kênh chỉ đọc
+            </span>
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              title="Làm mới cảnh báo"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Read-only notice row */}
+        <div className="flex items-start gap-2.5 px-5 py-3 bg-rose-50 border-b border-rose-200 text-xs text-rose-900">
+          <Info className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <span className="leading-snug">
+            <strong>LƯU Ý:</strong> Đây là kênh phát cảnh báo chính thức từ <strong>Ban Chủ nhiệm CLB iSSAC</strong>. Ứng viên <strong>chỉ có quyền đọc</strong> — không có quyền phản hồi qua kênh này.
+          </span>
+        </div>
+      </div>
+
+      {/* ── STATS ROW ────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white border-2 border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+          <div className="text-2xl font-black text-slate-900">{adminWarnings.length}</div>
+          <div className="text-[11px] font-semibold text-slate-500 mt-0.5">Tổng cảnh báo</div>
+        </div>
+        <div className="bg-white border-2 border-rose-200 rounded-2xl p-4 text-center shadow-xs">
+          <div className="text-2xl font-black text-rose-700">
+            {adminWarnings.length}
+          </div>
+          <div className="text-[11px] font-semibold text-slate-500 mt-0.5">Từ BCN iSSAC</div>
+        </div>
+        <div className="bg-white border-2 border-emerald-200 rounded-2xl p-4 text-center shadow-xs">
+          <div className="text-2xl font-black text-emerald-700">
+            {adminWarnings.length === 0 ? '✓' : adminWarnings.length}
+          </div>
+          <div className="text-[11px] font-semibold text-slate-500 mt-0.5">
+            {adminWarnings.length === 0 ? 'Không vi phạm' : 'Đã ghi nhận'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── WARNINGS LIST ────────────────────────────────────── */}
+      {adminWarnings.length === 0 ? (
+        /* Empty state */
+        <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-700 to-[#0d3b82] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-emerald-200 font-bold flex items-center gap-1.5 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                Tình trạng hồ sơ
+              </div>
+              <div className="text-lg sm:text-xl font-black text-white">Hồ sơ đang diễn ra bình thường</div>
+            </div>
+            <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-emerald-950 self-start sm:self-auto shadow-sm">
+              Không có cảnh báo
+            </span>
+          </div>
+
+          <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-8 h-8 text-emerald-600" />
+            </div>
+            <div className="space-y-2 text-center sm:text-left">
+              <p className="text-sm font-bold text-slate-800">Chúc mừng — bạn chưa nhận cảnh báo nào!</p>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-md">
+                Hiện tại bạn không có thông báo nhắc nhở hoặc cảnh báo vi phạm nào từ Ban Chủ nhiệm CLB iSSAC. Hồ sơ và tiến trình ứng tuyển của bạn đang diễn ra hoàn toàn bình thường!
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3.5" ref={scrollRef}>
+          {adminWarnings.map((msg, idx) => (
             <div
               key={msg.id}
-              className="rounded-2xl border-2 border-rose-200/90 bg-white p-4 sm:p-5 shadow-xs space-y-2.5 animate-fade-in"
+              className="bg-white border-2 border-rose-200/90 rounded-3xl overflow-hidden shadow-sm"
             >
-              {/* Header: Sender & Badge & Time */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
-                    <AlertTriangle className="w-4.5 h-4.5" />
+              {/* Card header */}
+              <div className="bg-gradient-to-r from-rose-800 to-slate-900 px-5 py-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-4.5 h-4.5 text-amber-400" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-900">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-black text-white truncate">
                         {msg.sender_name || 'Ban Chủ nhiệm CLB iSSAC'}
                       </span>
-                      <span className="text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded-md uppercase">
+                      <span className="text-[10px] font-black bg-rose-500/40 text-rose-200 border border-rose-400/40 px-2 py-0.5 rounded-md uppercase shrink-0">
                         Cảnh báo BCN
                       </span>
                     </div>
+                    <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      {formatTime(msg.created_at)}
+                    </div>
                   </div>
                 </div>
+                <span className="text-xs font-black text-slate-400 shrink-0">#{String(idx + 1).padStart(2, '0')}</span>
+              </div>
 
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{formatTime(msg.created_at)}</span>
+              {/* Warning content */}
+              <div className="p-5 sm:p-6 space-y-4">
+                <div className="rounded-2xl bg-amber-50/70 border border-amber-200 p-4 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
+                  {msg.content}
+                </div>
+
+                {/* Footer status row */}
+                <div className="flex items-center justify-between text-[11px] pt-1">
+                  <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Đã ghi nhận gửi tới bạn
+                  </span>
+                  <span className="text-[10px] text-slate-400 italic font-medium">
+                    Thông báo chỉ đọc · Không thể phản hồi
+                  </span>
                 </div>
               </div>
-
-              {/* Warning Content */}
-              <div className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-100 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
-                {msg.content}
-              </div>
-
-              {/* Footer status */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-                  <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> Đã ghi nhận gửi tới bạn
-                </span>
-                <span className="text-[10px] text-slate-400 italic">
-                  Thông báo chỉ đọc
-                </span>
-              </div>
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} className="h-1 shrink-0" />
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Readonly Footer with Contact Info (Replaces Input Box) */}
-      <div className="border-t border-slate-200 bg-white p-4 sm:p-5 shrink-0 z-10 shadow-2xs">
-        <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 sm:p-4 text-xs space-y-2.5">
-          <div className="flex items-center gap-2 text-slate-800 font-bold">
-            <Info className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Bạn cần giải đáp thắc mắc hoặc hỗ trợ thêm?</span>
+      {/* ── CONTACT PANEL ────────────────────────────────────── */}
+      <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+        {/* Panel header */}
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+            <BellRing className="w-4 h-4 text-[#1657c1]" />
           </div>
-          <p className="text-slate-600 leading-relaxed text-[11px]">
-            Hệ thống Cổng Tuyển quân không hỗ trợ gửi phản hồi trực tiếp tại mục Cảnh báo. Nếu bạn có bất kỳ câu hỏi nào về nội dung cảnh báo hoặc cần hỗ trợ về hồ sơ, vui lòng liên hệ trực tiếp qua các kênh chính thức:
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] shadow-2xs transition-all"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>Fanpage CLB iSSAC</span>
-              <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
-            </a>
-
-            <a
-              href="mailto:bcn.issac@gmail.com"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-[11px] transition-all"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span>bcn.issac@gmail.com</span>
-            </a>
+          <div>
+            <div className="text-sm font-black text-slate-900">Bạn cần hỗ trợ hoặc giải đáp thắc mắc?</div>
+            <div className="text-[11px] text-slate-500 font-medium">Liên hệ trực tiếp qua các kênh chính thức bên dưới</div>
           </div>
         </div>
+
+        {/* Panel body */}
+        <div className="p-5 sm:p-6 space-y-4">
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Hệ thống Cổng Tuyển quân không hỗ trợ gửi phản hồi trực tiếp tại mục Cảnh báo. Nếu bạn có câu hỏi về nội dung cảnh báo hoặc cần hỗ trợ về hồ sơ, vui lòng liên hệ qua:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a
+              href="https://www.facebook.com/issac.vnuis"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm">
+                <MessageCircle className="w-4.5 h-4.5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-black text-slate-900 group-hover:text-blue-700 transition-colors">Fanpage CLB iSSAC</div>
+                <div className="text-[11px] text-slate-500 truncate">facebook.com/issac.vnuis</div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            </a>
+
+            <a
+              href="mailto:ambassadors.club@vnuis.edu.vn"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 shadow-sm">
+                <Mail className="w-4.5 h-4.5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-black text-slate-900 group-hover:text-slate-700 transition-colors">Email BCN iSSAC</div>
+                <div className="text-[11px] text-slate-500 truncate">ambassadors.club@vnuis.edu.vn</div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </a>
+          </div>
+
+          <div className="rounded-2xl border-l-4 border-amber-400 bg-amber-50/70 p-4 text-xs text-amber-950 space-y-1">
+            <div className="font-bold">Lưu ý từ Ban Tuyển quân:</div>
+            <p className="text-amber-900 leading-relaxed font-medium">
+              Kênh cảnh báo này chỉ được sử dụng để Ban Chủ nhiệm gửi thông báo chính thức về vi phạm, nhắc nhở hoặc cảnh báo đến ứng viên. Vui lòng đọc kỹ và thực hiện theo hướng dẫn trong từng thông báo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Back to dashboard */}
+      <div className="flex justify-start pb-2">
+        <Link
+          href="/member/dashboard"
+          className="px-4 py-2 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all"
+        >
+          ← Về Tổng quan
+        </Link>
       </div>
     </div>
   )

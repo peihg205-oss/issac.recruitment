@@ -83,6 +83,9 @@ export default function MemberProfilePage() {
     if (profile) {
       // Address column stores facebook link if provided
       const fb = (profile as any).facebook_url || profile.address || (user.user_metadata?.facebook_url as string) || ''
+      const localHs = typeof window !== 'undefined' ? localStorage.getItem(`issac_candidate_hs_${user.id}`) : null
+      const resolvedHs = profile.high_school || (user.user_metadata?.high_school as string) || localHs || ''
+
       reset({
         full_name: profile.full_name || '',
         phone: profile.phone || '',
@@ -93,7 +96,7 @@ export default function MemberProfilePage() {
         university: profile.university || 'Trường Quốc tế - ĐHQGHN',
         cohort: profile.cohort || '',
         major: profile.major || '',
-        high_school: profile.high_school || '',
+        high_school: resolvedHs,
       })
 
       const p1 = !!(profile.full_name && profile.phone && profile.date_of_birth && profile.gender)
@@ -122,26 +125,45 @@ export default function MemberProfilePage() {
     }
     setSaving(true)
 
-    // Save profile data into profiles table without schema cache errors
-    const { error } = await supabase.from('profiles').update({
+    const hsValue = data.high_school?.trim() || null
+    if (typeof window !== 'undefined' && hsValue) {
+      localStorage.setItem(`issac_candidate_hs_${user.id}`, hsValue)
+    }
+
+    // Payload 1: Cố gắng lưu đầy đủ có high_school
+    const payloadWithHs: Record<string, any> = {
       full_name: data.full_name.trim(),
       phone: data.phone?.trim() || null,
       date_of_birth: data.date_of_birth || null,
       gender: data.gender || null,
-      student_id: locked ? undefined : (data.student_id?.trim() || null),
-      university: locked ? undefined : (data.university?.trim() || null),
       cohort: data.cohort?.trim() || null,
       major: data.major?.trim() || null,
-      high_school: locked ? undefined : (data.high_school?.trim() || null),
+      high_school: hsValue,
       address: data.facebook_url?.trim() || null,
-    }).eq('id', user.id)
+    }
+    if (!locked) {
+      if (data.student_id?.trim()) payloadWithHs.student_id = data.student_id.trim()
+      if (data.university?.trim()) payloadWithHs.university = data.university.trim()
+    }
 
-    // Also persist in auth metadata
+    let { error } = await supabase.from('profiles').update(payloadWithHs).eq('id', user.id)
+
+    // Nếu Postgres báo lỗi cột high_school không tồn tại trong cache/schema, fallback update không có high_school
+    if (error && (error.message.includes('high_school') || error.message.includes('schema cache'))) {
+      delete payloadWithHs.high_school
+      const res = await supabase.from('profiles').update(payloadWithHs).eq('id', user.id)
+      error = res.error
+    }
+
+    // Lưu vào auth metadata để bảo toàn dữ liệu
     try {
       await supabase.auth.updateUser({
         data: {
           full_name: data.full_name.trim(),
           facebook_url: data.facebook_url?.trim() || null,
+          high_school: hsValue,
+          major: data.major?.trim() || null,
+          date_of_birth: data.date_of_birth || null,
         }
       })
     } catch {}
@@ -427,15 +449,17 @@ export default function MemberProfilePage() {
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="high_school" className="text-xs font-bold text-slate-700">
-                Trường THPT từng theo học {locked && '(Đã khóa)'}
+                Trường THPT từng theo học
               </Label>
               <Input
                 id="high_school"
                 {...register('high_school')}
                 placeholder="THPT Chuyên / THPT..."
-                disabled={locked}
-                className={`rounded-xl border-slate-200 h-11 text-xs sm:text-sm ${locked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white focus:border-[#fdc455] focus:ring-2 focus:ring-amber-100'}`}
+                className="rounded-xl border-slate-200 h-11 text-xs sm:text-sm bg-white focus:border-[#fdc455] focus:ring-2 focus:ring-amber-100"
               />
+              <p className="text-[11px] text-slate-400">
+                Cung cấp tên trường cấp 3 để Ban Tuyển quân bổ sung vào hồ sơ trích xuất
+              </p>
             </div>
           </div>
         </div>

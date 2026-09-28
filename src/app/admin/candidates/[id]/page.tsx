@@ -20,6 +20,7 @@ import { MOCK_CANDIDATES, getCandidateApplicationAnswers } from '@/lib/mock-data
 import { CandidateDetailAccountBtn } from "@/components/admin/candidate-detail-account-btn"
 import { CandidateDetailReviewActions } from "@/components/admin/candidate-detail-review-actions"
 import { CandidateDownloadBtn } from "@/components/admin/candidate-download-btn"
+import { resolveCandidateProfileInfo } from "@/lib/candidate-profile-resolver"
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = await params
@@ -95,7 +96,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   if (!application && !mockCandidate) notFound()
 
   const appData = application || mockCandidate
-  const profile = appData.profiles as any
+  const rawProfile = appData.profiles as any
+  const resolvedProfile = resolveCandidateProfileInfo(appData, rawProfile)
+  const profile = { ...rawProfile, ...resolvedProfile }
   const dept = appData.departments as any
   const finalRanking = ranking || mockCandidate?.candidate_rankings
 

@@ -225,11 +225,22 @@ export default function ApplicationPage() {
       return
     }
 
-    // Chuẩn bị toàn bộ câu trả lời có cấu trúc (bao gồm cả Câu hỏi chung và Chuyên môn)
+    // Chuẩn bị toàn bộ câu trả lời có cấu trúc (bao gồm cả Thông tin ứng viên, Câu hỏi chung và Chuyên môn)
     const chosenDept = departments.find(d => d.id === selectedDept)
     const answersPayload = {
-      version: 1,
+      version: 2,
       submitted_at: new Date().toISOString(),
+      candidate_profile: {
+        full_name: candidateProfile?.full_name || '',
+        student_id: candidateProfile?.student_id || '',
+        phone: candidateProfile?.phone || '',
+        date_of_birth: candidateProfile?.date_of_birth || '',
+        high_school: candidateProfile?.high_school || '',
+        major: candidateProfile?.major || '',
+        cohort: candidateProfile?.cohort || 'K22',
+        university: candidateProfile?.university || 'Trường Quốc tế - ĐHQGHN',
+        gender: candidateProfile?.gender || '',
+      },
       answers: questions.map((q, idx) => {
         const isCommon = !q.department_id || q.department_id === 'common' || commonQuestions.some(c => c.id === q.id)
         const opts = (q as any).question_options?.map((o: any) => typeof o === 'string' ? o : o.option_text) || []

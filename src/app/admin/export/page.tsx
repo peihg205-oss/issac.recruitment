@@ -14,6 +14,35 @@ import {
 import { formatDate, formatDateTime, exportToCSV, APPLICATION_STATUS_LABELS, buildCandidateCodeMap, slugify } from '@/lib/utils'
 import { getStoredSystemSettings } from '@/lib/system-settings'
 import { type ApplicationStatus } from '@/types/database'
+import { resolveCandidateProfileInfo } from '@/lib/candidate-profile-resolver'
+
+/** Helper fetch profile an toàn, tự động thử lại nếu DB chưa có cột high_school */
+async function fetchProfilesSafe(supabase: any, userIds: string[]) {
+  if (!userIds || userIds.length === 0) return {}
+  const profilesMap: Record<string, any> = {}
+
+  // 1. Thử lấy đầy đủ cột có high_school
+  const { data: profs, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, student_id, phone, university, major, cohort, gender, high_school, date_of_birth, address')
+    .in('id', userIds)
+
+  if (!error && profs) {
+    profs.forEach((p: any) => { profilesMap[p.id] = p })
+    return profilesMap
+  }
+
+  // 2. Fallback nếu DB schema chưa có cột high_school
+  const { data: fallbackProfs } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, student_id, phone, university, major, cohort, gender, date_of_birth, address')
+    .in('id', userIds)
+
+  if (fallbackProfs) {
+    fallbackProfs.forEach((p: any) => { profilesMap[p.id] = p })
+  }
+  return profilesMap
+}
 
 export default function ExportPage() {
   const supabase = createClient()
@@ -173,7 +202,7 @@ export default function ExportPage() {
       const { data: apps } = await supabase
         .from('applications')
         .select(`
-          id, user_id, status, submitted_at, created_at,
+          id, user_id, status, submitted_at, created_at, review_note,
           departments!applications_department_id_fkey(name),
           candidate_rankings(final_score, rank_number, result)
         `)
@@ -185,36 +214,28 @@ export default function ExportPage() {
       }
 
       const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
-      let profilesMap: Record<string, any> = {}
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, student_id, phone, university, major, cohort, gender, high_school, date_of_birth, address')
-          .in('id', userIds)
-        if (profs) {
-          profs.forEach((p: any) => { profilesMap[p.id] = p })
-        }
-      }
+      const profilesMap = await fetchProfilesSafe(supabase, userIds)
 
       const codeMap = buildCandidateCodeMap(apps)
 
       const rows = apps.map((a: any, i: number) => {
-        const p = profilesMap[a.user_id] || {}
+        const rawProfile = profilesMap[a.user_id] || {}
+        const resolved = resolveCandidateProfileInfo(a, rawProfile)
         const r = Array.isArray(a.candidate_rankings) ? a.candidate_rankings[0] : a.candidate_rankings
         return {
           'STT': i + 1,
           'Mã hồ sơ': codeMap[a.id] || `ISSAC-${String(i + 1).padStart(2, '0')}`,
-          'Họ và tên': p.full_name || '',
-          'MSSV': p.student_id || '',
-          'Email': p.email || '',
-          'Số điện thoại': p.phone || '',
-          'Ngày sinh': p.date_of_birth || '',
-          'Trường THPT': p.high_school || '',
-          'Ngành học': p.major || '',
-          'Khóa': p.cohort || 'K22',
-          'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
-          'Giới tính': p.gender || '',
-          'Link Facebook': p.address || '',
+          'Họ và tên': resolved.full_name,
+          'MSSV': resolved.student_id,
+          'Email': resolved.email,
+          'Số điện thoại': resolved.phone,
+          'Ngày sinh': resolved.date_of_birth,
+          'Trường THPT': resolved.high_school,
+          'Ngành học': resolved.major,
+          'Khóa': resolved.cohort,
+          'Trường Đại học': resolved.university,
+          'Giới tính': resolved.gender,
+          'Link Facebook': resolved.address,
           'Ban ứng tuyển (NV1)': (a.departments as any)?.name || '',
           'Trạng thái đơn': (APPLICATION_STATUS_LABELS[a.status as ApplicationStatus] ?? a.status),
           'Điểm phỏng vấn (/10)': r?.final_score != null ? Number(r.final_score).toFixed(1) : 'Chưa chấm',
@@ -245,7 +266,7 @@ export default function ExportPage() {
         .from('candidate_rankings')
         .select(`
           id, rank_number, final_score, result, application_id,
-          applications(id, user_id, departments!applications_department_id_fkey(name))
+          applications(id, user_id, review_note, departments!applications_department_id_fkey(name))
         `)
         .order('final_score', { ascending: false, nullsFirst: false })
 
@@ -258,31 +279,23 @@ export default function ExportPage() {
         rankings.map((r: any) => (r.applications as any)?.user_id).filter(Boolean)
       ))
 
-      let profilesMap: Record<string, any> = {}
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, student_id, phone, major, cohort, high_school, date_of_birth, university')
-          .in('id', userIds)
-        if (profs) {
-          profs.forEach((p: any) => { profilesMap[p.id] = p })
-        }
-      }
+      const profilesMap = await fetchProfilesSafe(supabase, userIds)
 
       const rows = rankings.map((r: any, idx: number) => {
         const app = r.applications as any
-        const p = app?.user_id ? profilesMap[app.user_id] : null
+        const rawProfile = app?.user_id ? profilesMap[app.user_id] : null
+        const resolved = resolveCandidateProfileInfo(app, rawProfile)
         return {
           'Thứ hạng toàn CLB': r.rank_number ? `#${r.rank_number}` : `#${idx + 1}`,
-          'Họ và tên': p?.full_name || '',
-          'MSSV': p?.student_id || '',
-          'Email': p?.email || '',
-          'Số điện thoại': p?.phone || '',
-          'Ngày sinh': p?.date_of_birth || '',
-          'Trường THPT': p?.high_school || '',
-          'Ngành học': p?.major || '',
-          'Khóa': p?.cohort || 'K22',
-          'Trường Đại học': p?.university || 'Trường Quốc tế - ĐHQGHN',
+          'Họ và tên': resolved.full_name,
+          'MSSV': resolved.student_id,
+          'Email': resolved.email,
+          'Số điện thoại': resolved.phone,
+          'Ngày sinh': resolved.date_of_birth,
+          'Trường THPT': resolved.high_school,
+          'Ngành học': resolved.major,
+          'Khóa': resolved.cohort,
+          'Trường Đại học': resolved.university,
           'Ban ứng tuyển': app?.departments?.name || '',
           'Điểm phỏng vấn (/10)': r.final_score != null ? Number(r.final_score).toFixed(1) : '',
           'Quyết định BCN': r.result === 'pass' ? 'Pass (Chính thức)' : r.result === 'waitlist' ? 'Dự bị' : r.result === 'fail' ? 'Trượt' : 'Đang xét',
@@ -431,16 +444,9 @@ export default function ExportPage() {
         return
       }
 
-      // Fetch profiles
+      // Fetch profiles an toàn
       const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)))
-      let profilesMap: Record<string, any> = {}
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, student_id, phone, major, cohort, university, high_school, date_of_birth, gender')
-          .in('id', userIds)
-        if (profs) profs.forEach((p: any) => { profilesMap[p.id] = p })
-      }
+      const profilesMap = await fetchProfilesSafe(supabase, userIds)
 
       const codeMap = buildCandidateCodeMap(apps)
 
@@ -500,7 +506,8 @@ export default function ExportPage() {
 
         // 2. Tạo các dòng dữ liệu với tiêu đề câu hỏi ở trên cùng, câu trả lời căn chuẩn ở dưới
         const rows = deptApps.map((app: any, rIdx: number) => {
-          const p = profilesMap[app.user_id] || {}
+          const rawProfile = profilesMap[app.user_id] || {}
+          const resolved = resolveCandidateProfileInfo(app, rawProfile)
           const answerMap: Record<string, string> = {}
 
           try {
@@ -517,16 +524,16 @@ export default function ExportPage() {
           const row: Record<string, unknown> = {
             'STT': rIdx + 1,
             'Mã hồ sơ': codeMap[app.id] || `ISSAC-${String(rIdx + 1).padStart(2, '0')}`,
-            'Họ và tên': p.full_name || '',
-            'MSSV': p.student_id || '',
-            'Email': p.email || '',
-            'Số điện thoại': p.phone || '',
-            'Ngày sinh': p.date_of_birth || '',
-            'Trường THPT': p.high_school || '',
-            'Ngành học': p.major || '',
-            'Khóa': p.cohort || 'K22',
-            'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
-            'Giới tính': p.gender || '',
+            'Họ và tên': resolved.full_name,
+            'MSSV': resolved.student_id,
+            'Email': resolved.email,
+            'Số điện thoại': resolved.phone,
+            'Ngày sinh': resolved.date_of_birth,
+            'Trường THPT': resolved.high_school,
+            'Ngành học': resolved.major,
+            'Khóa': resolved.cohort,
+            'Trường Đại học': resolved.university,
+            'Giới tính': resolved.gender,
             'Ban ứng tuyển': app.departments?.name || dName,
             'Trạng thái hồ sơ': APPLICATION_STATUS_LABELS[app.status as ApplicationStatus] ?? app.status,
           }

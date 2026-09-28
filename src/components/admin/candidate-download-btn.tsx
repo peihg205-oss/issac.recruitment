@@ -4,6 +4,7 @@ import { Download } from 'lucide-react'
 import { exportToCSV, formatDateTime, APPLICATION_STATUS_LABELS } from '@/lib/utils'
 import { type ApplicationStatus } from '@/types/database'
 import { useToast } from '@/components/ui/use-toast'
+import { resolveCandidateProfileInfo } from '@/lib/candidate-profile-resolver'
 
 interface CandidateDownloadBtnProps {
   candidate: any
@@ -26,19 +27,20 @@ export function CandidateDownloadBtn({
 
   const handleDownload = () => {
     try {
+      const resolved = resolveCandidateProfileInfo(candidate, profile)
       const row: Record<string, unknown> = {
         'Mã hồ sơ': candidateCode,
-        'Họ và tên': profile?.full_name || '',
-        'MSSV': profile?.student_id || '',
-        'Email': profile?.email || '',
-        'Số điện thoại': profile?.phone || '',
-        'Ngày sinh': profile?.date_of_birth || '',
-        'Trường THPT': profile?.high_school || '',
-        'Ngành học': profile?.major || '',
-        'Khóa': profile?.cohort || 'K22',
-        'Trường Đại học': profile?.university || 'Trường Quốc tế - ĐHQGHN',
-        'Giới tính': profile?.gender || '',
-        'Link Facebook': profile?.address || (profile as any)?.facebook_url || '',
+        'Họ và tên': resolved.full_name,
+        'MSSV': resolved.student_id,
+        'Email': resolved.email,
+        'Số điện thoại': resolved.phone,
+        'Ngày sinh': resolved.date_of_birth,
+        'Trường THPT': resolved.high_school,
+        'Ngành học': resolved.major,
+        'Khóa': resolved.cohort,
+        'Trường Đại học': resolved.university,
+        'Giới tính': resolved.gender,
+        'Link Facebook': resolved.address,
         'Ban ứng tuyển (NV1)': dept?.name || '',
         'Trạng thái hồ sơ': APPLICATION_STATUS_LABELS[candidate?.status as ApplicationStatus] ?? candidate?.status,
         'Điểm phỏng vấn (/10)': ranking?.final_score != null ? Number(ranking.final_score).toFixed(1) : 'Chưa chấm',

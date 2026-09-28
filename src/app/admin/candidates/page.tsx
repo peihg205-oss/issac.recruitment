@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { type ApplicationStatus } from '@/types/database'
 import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import { resolveCandidateProfileInfo } from '@/lib/candidate-profile-resolver'
 
 interface Candidate {
   id: string
@@ -71,17 +72,28 @@ export default function CandidatesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [{ data: apps }, { data: depts }, { data: allProfiles }, dbDeleted] = await Promise.all([
+      const fetchProfilesSafe = async () => {
+        const { data: profs, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at, date_of_birth, high_school, university, gender')
+        if (!error && profs) return profs
+        const { data: fallbackProfs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at, date_of_birth, university, gender')
+        return fallbackProfs || []
+      }
+
+      const [{ data: apps }, { data: depts }, allProfiles, dbDeleted] = await Promise.all([
         supabase
           .from('applications')
           .select(`
-            id, user_id, department_id, status, submitted_at, created_at,
+            id, user_id, department_id, status, submitted_at, created_at, review_note,
             departments!applications_department_id_fkey(name, slug),
             candidate_rankings(rank_number, final_score, result)
           `)
           .order('created_at', { ascending: false }),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
-        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at, date_of_birth, high_school, university, gender'),
+        fetchProfilesSafe(),
         getDeletedCandidateIdsFromDB()
       ])
 
@@ -336,24 +348,27 @@ export default function CandidatesPage() {
     })
 
   const handleExport = () => {
-    const rows = filtered.map(c => ({
-      'Mã ứng viên': c.id,
-      'Họ và tên': c.profiles?.full_name || '',
-      'MSSV': c.profiles?.student_id || '',
-      'Email': c.profiles?.email || '',
-      'Số điện thoại': c.profiles?.phone || '',
-      'Ngày sinh': c.profiles?.date_of_birth || '',
-      'Trường THPT': c.profiles?.high_school || '',
-      'Ngành học': c.profiles?.major || '',
-      'Khóa': c.profiles?.cohort || '',
-      'Trường Đại học': c.profiles?.university || 'Trường Quốc tế - ĐHQGHN',
-      'Giới tính': c.profiles?.gender || '',
-      'Ban đăng ký': c.departments?.name || '',
-      'Trạng thái': APPLICATION_STATUS_LABELS[c.status] || c.status,
-      'Điểm': c.candidate_rankings?.final_score ?? 'Chưa chấm',
-      'Xếp hạng': c.candidate_rankings?.rank_number ?? '-',
-      'Ngày nộp': formatDate(c.submitted_at || c.created_at),
-    }))
+    const rows = filtered.map(c => {
+      const resolved = resolveCandidateProfileInfo(c, c.profiles)
+      return {
+        'Mã ứng viên': c.id,
+        'Họ và tên': resolved.full_name,
+        'MSSV': resolved.student_id,
+        'Email': resolved.email,
+        'Số điện thoại': resolved.phone,
+        'Ngày sinh': resolved.date_of_birth,
+        'Trường THPT': resolved.high_school,
+        'Ngành học': resolved.major,
+        'Khóa': resolved.cohort,
+        'Trường Đại học': resolved.university,
+        'Giới tính': resolved.gender,
+        'Ban đăng ký': c.departments?.name || '',
+        'Trạng thái': APPLICATION_STATUS_LABELS[c.status] || c.status,
+        'Điểm': c.candidate_rankings?.final_score ?? 'Chưa chấm',
+        'Xếp hạng': c.candidate_rankings?.rank_number ?? '-',
+        'Ngày nộp': formatDate(c.submitted_at || c.created_at),
+      }
+    })
     exportToCSV(rows, `danh_sach_ung_vien_issac_${new Date().toISOString().slice(0, 10)}`)
     toast({ title: `Đã xuất ${rows.length} ứng viên ra file CSV` } as Parameters<typeof toast>[0])
   }

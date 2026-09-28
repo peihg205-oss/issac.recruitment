@@ -22,31 +22,16 @@ export interface CandidateDeadlineStatus {
 const DEFAULT_DEADLINE_DAYS = 3
 
 /**
- * Mốc thời gian đóng cổng nhận đơn Vòng 1 toàn hệ thống (00h00 ngày 29 tháng 9 năm 2026)
+ * Mốc thời gian đóng cổng nhận đơn Vòng 1 toàn hệ thống: chính xác 00h00 ngày 29 tháng 9 năm 2026
  */
 export const ROUND1_GLOBAL_DEADLINE_ISO = '2026-09-29T00:00:00+07:00'
 
 /**
- * Lấy hạn chót chung của đợt nộp đơn Vòng 1 từ cache settings hoặc mặc định là 00:00 29/09/2026
+ * Hạn chót đóng cổng đợt nộp đơn Vòng 1 (00:00 ngày 29/09/2026).
+ * Cố định mốc 00:00 ngày 29/09/2026 để bất kỳ tài khoản nào đăng ký trong ngày 28/09/2026
+ * cũng sẽ bị giới hạn thời gian nộp đơn trước thời điểm đóng cổng này!
  */
 export function getRound1GlobalDeadline(): Date {
-  if (typeof window !== 'undefined') {
-    try {
-      const raw = localStorage.getItem('issac_system_settings')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed.recruitment_end_time) {
-          const d = new Date(parsed.recruitment_end_time)
-          if (!isNaN(d.getTime())) return d
-        }
-        if (parsed.recruitment_end) {
-          // Nếu cấu hình ngày đóng là 2026-09-28 thì mốc 00h ngày 29/09/2026 là thời điểm hết hạn
-          const d = new Date(`${parsed.recruitment_end}T23:59:59+07:00`)
-          if (!isNaN(d.getTime())) return d
-        }
-      }
-    } catch {}
-  }
   return new Date(ROUND1_GLOBAL_DEADLINE_ISO)
 }
 

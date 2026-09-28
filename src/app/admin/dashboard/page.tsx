@@ -1,0 +1,276 @@
+import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Users, FileText, CheckCircle, Clock, Calendar,
+  ClipboardList, Trophy, TrendingUp, BarChart3, Star
+} from 'lucide-react'
+import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
+import { parseDeletedCandidateIdsFromCookie } from '@/lib/candidate-account-manager'
+import { RecruitmentStatsCard } from './RecruitmentStatsCard'
+
+export default async function AdminDashboardPage() {
+  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const deletedCookieStr = cookieStore.get('issac_deleted_candidates')?.value
+  const deletedIds = parseDeletedCandidateIdsFromCookie(deletedCookieStr ? `issac_deleted_candidates=${deletedCookieStr}` : '')
+
+  let applications: any[] | null = null
+  let evaluations: any[] | null = null
+  let rankings: any[] | null = null
+  let departments: any[] | null = null
+  let interviews: any[] | null = null
+  let settings: any[] | null = null
+
+  try {
+    const [appsRes, evalsRes, ranksRes, deptsRes, ivwsRes, settRes, deletedAuditRes, inactiveProfilesRes] = await Promise.all([
+      supabase.from('applications').select('id, user_id, status, department_id, departments!applications_department_id_fkey(name, slug)'),
+      supabase.from('evaluations').select('id, application_id, status, total_score'),
+      supabase.from('candidate_rankings').select('id, application_id, result, final_score, rank_number').order('rank_number', { ascending: true }),
+      supabase.from('departments').select('id, name, slug, color').neq('slug', 'chu-nhiem'),
+      supabase.from('interviews').select('id, application_id, status'),
+      supabase.from('system_settings').select('key, value'),
+      supabase.from('audit_logs').select('description').eq('action', 'SYNC_DELETED_CANDIDATES').order('created_at', { ascending: false }).limit(1),
+      supabase.from('profiles').select('id, email').eq('is_active', false)
+    ])
+    applications = appsRes.data
+    evaluations = evalsRes.data
+    rankings = ranksRes.data
+    departments = deptsRes.data
+    interviews = ivwsRes.data
+    settings = settRes.data
+
+    // Merge deleted IDs from audit logs & inactive profiles for cross-device accuracy
+    if (inactiveProfilesRes.data && inactiveProfilesRes.data.length > 0) {
+      inactiveProfilesRes.data.forEach(p => {
+        if (p.id && !deletedIds.includes(p.id)) deletedIds.push(p.id)
+        if (p.email && !deletedIds.includes(p.email.toLowerCase().trim())) deletedIds.push(p.email.toLowerCase().trim())
+      })
+    }
+    if (deletedAuditRes.data && deletedAuditRes.data.length > 0 && deletedAuditRes.data[0].description) {
+      try {
+        const parsed = JSON.parse(deletedAuditRes.data[0].description)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id: string) => {
+            if (!deletedIds.includes(id)) deletedIds.push(id)
+          })
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.error('Error fetching dashboard data:', err)
+  }
+
+  // Lọc bỏ toàn bộ ứng viên đã bị Ban Chủ nhiệm xóa (đồng bộ đa thiết bị)
+  const rawApps: any[] = applications || []
+  const apps: any[] = rawApps.filter(a => !deletedIds.includes(a.id) && !deletedIds.includes(a.user_id))
+  const depts = (departments && departments.length > 0) ? departments : MOCK_DEPARTMENTS
+  const rawRanks: any[] = rankings || []
+  const ranks: any[] = rawRanks.filter(r => !r.application_id || !deletedIds.includes(r.application_id))
+  const rawEvals: any[] = evaluations || []
+  const filteredEvals = rawEvals.filter(e => !e.application_id || !deletedIds.includes(e.application_id))
+  const rawIvws: any[] = interviews || []
+  const filteredIvws = rawIvws.filter(i => !i.application_id || !deletedIds.includes(i.application_id))
+
+  const cookieQuota = cookieStore.get('issac_recruitment_quota')?.value
+  const quota = parseInt(cookieQuota || settings?.find(s => s.key === 'recruitment_quota')?.value || '15', 10)
+
+  const cookieMinScore = cookieStore.get('issac_interview_min_score')?.value
+  const minScore = cookieMinScore || settings?.find(s => s.key === 'interview_min_score')?.value || '8.0'
+
+  const interviewFormat = settings?.find(s => s.key === 'interview_format')?.value || 'Online & Offline'
+  const interviewLocation = settings?.find(s => s.key === 'interview_location')?.value || 'Trường Quốc tế VNU-IS / Google Meet'
+
+  const deptCount = depts.length
+  const deptNames = depts.map((d: any) => d.name).join(', ')
+
+  const statusCounts = {
+    total: apps.length,
+    draft: apps.filter(a => a.status === 'draft').length,
+    submitted: apps.filter(a => a.status === 'submitted').length,
+    received: apps.filter(a => a.status === 'received').length,
+    reviewing: apps.filter(a => a.status === 'reviewing').length,
+    approved: apps.filter(a => a.status === 'approved').length,
+    rejected: apps.filter(a => a.status === 'rejected').length,
+    interview_scheduled: apps.filter(a => a.status === 'interview_scheduled').length,
+    interviewed: apps.filter(a => a.status === 'interviewed').length,
+    evaluated: apps.filter(a => a.status === 'evaluated').length,
+    finalized: apps.filter(a => a.status === 'finalized').length,
+  }
+
+  const evalStats = {
+    total: filteredEvals.length,
+    submitted: filteredEvals.filter(e => e.status === 'submitted').length,
+    avgScore: filteredEvals.length > 0
+      ? (filteredEvals.reduce((acc, e) => acc + (e.total_score || 0), 0) / filteredEvals.length).toFixed(1)
+      : '0.0',
+  }
+
+  const rankStats = {
+    pass: ranks.filter(r => r?.result === 'pass').length,
+    waitlist: ranks.filter(r => r?.result === 'waitlist').length,
+    fail: ranks.filter(r => r?.result === 'fail').length,
+  }
+
+  const deptStats = depts.map(d => ({
+    ...d,
+    count: apps.filter(a =>
+      a.department_id === d.id ||
+      (a.departments as any)?.slug === d.slug ||
+      (a.departments as any)?.name === d.name
+    ).length
+  }))
+
+  const summaryCards = [
+    { label: 'Tổng hồ sơ', value: statusCounts.total, icon: Users },
+    { label: 'Chờ duyệt', value: statusCounts.submitted + statusCounts.received + statusCounts.reviewing, icon: Clock },
+    { label: 'Đã duyệt hồ sơ', value: statusCounts.approved + statusCounts.interview_scheduled, icon: CheckCircle },
+    { label: 'Lịch phỏng vấn', value: filteredIvws.length, icon: Calendar },
+    { label: 'Đã hoàn thành PV', value: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, icon: Users },
+    { label: 'Đã chấm điểm', value: evalStats.submitted, icon: ClipboardList },
+    { label: 'Pass', value: rankStats.pass, icon: Trophy },
+    { label: 'Điểm TB phỏng vấn', value: `${evalStats.avgScore}/10`, icon: Star },
+  ]
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Dashboard Tuyển Quân</h1>
+          <p className="text-gray-500 text-sm mt-1">Tổng quan tiến độ tuyển thành viên iSSAC - VNU-IS Ambassadors Club</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Đang mở cổng tuyển quân
+          </span>
+        </div>
+      </div>
+
+      {/* Key Metrics — Viền xen kẽ Xanh & Vàng chuẩn style Ảnh 2 (bàn cờ so le hàng 1 và hàng 2) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card, i) => {
+          // Hàng 1 (i = 0-3): Xanh, Vàng, Xanh, Vàng
+          // Hàng 2 (i = 4-7): Vàng, Xanh, Vàng, Xanh (bắt đầu từ Vàng)
+          const row = Math.floor(i / 4)
+          const isBlue = row % 2 === 0 ? i % 2 === 0 : i % 2 !== 0
+          return (
+            <div
+              key={i}
+              className={`rounded-2xl p-4 sm:p-5 bg-white shadow-2xs hover:shadow-md transition-all border-2 flex items-center justify-between ${
+                isBlue ? 'border-[#1657c1]' : 'border-[#fdc455]'
+              }`}
+            >
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-1">{card.label}</div>
+                <div className="text-2xl font-black text-gray-900">{card.value}</div>
+              </div>
+              <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
+                  isBlue ? 'bg-blue-50 text-[#1657c1]' : 'bg-amber-50 text-amber-600'
+                }`}
+              >
+                <card.icon className="w-5 h-5" />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Status Breakdown */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+              Tiến trình duyệt & phỏng vấn
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[
+                { label: 'Đã nộp đơn', count: apps.length, color: 'bg-blue-500' },
+                { label: 'Đã duyệt hồ sơ', count: statusCounts.approved + statusCounts.interview_scheduled + statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, color: 'bg-green-500' },
+                { label: 'Đã phỏng vấn', count: statusCounts.interviewed + statusCounts.evaluated + statusCounts.finalized, color: 'bg-purple-500' },
+                { label: 'Đã có điểm số', count: evalStats.submitted, color: 'bg-teal-500' },
+                { label: `Trúng tuyển Top ${quota}`, count: rankStats.pass, color: 'bg-amber-500' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-28 text-xs text-gray-600 text-right font-medium">{item.label}</div>
+                  <div className="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden">
+                    <div
+                      className={`h-full ${item.color} rounded-lg transition-all flex items-center justify-end pr-2`}
+                      style={{width: statusCounts.total > 0 ? `${Math.max((item.count / statusCounts.total) * 100, 4)}%` : '4%'}}
+                    >
+                      {item.count > 0 && <span className="text-white text-xs font-bold">{item.count}</span>}
+                    </div>
+                  </div>
+                  <div className="w-8 text-xs text-gray-800 font-bold">{item.count}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* By Department */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-600" />
+              Phân bổ ứng viên theo Ban
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {deptStats.map((dept, i) => {
+                const pct = statusCounts.total > 0 ? (dept.count / statusCounts.total) * 100 : 0
+                const colors = ['bg-blue-600', 'bg-pink-500', 'bg-purple-600', 'bg-amber-500']
+                return (
+                  <div key={dept.id || i}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="font-semibold text-gray-800">{dept.name}</span>
+                      <span className="font-bold text-gray-900">{dept.count} hồ sơ</span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${colors[i % colors.length]} rounded-full transition-all`}
+                        style={{width: `${Math.max(pct, 3)}%`}}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">{pct.toFixed(1)}% trên tổng số đơn</div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: `TOP ${quota} CHÍNH THỨC`, value: rankStats.pass, color: 'text-emerald-700', bg: 'bg-emerald-50 border border-emerald-200' },
+                  { label: 'DANH SÁCH DỰ BỊ', value: rankStats.waitlist, color: 'text-amber-700', bg: 'bg-amber-50 border border-amber-200' },
+                  { label: 'KHÔNG ĐẠT', value: rankStats.fail, color: 'text-gray-600', bg: 'bg-gray-50 border border-gray-200' },
+                ].map((item, i) => (
+                  <div key={i} className={`${item.bg} rounded-xl p-3 text-center`}>
+                    <div className={`text-xl font-black ${item.color}`}>{item.value}</div>
+                    <div className="text-[11px] font-bold text-gray-600 mt-0.5">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recruitment Status */}
+      <RecruitmentStatsCard
+        initialQuota={quota}
+        initialMinScore={minScore}
+        initialFormat={interviewFormat}
+        initialLocation={interviewLocation}
+        deptCount={deptCount}
+        deptNames={deptNames}
+      />
+    </div>
+  )
+}

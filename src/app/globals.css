@@ -1,0 +1,178 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
+:root {
+  --issac-blue: #1657c1;
+  --issac-blue-dark: #0f449e;
+  --issac-blue-light: #2b70ea;
+  --issac-gold: #fdc455;
+  --issac-gold-hover: #f59e0b;
+  --issac-cream: #fff7e8;
+  --issac-cream-light: #fffdf7;
+  --issac-watermark: #e5d8c3;
+}
+
+@layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #0f172a;
+    background-color: #fcfbf9;
+    letter-spacing: -0.012em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-montserrat), 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.022em;
+  }
+
+  button, input, optgroup, select, textarea {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .bg-issac-blue {
+    background-color: #1657c1;
+  }
+  .bg-issac-gold {
+    background-color: #fdc455;
+  }
+  .bg-issac-cream {
+    background-color: #fff7e8;
+  }
+  .text-issac-blue {
+    color: #1657c1;
+  }
+  .text-issac-gold {
+    color: #fdc455;
+  }
+  .border-issac-blue {
+    border-color: #1657c1;
+  }
+  .border-issac-gold {
+    border-color: #fdc455;
+  }
+  .border-issac-cream {
+    border-color: #fed7aa;
+  }
+  .btn-issac-gold {
+    background-color: #fdc455;
+    color: #111827;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(253, 196, 85, 0.35);
+  }
+  .btn-issac-gold:hover {
+    background-color: #f59e0b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+  .btn-issac-blue {
+    background-color: #1657c1;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+  }
+  .btn-issac-blue:hover {
+    background-color: #0f449e;
+    transform: translateY(-1px);
+  }
+  .btn-issac-outline-white {
+    border: 2px solid #ffffff;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.5rem 1.5rem;
+    background-color: transparent;
+    transition: all 0.2s ease;
+  }
+  .btn-issac-outline-white:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  .animate-pulse-ring {
+    animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .animate-pulse-ring-slow {
+    animation: pulseRing 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s;
+  }
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2.4s linear infinite;
+  }
+  .animate-countdown-pop {
+    animation: countdownPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseRing {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.12; transform: scale(1.18); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes countdownPop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes bannerBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.animate-banner-blink {
+  animation: bannerBlink 1.2s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.font-caveat { font-family: "Caveat", cursive, sans-serif; }

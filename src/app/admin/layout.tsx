@@ -1,0 +1,122 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { ADMIN_ROLE_CONFIGS, EVALUATOR_ACCOUNTS, type AdminRoleType } from "@/lib/permissions"
+import { AdminLayoutClient } from "./AdminLayoutClient"
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies()
+  const activeRoleFromCookie = cookieStore.get("issac_admin_role")?.value as AdminRoleType | undefined
+
+  const supabase = await createClient()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {}
+
+  let userProfile = null
+  if (user) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("full_name, email, role, admin_role, high_school")
+      .eq("id", user.id)
+      .single()
+    userProfile = prof
+  }
+
+  const hasAdminCookie = Boolean(activeRoleFromCookie && activeRoleFromCookie in ADMIN_ROLE_CONFIGS)
+  const isDbAdmin = Boolean(userProfile && (userProfile.role === "admin" || userProfile.role === "super_admin"))
+
+  // Chặn người dùng không có quyền quản trị truy cập cổng Ban Tuyển quân
+  if (!hasAdminCookie && !isDbAdmin) {
+    if (userProfile && userProfile.role === "member") {
+      redirect("/member/dashboard")
+    }
+    redirect("/login?role=admin")
+  }
+
+  const activeRole: AdminRoleType = hasAdminCookie
+    ? activeRoleFromCookie!
+    : (userProfile?.admin_role && userProfile.admin_role in ADMIN_ROLE_CONFIGS ? (userProfile.admin_role as AdminRoleType) : "chu-nhiem")
+
+  const currentConfig = ADMIN_ROLE_CONFIGS[activeRole]
+
+  // Read any custom name/title overrides saved by BCN or approved requests
+  const accountsCookie = cookieStore.get("issac_admin_accounts")?.value
+  let customAccounts: Record<string, any> = {}
+  if (accountsCookie) {
+    try {
+      customAccounts = JSON.parse(decodeURIComponent(accountsCookie))
+    } catch {}
+  }
+
+  // Đọc tên tài khoản từ cookie được set lúc đăng nhập (dành cho tài khoản do BCN tạo)
+  const loggedAdminNameRaw = cookieStore.get("issac_logged_admin_name")?.value
+  const loggedAdminName = loggedAdminNameRaw ? decodeURIComponent(loggedAdminNameRaw) : null
+
+  // Đọc chức vụ tài khoản từ cookie
+  const loggedAdminTitleRaw = cookieStore.get("issac_logged_admin_title")?.value
+  const loggedAdminTitle = loggedAdminTitleRaw ? decodeURIComponent(loggedAdminTitleRaw) : null
+
+  // Đọc danh sách tài khoản do BCN tạo từ cookie
+  const createdAdminsCookie = cookieStore.get("issac_created_admins")?.value
+  let createdAdmins: any[] = []
+  if (createdAdminsCookie) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(createdAdminsCookie))
+      if (Array.isArray(parsed)) createdAdmins = parsed
+    } catch {}
+  }
+
+  const baseAcc = EVALUATOR_ACCOUNTS[activeRole] || EVALUATOR_ACCOUNTS["chu-nhiem"]
+  const isGenericDefault = userProfile?.full_name?.startsWith("Cán bộ Tuyển quân (")
+  const resolvedName = loggedAdminName || (!isGenericDefault && userProfile?.full_name ? userProfile.full_name : (loggedAdminName || userProfile?.full_name || customAccounts[activeRole]?.name || baseAcc.name))
+  const resolvedTitle = loggedAdminTitle || (userProfile as any)?.high_school || customAccounts[activeRole]?.title || (activeRole === 'chu-nhiem' ? 'Ban Chủ nhiệm CLB' : baseAcc.title)
+
+  const acc = {
+    ...baseAcc,
+    name: resolvedName,
+    title: resolvedTitle,
+    avatarInitial: resolvedName.charAt(0).toUpperCase(),
+  }
+
+  let profile = null
+
+  if (!user) {
+    profile = {
+      full_name: acc.name,
+      email: acc.email,
+      role: currentConfig.isSuperAdmin ? "super_admin" : "admin",
+      admin_role: activeRole,
+      title: acc.title,
+      avatarInitial: acc.avatarInitial,
+    }
+  } else {
+    profile = userProfile ? {
+      ...userProfile,
+      admin_role: activeRole,
+      role: currentConfig.isSuperAdmin ? "super_admin" : "admin",
+      full_name: resolvedName,
+      title: resolvedTitle,
+      avatarInitial: acc.avatarInitial,
+    } : {
+      full_name: acc.name,
+      email: acc.email,
+      role: currentConfig.isSuperAdmin ? "super_admin" : "admin",
+      admin_role: activeRole,
+      title: acc.title,
+      avatarInitial: acc.avatarInitial,
+    }
+  }
+
+  return (
+    <AdminLayoutClient
+      profile={profile as any}
+      activeRole={activeRole}
+      acc={acc}
+    >
+      {children}
+    </AdminLayoutClient>
+  )
+}

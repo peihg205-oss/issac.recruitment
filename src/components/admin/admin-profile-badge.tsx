@@ -1,0 +1,643 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import {
+  Crown,
+  Megaphone,
+  MessageSquare,
+  Users,
+  CheckCircle2,
+  Clock,
+  Edit3,
+  ShieldCheck,
+  AlertCircle,
+  XCircle,
+  Check,
+  Sparkles,
+  Inbox,
+  ArrowRight,
+  ShieldAlert
+} from "lucide-react"
+import {
+  type AdminRoleType,
+  EVALUATOR_ACCOUNTS,
+  ADMIN_ROLE_CONFIGS
+} from "@/lib/permissions"
+import {
+  getAdminAccounts,
+  getAdminRequests,
+  updateAccountDirectly,
+  submitChangeRequest,
+  cancelChangeRequest,
+  approveChangeRequest,
+  rejectChangeRequest,
+  type AdminAccountInfo,
+  type AdminChangeRequest
+} from "@/lib/admin-account-manager"
+
+interface AdminProfileBadgeProps {
+  role: AdminRoleType
+  initialName: string
+  initialTitle: string
+  initialAvatarInitial: string
+}
+
+export function AdminProfileBadge({
+  role,
+  initialName,
+  initialTitle,
+  initialAvatarInitial,
+}: AdminProfileBadgeProps) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"self" | "approvals" | "all">("self")
+
+  // State
+  const [accounts, setAccounts] = useState<Record<AdminRoleType, AdminAccountInfo> | null>(null)
+  const [requests, setRequests] = useState<AdminChangeRequest[]>([])
+  const [nameInput, setNameInput] = useState(initialName)
+  const [titleInput, setTitleInput] = useState(initialTitle)
+
+  // Direct edit for other departments (BCN power)
+  const [selectedDeptToEdit, setSelectedDeptToEdit] = useState<AdminRoleType>("truyen-thong")
+  const [deptNameInput, setDeptNameInput] = useState("")
+  const [deptTitleInput, setDeptTitleInput] = useState("")
+
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null)
+
+  const isBCN = role === "chu-nhiem"
+
+  // Load latest data on mount
+  const refreshData = () => {
+    const accs = getAdminAccounts()
+    const reqs = getAdminRequests()
+    setAccounts(accs)
+    setRequests(reqs)
+
+    const currentAcc = accs[role]
+    if (currentAcc) {
+      setNameInput(currentAcc.name)
+      setTitleInput(currentAcc.title)
+    }
+
+    if (accs[selectedDeptToEdit]) {
+      setDeptNameInput(accs[selectedDeptToEdit].name)
+      setDeptTitleInput(accs[selectedDeptToEdit].title)
+    }
+  }
+
+  useEffect(() => {
+    refreshData()
+  }, [role, selectedDeptToEdit])
+
+  const [selfName, setSelfName] = useState(initialName)
+  const [selfTitle, setSelfTitle] = useState(initialTitle)
+
+  useEffect(() => {
+    if (initialName) setSelfName(initialName)
+    if (initialTitle) setSelfTitle(initialTitle)
+  }, [initialName, initialTitle])
+
+  // Current display data: Ưu tiên tên và chức vụ của chính tài khoản đang đăng nhập
+  const displayName = selfName?.trim() || initialName?.trim() || (accounts ? accounts[role]?.name : "") || EVALUATOR_ACCOUNTS[role]?.name || ""
+  const displayTitle = selfTitle?.trim() || initialTitle?.trim() || (accounts ? accounts[role]?.title : "") || EVALUATOR_ACCOUNTS[role]?.title || ""
+  const displayAvatar = displayName.charAt(0).toUpperCase() || "A"
+
+  const currentAcc = {
+    name: displayName,
+    title: displayTitle,
+    avatarInitial: displayAvatar,
+    email: EVALUATOR_ACCOUNTS[role]?.email || "",
+  }
+
+  // Pending request for this account
+  const myPendingRequest = requests.find(r => r.role === role && r.status === "pending")
+  // All pending requests (for BCN)
+  const pendingRequests = requests.filter(r => r.status === "pending")
+
+  const getRoleIcon = (roleKey: AdminRoleType) => {
+    switch (roleKey) {
+      case "chu-nhiem":
+        return <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+      case "truyen-thong":
+        return <Megaphone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+      case "tu-van":
+        return <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+      case "nhan-su":
+        return <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+      default:
+        return <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+    }
+  }
+
+  // Cập nhật thông tin của CHÍNH TÀI KHOẢN ĐANG ĐĂNG NHẬP (không ghi đè các tài khoản khác trong cùng Ban)
+  const handleSaveSelf = async () => {
+    const trimmedName = nameInput.trim()
+    const trimmedTitle = titleInput.trim()
+    if (!trimmedName) {
+      setFeedbackMsg({ type: "error", text: "Vui lòng nhập họ và tên hiển thị." })
+      return
+    }
+    if (!trimmedTitle) {
+      setFeedbackMsg({ type: "error", text: "Vui lòng nhập chức vụ hiển thị." })
+      return
+    }
+
+    // 1. Cập nhật cookie cá nhân của tài khoản này
+    document.cookie = `issac_logged_admin_name=${encodeURIComponent(trimmedName)}; path=/; max-age=2592000; SameSite=Lax`
+    document.cookie = `issac_logged_admin_title=${encodeURIComponent(trimmedTitle)}; path=/; max-age=2592000; SameSite=Lax`
+
+    // 2. Cập nhật vào Supabase profile nếu có phiên đăng nhập
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from("profiles").update({
+          full_name: trimmedName,
+        }).eq("id", user.id)
+      }
+    } catch {}
+
+    // 3. Cập nhật vào danh sách tài khoản đã tạo theo email
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("issac_created_admins")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) {
+            let emailMatch = ""
+            const emCookie = document.cookie.match(/(?:^|;\s*)issac_logged_admin_email=([^;]+)/)
+            if (emCookie) emailMatch = decodeURIComponent(emCookie[1]).toLowerCase()
+
+            const updated = parsed.map((a: any) => {
+              if (emailMatch && a.email?.toLowerCase() === emailMatch) {
+                return { ...a, full_name: trimmedName, title: trimmedTitle }
+              }
+              return a
+            })
+            localStorage.setItem("issac_created_admins", JSON.stringify(updated))
+            document.cookie = "issac_created_admins=" + encodeURIComponent(JSON.stringify(updated)) + "; path=/; max-age=2592000; SameSite=Lax"
+          }
+        }
+      } catch {}
+    }
+
+    setSelfName(trimmedName)
+    setSelfTitle(trimmedTitle)
+
+    setFeedbackMsg({
+      type: "success",
+      text: "✅ Đã cập nhật Tên và Chức vụ của tài khoản thành công!",
+    })
+
+    setTimeout(() => {
+      setOpen(false)
+      router.refresh()
+    }, 600)
+  }
+
+  // Handle BCN direct edit for another department
+  const handleSaveOtherDept = () => {
+    if (!deptNameInput.trim() || !deptTitleInput.trim()) {
+      setFeedbackMsg({ type: "error", text: "Vui lòng nhập đầy đủ tên và chức vụ cho Ban được chọn." })
+      return
+    }
+
+    updateAccountDirectly(selectedDeptToEdit, deptNameInput, deptTitleInput)
+    refreshData()
+    setFeedbackMsg({
+      type: "success",
+      text: "✅ Đã trực tiếp cập nhật thông tin người đại diện " + EVALUATOR_ACCOUNTS[selectedDeptToEdit].departmentName + "!",
+    })
+    setTimeout(() => {
+      router.refresh()
+    }, 500)
+  }
+
+  // Handle BCN approve
+  const handleApprove = (reqId: string) => {
+    approveChangeRequest(reqId)
+    refreshData()
+    setFeedbackMsg({
+      type: "success",
+      text: "✅ Đã phê duyệt yêu cầu thành công! Thông tin tài khoản đã được cập nhật.",
+    })
+    setTimeout(() => {
+      router.refresh()
+    }, 500)
+  }
+
+  // Handle BCN reject
+  const handleReject = (reqId: string) => {
+    rejectChangeRequest(reqId)
+    refreshData()
+    setFeedbackMsg({
+      type: "info",
+      text: "Đã từ chối yêu cầu thay đổi thông tin.",
+    })
+  }
+
+  // Handle cancel own request
+  const handleCancelRequest = (reqId: string) => {
+    cancelChangeRequest(reqId)
+    refreshData()
+    setFeedbackMsg({
+      type: "info",
+      text: "Đã hủy yêu cầu thay đổi thông tin.",
+    })
+  }
+
+  return (
+    <>
+      {/* Clickable Header Badge */}
+      <div
+        onClick={() => {
+          setOpen(true)
+          setFeedbackMsg(null)
+          refreshData()
+        }}
+        className="relative flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-50/90 to-amber-100/60 hover:from-amber-100/90 hover:to-amber-200/60 border border-amber-200/90 cursor-pointer transition-all shadow-2xs hover:shadow-xs group select-none max-w-[180px] sm:max-w-none shrink-0"
+        title="Nhấp để xem / quản trị thông tin"
+      >
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#1657c1] to-blue-800 flex items-center justify-center text-white font-black text-xs shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+          {currentAcc.avatarInitial}
+        </div>
+        <div className="text-left min-w-0 pr-0.5">
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-slate-900 text-xs sm:text-sm truncate leading-tight group-hover:text-[#1657c1] transition-colors block max-w-[110px] sm:max-w-none">
+              {currentAcc.name}
+            </span>
+            {isBCN && (
+              <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#1657c1] transition-colors shrink-0" />
+            )}
+          </div>
+          <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-800 truncate leading-tight mt-0.5">
+            {getRoleIcon(role)}
+            <span className="truncate max-w-[100px] sm:max-w-none">{currentAcc.title}</span>
+          </div>
+        </div>
+
+        {/* Pending Request Indicator for Department Admin */}
+        {!isBCN && myPendingRequest && (
+          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border border-white"></span>
+          </span>
+        )}
+
+        {/* Pending Approvals Badge for BCN */}
+        {isBCN && pendingRequests.length > 0 && (
+          <span className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white border-2 border-white shadow-xs animate-bounce">
+            {pendingRequests.length}
+          </span>
+        )}
+      </div>
+
+      {/* Edit & Approval Dialog Modal */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl">
+          {/* Header */}
+          <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-5 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-black text-white">
+                    Thông tin & Chức vụ Quản trị viên
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-blue-200/80 mt-0.5">
+                    {EVALUATOR_ACCOUNTS[role]?.departmentName || "Ban chuyên môn"} - Cổng Quản trị Tuyển quân
+                  </DialogDescription>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs Navigation */}
+            <div className="flex items-center gap-2 mt-4 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => { setActiveTab("self"); setFeedbackMsg(null) }}
+                className={"px-3 py-1.5 rounded-lg text-xs font-bold transition-all " + (
+                  activeTab === "self"
+                    ? "bg-amber-400 text-slate-950 shadow-sm"
+                    : "text-blue-200 hover:text-white hover:bg-white/10"
+                )}
+              >
+                Thông tin của bạn
+              </button>
+
+              {isBCN && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab("approvals"); setFeedbackMsg(null) }}
+                    className={"relative px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 " + (
+                      activeTab === "approvals"
+                        ? "bg-amber-400 text-slate-950 shadow-sm"
+                        : "text-blue-200 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <span>Duyệt yêu cầu</span>
+                    {pendingRequests.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-red-500 text-white">
+                        {pendingRequests.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab("all"); setFeedbackMsg(null) }}
+                    className={"px-3 py-1.5 rounded-lg text-xs font-bold transition-all " + (
+                      activeTab === "all"
+                        ? "bg-amber-400 text-slate-950 shadow-sm"
+                        : "text-blue-200 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    Quản lý các Ban
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-left">
+            {/* Feedback Message */}
+            {feedbackMsg && (
+              <div
+                className={"p-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in " + (
+                  feedbackMsg.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : feedbackMsg.type === "error"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                )}
+              >
+                {feedbackMsg.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                {feedbackMsg.type === "error" && <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />}
+                {feedbackMsg.type === "info" && <Clock className="w-4 h-4 text-blue-600 shrink-0" />}
+                <span>{feedbackMsg.text}</span>
+              </div>
+            )}
+
+            {/* TAB 1: SELF PROFILE EDIT */}
+            {activeTab === "self" && (
+              <div className="space-y-4">
+                {!isBCN ? (
+                  <div className="space-y-4">
+                    {/* Read-only profile view for department admin */}
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-[#1657c1] text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                          {currentAcc.avatarInitial}
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Cán bộ được phân công
+                          </div>
+                          <div className="font-black text-base text-slate-900 leading-tight">
+                            {currentAcc.name}
+                          </div>
+                          <div className="text-xs text-[#1657c1] font-bold mt-0.5">
+                            {currentAcc.title}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-slate-200/80 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Ban phụ trách:</span>
+                          <span className="font-bold text-slate-800">{EVALUATOR_ACCOUNTS[role]?.departmentName}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Quyền hạn hệ thống:</span>
+                          <span className="font-semibold text-emerald-700">Chấm điểm & Đặt câu hỏi phỏng vấn Ban</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-900 leading-relaxed">
+                        Họ tên, chức vụ và quyền hạn được phân công và bảo vệ bởi <strong>Ban Chủ nhiệm CLB iSSAC</strong>. Cán bộ không được tự ý thay đổi tên hoặc chức vụ của Ban để đảm bảo tính minh bạch.
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
+                        Đóng
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Form Fields for BCN */}
+                    <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                          Họ và tên người đại diện / Giám khảo
+                        </Label>
+                        <Input
+                          value={nameInput}
+                          onChange={e => setNameInput(e.target.value)}
+                          placeholder="VD: Nguyễn Thị Hồng Hân..."
+                          className="text-sm bg-white font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                          Chức vụ đảm nhiệm
+                        </Label>
+                        <Input
+                          value={titleInput}
+                          onChange={e => setTitleInput(e.target.value)}
+                          placeholder="VD: Chủ nhiệm CLB iSSAC, Phó Chủ nhiệm CLB..."
+                          className="text-sm bg-white font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
+                        Đóng
+                      </Button>
+                      <Button
+                        onClick={handleSaveSelf}
+                        className="text-xs font-bold gap-1.5 bg-[#1657c1] hover:bg-blue-800 text-white"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Lưu thay đổi ngay
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: BCN APPROVALS LIST */}
+            {isBCN && activeTab === "approvals" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-xs font-bold text-slate-700">
+                    Danh sách yêu cầu chờ Ban Chủ nhiệm duyệt ({pendingRequests.length})
+                  </span>
+                </div>
+
+                {pendingRequests.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    <Inbox className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    Hiện không có yêu cầu thay đổi tên & chức vụ nào đang chờ duyệt.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {pendingRequests.map(req => (
+                      <div
+                        key={req.id}
+                        className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-blue-200 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                            {getRoleIcon(req.role)}
+                            {req.departmentName}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(req.requestedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Hiện tại</span>
+                            <div className="font-semibold text-slate-700 truncate">{req.currentName}</div>
+                            <div className="text-[11px] text-slate-500 truncate">{req.currentTitle}</div>
+                          </div>
+                          <div className="border-l border-slate-200 pl-2.5">
+                            <span className="text-[10px] uppercase font-bold text-amber-700 block mb-0.5">Yêu cầu đổi sang</span>
+                            <div className="font-bold text-blue-900 truncate">{req.requestedName}</div>
+                            <div className="text-[11px] font-semibold text-blue-700 truncate">{req.requestedTitle}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReject(req.id)}
+                            className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <XCircle className="w-3.5 h-3.5 mr-1" />
+                            Từ chối
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(req.id)}
+                            className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <Check className="w-3.5 h-3.5 mr-1" />
+                            Phê duyệt ngay
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: BCN MANAGE ALL DEPARTMENTS DIRECTLY */}
+            {isBCN && activeTab === "all" && (
+              <div className="space-y-4">
+                
+
+                <div>
+                  <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                    Chọn Ban chuyên môn cần sửa
+                  </Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["truyen-thong", "tu-van", "nhan-su"] as AdminRoleType[]).map(deptKey => {
+                      const isSel = selectedDeptToEdit === deptKey
+                      return (
+                        <button
+                          key={deptKey}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDeptToEdit(deptKey)
+                            if (accounts && accounts[deptKey]) {
+                              setDeptNameInput(accounts[deptKey].name)
+                              setDeptTitleInput(accounts[deptKey].title)
+                            }
+                          }}
+                          className={"p-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 " + (
+                            isSel
+                              ? "bg-blue-50 border-[#1657c1] text-[#1657c1] shadow-2xs"
+                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                          )}
+                        >
+                          {getRoleIcon(deptKey)}
+                          <span className="truncate">{EVALUATOR_ACCOUNTS[deptKey]?.departmentName}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                      Họ và tên người đại diện ({EVALUATOR_ACCOUNTS[selectedDeptToEdit]?.departmentName})
+                    </Label>
+                    <Input
+                      value={deptNameInput}
+                      onChange={e => setDeptNameInput(e.target.value)}
+                      placeholder="VD: Nguyễn Văn A..."
+                      className="text-sm bg-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-bold text-slate-700 block mb-1.5">
+                      Chức vụ đảm nhiệm
+                    </Label>
+                    <Input
+                      value={deptTitleInput}
+                      onChange={e => setDeptTitleInput(e.target.value)}
+                      placeholder="VD: Trưởng Ban Truyền thông..."
+                      className="text-sm bg-white font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <Button
+                    onClick={handleSaveOtherDept}
+                    className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    Cập nhật cho Ban này
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

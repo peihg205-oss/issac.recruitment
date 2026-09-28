@@ -1,0 +1,851 @@
+'use client'
+
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
+import { Input } from '@/components/ui/input'
+import { ADMIN_ROLE_CONFIGS, type AdminRoleType } from '@/lib/permissions'
+import {
+  AlertTriangle, Send, Loader2, CheckCheck, Clock,
+  ShieldCheck, ShieldAlert, Users, Search, ArrowLeft, Inbox,
+  RefreshCw, Phone, Mail, GraduationCap, ChevronDown, Info
+} from 'lucide-react'
+import {
+  ChatMessage,
+  ConversationSummary,
+  fetchAllConversations,
+  fetchApplicationMessages,
+  sendChatMessage,
+  markChatAsRead,
+} from '@/lib/messages-manager'
+
+function AdminMessagesContent() {
+  const supabase = createClient()
+  const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const initialAppId = searchParams.get('appId')
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isComposingRef = useRef(false)
+
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [activeConv, setActiveConv] = useState<string | null>(initialAppId)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [newMessage, setNewMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all')
+  const [adminUser, setAdminUser] = useState<any>(null)
+  const [adminProfile, setAdminProfile] = useState<any>(null)
+  const [showMobileList, setShowMobileList] = useState(true)
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false)
+
+  const [activeRole, setActiveRole] = useState<AdminRoleType>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)issac_admin_role=([^;]+)/)
+      if (match && match[1] in ADMIN_ROLE_CONFIGS) {
+        return match[1] as AdminRoleType
+      }
+    }
+    return 'chu-nhiem'
+  })
+
+  const [adminName, setAdminName] = useState<string>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
+      if (match) {
+        try { return decodeURIComponent(match[1]) } catch {}
+      }
+    }
+    return 'Nguyễn Thị Hồng Hân'
+  })
+
+  const [adminTitle, setAdminTitle] = useState<string>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)issac_logged_admin_title=([^;]+)/)
+      if (match) {
+        try { return decodeURIComponent(match[1]) } catch {}
+      }
+    }
+    return 'Chủ nhiệm CLB iSSAC'
+  })
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const roleMatch = document.cookie.match(/(?:^|;\s*)issac_admin_role=([^;]+)/)
+      if (roleMatch && roleMatch[1] in ADMIN_ROLE_CONFIGS) {
+        setActiveRole(roleMatch[1] as AdminRoleType)
+      }
+      const nameMatch = document.cookie.match(/(?:^|;\s*)issac_logged_admin_name=([^;]+)/)
+      if (nameMatch) {
+        try { setAdminName(decodeURIComponent(nameMatch[1])) } catch {}
+      }
+      const titleMatch = document.cookie.match(/(?:^|;\s*)issac_logged_admin_title=([^;]+)/)
+      if (titleMatch) {
+        try { setAdminTitle(decodeURIComponent(titleMatch[1])) } catch {}
+      }
+    }
+  }, [])
+
+  const roleConfig = ADMIN_ROLE_CONFIGS[activeRole] || ADMIN_ROLE_CONFIGS['chu-nhiem']
+  const isSuperAdmin = activeRole === 'chu-nhiem' || roleConfig.isSuperAdmin
+
+  // Tên hiển thị đầy đủ kèm chức vụ của cán bộ gửi cảnh báo
+  const senderFormattedName = useMemo(() => {
+    const effectiveName = adminProfile?.full_name || adminName || roleConfig.label
+    const effectiveTitle = adminTitle || roleConfig.shortLabel || roleConfig.label
+    if (effectiveTitle && !effectiveName.toLowerCase().includes(effectiveTitle.toLowerCase())) {
+      return `${effectiveName} (${effectiveTitle})`
+    }
+    return effectiveName
+  }, [adminProfile?.full_name, adminName, adminTitle, roleConfig])
+
+  // Lọc danh sách ứng viên theo phân quyền:
+  // - Ban Chủ nhiệm: Xem và gửi cảnh báo tới TẤT CẢ ứng viên
+  // - Các ban chuyên môn: CHỈ xem và gửi cảnh báo tới ứng viên ban mình
+  const accessibleConversations = useMemo(() => {
+    if (isSuperAdmin) return conversations
+    return conversations.filter(c => {
+      if (c.dept_slug === activeRole) return true
+      if (c.dept_name && c.dept_name.toLowerCase().includes(roleConfig.departmentName.toLowerCase())) return true
+      return false
+    })
+  }, [conversations, isSuperAdmin, activeRole, roleConfig.departmentName])
+
+  const scrollToBottom = useCallback((instant = false) => {
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'end' })
+      } else if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      }
+    }, 60)
+  }, [])
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 120
+    setShowScrollBottomBtn(!isNearBottom)
+  }
+
+  // Load admin user & all candidate warning summaries
+  const loadConversations = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    else setRefreshing(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setAdminUser(user)
+        const { data: prof } = await supabase.from('profiles').select('full_name, admin_role').eq('id', user.id).maybeSingle()
+        setAdminProfile(prof)
+      }
+
+      const list = await fetchAllConversations(supabase)
+      setConversations(list)
+
+      if (initialAppId && !activeConv) {
+        setActiveConv(initialAppId)
+        setShowMobileList(false)
+      } else if (!activeConv && list.length > 0) {
+        const firstWithMsgs = list.find(c => c.total_messages > 0) || list[0]
+        if (firstWithMsgs && typeof window !== 'undefined' && window.innerWidth >= 768) {
+          setActiveConv(firstWithMsgs.application_id)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching conversations:', err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [supabase, initialAppId, activeConv])
+
+  useEffect(() => {
+    loadConversations()
+  }, [loadConversations])
+
+  // Fetch warnings for active conversation
+  const loadMessages = useCallback(async (appId: string) => {
+    try {
+      const msgs = await fetchApplicationMessages(supabase, appId)
+      setMessages(msgs)
+      await markChatAsRead(supabase, appId, 'admin')
+
+      setConversations(prev => {
+        const item = prev.find(c => c.application_id === appId)
+        if (!item || item.unread_count === 0) return prev
+        return prev.map(c =>
+          c.application_id === appId ? { ...c, unread_count: 0 } : c
+        )
+      })
+
+      scrollToBottom(true)
+    } catch (err) {
+      console.error('Error fetching warnings for app:', err)
+    }
+  }, [supabase, scrollToBottom])
+
+  useEffect(() => {
+    if (activeConv) {
+      loadMessages(activeConv)
+    }
+  }, [activeConv]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    scrollToBottom(false)
+  }, [messages.length, activeConv, scrollToBottom])
+
+  // Periodic polling
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const list = await fetchAllConversations(supabase)
+        setConversations(list)
+
+        if (activeConv) {
+          const conv = list.find(c => c.application_id === activeConv)
+          const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
+          setMessages(prev => {
+            if (msgs.length !== prev.length || JSON.stringify(msgs) !== JSON.stringify(prev)) {
+              return msgs
+            }
+            return prev
+          })
+        }
+      } catch {}
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [activeConv, supabase])
+
+  // Realtime listener
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-warning-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, async (payload: any) => {
+        if (payload?.new?.action === 'CHAT_MESSAGE' || payload?.new?.action === 'CHAT_READ') {
+          const list = await fetchAllConversations(supabase)
+          setConversations(list)
+          if (activeConv) {
+            const conv = list.find(c => c.application_id === activeConv)
+            const target = payload?.new?.target_id || payload?.new?.metadata?.conversation_id || payload?.new?.metadata?.candidate_user_id
+            if (target === activeConv || (conv && target === conv.candidate_id)) {
+              const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
+              setMessages(msgs)
+              scrollToBottom()
+            }
+          }
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async (payload: any) => {
+        const list = await fetchAllConversations(supabase)
+        setConversations(list)
+        if (activeConv && payload?.new?.application_id === activeConv) {
+          const conv = list.find(c => c.application_id === activeConv)
+          const msgs = await fetchApplicationMessages(supabase, activeConv, conv?.candidate_id)
+          setMessages(msgs)
+          scrollToBottom()
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, activeConv, scrollToBottom])
+
+  const handleSelectConv = (appId: string) => {
+    setActiveConv(appId)
+    setShowMobileList(false)
+    loadMessages(appId)
+  }
+
+  const handleSendWarning = () => {
+    const trimmed = newMessage.trim()
+    if (!trimmed || !activeConv) return
+
+    if (!canChatWithCandidate) {
+      toast({
+        title: 'Không có quyền gửi cảnh báo',
+        description: `Bạn đang phụ trách ${roleConfig.departmentName}. Chỉ có thể gửi cảnh báo cho ứng viên thuộc ban này.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setNewMessage('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
+
+    const senderName = senderFormattedName
+    const senderId = adminUser?.id || `admin_${activeRole}`
+
+    const currentConv = conversations.find(c => c.application_id === activeConv)
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      application_id: activeConv,
+      sender_id: senderId,
+      sender_role: 'admin',
+      sender_name: senderName,
+      content: trimmed,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+
+    setMessages(prev => [...prev, optimisticMsg])
+    scrollToBottom(true)
+
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.application_id === activeConv)
+      if (idx >= 0) {
+        const updated = [...prev]
+        updated[idx] = {
+          ...updated[idx],
+          last_message: trimmed,
+          last_time: new Date().toISOString(),
+          total_messages: updated[idx].total_messages + 1,
+        }
+        return updated.sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime())
+      }
+      return prev
+    })
+
+    sendChatMessage(supabase, {
+      conversation_id: activeConv,
+      application_id: currentConv?.has_application ? activeConv : null,
+      candidate_user_id: currentConv?.candidate_id || activeConv,
+      sender_id: senderId,
+      sender_role: 'admin',
+      sender_name: senderName,
+      content: trimmed,
+    }).then(savedMsg => {
+      setMessages(prev => prev.map(m => m.id === tempId ? savedMsg : m))
+      scrollToBottom()
+      toast({
+        title: 'Đã gửi cảnh báo',
+        description: `Đã phát cảnh báo thành công tới ứng viên ${currentConv?.candidate_name}.`,
+      })
+    }).catch(err => {
+      console.error('Send warning error:', err)
+      toast({
+        title: 'Không thể gửi cảnh báo',
+        description: err?.message || 'Vui lòng kiểm tra lại kết nối.',
+        variant: 'destructive',
+      })
+      setMessages(prev => prev.filter(m => m.id !== tempId))
+    })
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
+      return
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendWarning()
+    }
+  }
+
+  const handleQuickTemplate = (text: string) => {
+    setNewMessage(text)
+  }
+
+  const formatTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr)
+      const now = new Date()
+      const isToday = d.toDateString() === now.toDateString()
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+      const isYesterday = d.toDateString() === yesterday.toDateString()
+
+      const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      if (isToday) return time
+      if (isYesterday) return `Hôm qua ${time}`
+      return `${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${time}`
+    } catch {
+      return ''
+    }
+  }
+
+  const filteredConversations = accessibleConversations.filter(c => {
+    const matchesSearch = !searchQuery ||
+      c.candidate_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.candidate_student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.dept_name.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+    if (filterMode === 'unread') return c.total_messages > 0
+    return true
+  })
+
+  const totalWarningsSent = accessibleConversations.reduce((sum, c) => sum + c.total_messages, 0)
+  const activeConversation = conversations.find(c => c.application_id === activeConv)
+
+  const canChatWithCandidate = useMemo(() => {
+    if (!activeConversation) return false
+    if (isSuperAdmin) return true
+    if (activeConversation.dept_slug === activeRole) return true
+    if (activeConversation.dept_name && activeConversation.dept_name.toLowerCase().includes(roleConfig.departmentName.toLowerCase())) return true
+    return false
+  }, [activeConversation, isSuperAdmin, activeRole, roleConfig.departmentName])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#1559c5] mx-auto" />
+          <p className="text-sm text-slate-500 font-medium">Đang tải trung tâm cảnh báo...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
+            <span className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1657c1] shrink-0 shadow-2xs">
+              <ShieldAlert className="w-5 h-5 text-[#1657c1]" />
+            </span>
+            <span>Cảnh báo của Ban Chủ nhiệm iSSAC</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
+            Admin phát thông báo cảnh báo và nhắc nhở trực tiếp cho từng ứng viên (Ứng viên chỉ đọc, không có quyền phản hồi)
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Kênh 1 chiều (Chỉ đọc)
+          </span>
+          <button
+            onClick={() => loadConversations(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Làm mới</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Container */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 bg-white rounded-2xl border-2 border-slate-200 shadow-xs h-[calc(100vh-11rem)] max-h-[850px] min-h-[550px] overflow-hidden">
+        {/* Left Sidebar: Candidates List */}
+        <div className={`md:col-span-4 lg:col-span-4 border-r-2 border-slate-200 flex flex-col bg-slate-50/50 h-full min-h-0 overflow-hidden ${showMobileList ? 'flex' : 'hidden md:flex'}`}>
+          {/* Search & Filter */}
+          <div className="p-3 border-b border-slate-200 space-y-2.5 bg-white shrink-0">
+            {/* Active role badge */}
+            <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <ShieldCheck className="w-4 h-4 text-[#1657c1] shrink-0" />
+                <span className="text-xs font-bold text-slate-800 truncate" title={senderFormattedName}>
+                  {senderFormattedName}
+                </span>
+              </div>
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${
+                isSuperAdmin
+                  ? 'bg-blue-50 text-[#1657c1] border-blue-200'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}>
+                {isSuperAdmin ? 'Toàn quyền' : `Ban ${roleConfig.shortLabel}`}
+              </span>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                placeholder="Tìm ứng viên theo tên, MSSV..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 text-xs rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-[#1657c1]"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <button
+                onClick={() => setFilterMode('all')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  filterMode === 'all'
+                    ? 'bg-[#1657c1] text-white shadow-2xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Tất cả
+              </button>
+              <button
+                onClick={() => setFilterMode('unread')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  filterMode === 'unread'
+                    ? 'bg-[#fdc455] text-gray-950 shadow-2xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Đã có cảnh báo
+              </button>
+            </div>
+          </div>
+
+          {/* Candidates Scroll List */}
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 overscroll-contain">
+            {filteredConversations.length === 0 ? (
+              <div className="p-8 text-center space-y-2 text-slate-400">
+                <Inbox className="w-8 h-8 mx-auto stroke-1 text-slate-300" />
+                <p className="text-xs font-medium">Không tìm thấy ứng viên nào</p>
+              </div>
+            ) : (
+              filteredConversations.map((conv) => {
+                const isActive = activeConv === conv.application_id
+                return (
+                  <button
+                    key={conv.application_id}
+                    onClick={() => handleSelectConv(conv.application_id)}
+                    className={`w-full text-left p-3.5 transition-all flex items-start gap-3 cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-50/70 border-l-4 border-l-[#1657c1]'
+                        : 'hover:bg-slate-100/70 border-l-4 border-l-transparent'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 transition-all ${
+                      isActive
+                        ? 'bg-[#1657c1] text-white shadow-2xs'
+                        : 'bg-white border-2 border-slate-200 text-[#1657c1]'
+                    }`}>
+                      {conv.candidate_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`text-xs font-bold truncate ${isActive ? 'text-[#1657c1]' : 'text-gray-900'}`}>
+                          {conv.candidate_name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 shrink-0 font-medium">
+                          {formatTime(conv.last_time)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                        {conv.candidate_student_id && <span>{conv.candidate_student_id} • </span>}
+                        <span className={conv.has_application ? 'text-[#1657c1] font-semibold' : 'text-slate-500'}>
+                          {conv.dept_name}
+                        </span>
+                      </div>
+
+                      <div className="mt-1">
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {conv.last_message}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right Area: Warning Management Window */}
+        <div className={`md:col-span-8 lg:col-span-8 flex flex-col bg-white h-full min-h-0 overflow-hidden relative ${!showMobileList ? 'flex' : 'hidden md:flex'}`}>
+          {activeConversation ? (
+            <>
+              {/* Candidate Info Header */}
+              <div className="px-5 py-3.5 border-b-2 border-slate-200 flex items-center justify-between bg-white shrink-0 z-10 shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    onClick={() => setShowMobileList(true)}
+                    className="md:hidden p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Quay lại danh sách"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-[#1657c1] font-bold text-sm flex items-center justify-center shrink-0">
+                    {activeConversation.candidate_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-gray-900 truncate">
+                        {activeConversation.candidate_name}
+                      </h2>
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                        activeConversation.has_application
+                          ? 'bg-blue-50 text-[#1657c1] border border-blue-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}>
+                        {activeConversation.dept_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                      {activeConversation.candidate_student_id && (
+                        <span className="flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3 text-slate-400" />
+                          MSSV: {activeConversation.candidate_student_id}
+                        </span>
+                      )}
+                      {activeConversation.candidate_phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          {activeConversation.candidate_phone}
+                        </span>
+                      )}
+                      {activeConversation.candidate_email && (
+                        <span className="hidden sm:flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          {activeConversation.candidate_email}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`/admin/candidates?search=${encodeURIComponent(activeConversation.candidate_student_id || activeConversation.candidate_name)}`}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#1657c1] bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 rounded-xl transition-all"
+                  >
+                    Xem hồ sơ ứng viên
+                  </a>
+                </div>
+              </div>
+
+              {/* Informational banner: 1-way warning channel */}
+              <div className="px-5 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 shrink-0 z-10">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#1657c1] shrink-0" />
+                  <span className="text-[11px] font-medium text-slate-600">
+                    Kênh thông báo cảnh báo 1 chiều: <strong className="text-slate-800">Ứng viên chỉ đọc, không có quyền phản hồi</strong>.
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
+                  Chỉ đọc
+                </span>
+              </div>
+
+              {/* Warnings List Body */}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/40 overscroll-contain"
+              >
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1657c1]">
+                      <ShieldAlert className="w-6 h-6 text-[#1657c1]" />
+                    </div>
+                    <p className="text-xs font-bold text-gray-900">Chưa có cảnh báo nào được gửi tới ứng viên này</p>
+                    <p className="text-[11px] text-slate-500 max-w-xs leading-relaxed">
+                      Soạn nội dung hoặc chọn mẫu cảnh báo nhanh bên dưới để gửi cảnh báo / nhắc nhở cho {activeConversation.candidate_name}.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isAdmin = msg.sender_role === 'admin'
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className="max-w-[85%] sm:max-w-[75%] space-y-1.5">
+                          {/* Executive dispatch card */}
+                          <div
+                            className={`rounded-2xl p-4 transition-all ${
+                              isAdmin
+                                ? 'bg-white border-2 border-[#1657c1]/25 hover:border-[#1657c1]/40 text-slate-800 shadow-2xs'
+                                : 'bg-white border-2 border-slate-200 text-slate-800 shadow-2xs'
+                            }`}
+                          >
+                            {/* Card Header */}
+                            <div className="flex items-center justify-between gap-2 mb-2.5 pb-2 border-b border-slate-100">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-lg bg-blue-50 text-[#1657c1] border border-blue-200 flex items-center justify-center shrink-0">
+                                  <ShieldAlert className="w-3.5 h-3.5" />
+                                </span>
+                                <span className="text-xs font-bold text-gray-900">
+                                  {msg.sender_name || 'Ban Chủ nhiệm CLB iSSAC'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                                Cảnh báo BCN
+                              </span>
+                            </div>
+
+                            {/* Message Content */}
+                            <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </p>
+
+                            {/* Card Footer: Time & Status */}
+                            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-slate-100 text-[10px] font-medium text-slate-400">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span>{formatTime(msg.created_at)}</span>
+                              </div>
+                              {isAdmin && (
+                                msg.is_read ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Ứng viên đã xem</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                    <span>Đã gửi tới ứng viên</span>
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+                <div ref={messagesEndRef} className="h-1 shrink-0" />
+              </div>
+
+              {/* Floating Scroll to Bottom Button */}
+              {showScrollBottomBtn && (
+                <button
+                  onClick={() => scrollToBottom(false)}
+                  className="absolute bottom-32 right-6 p-2 rounded-full bg-white text-[#1657c1] shadow-md border border-slate-200 hover:bg-blue-50 transition-all z-20 cursor-pointer animate-bounce flex items-center gap-1 text-xs font-bold px-3"
+                  title="Cuộn xuống cảnh báo mới nhất"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  <span>Mới nhất</span>
+                </button>
+              )}
+
+              {/* Quick Warning Templates */}
+              {canChatWithCandidate && (
+                <div className="px-5 py-2.5 bg-slate-50/70 border-t border-slate-200 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 z-10">
+                  <span className="text-[10px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">
+                    Mẫu cảnh báo:
+                  </span>
+                  {[
+                    'Cảnh báo: Bạn chưa hoàn thiện nộp đơn Vòng 1. Hạn chót là 3 ngày sau khi tạo tài khoản, quá hạn tài khoản sẽ bị tạm khóa.',
+                    'Nhắc nhở: Thông tin hồ sơ (MSSV / Số điện thoại / Email) có dấu hiệu sai sót, bạn vui lòng cập nhật lại sớm.',
+                    'Cảnh báo: Lịch phỏng vấn đã được sắp xếp, vui lòng truy cập Cổng ứng viên xác nhận tham dự đúng giờ.',
+                    'Cảnh báo vi phạm: Nghiêm cấm chia sẻ đề bài hoặc nội dung phỏng vấn ra bên ngoài theo quy chế tuyển quân.',
+                    'Thông báo: Vui lòng kiểm tra email để nhận hướng dẫn chi tiết từ Ban Tuyển quân iSSAC.',
+                  ].map((txt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuickTemplate(txt)}
+                      className="text-[11px] font-medium px-3 py-1 rounded-full bg-white hover:bg-blue-50 hover:text-[#1657c1] hover:border-blue-300 border border-slate-200 text-slate-700 whitespace-nowrap transition-all shrink-0 cursor-pointer shadow-2xs"
+                    >
+                      {txt.slice(0, 32)}...
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Warning Sender Bar */}
+              {!canChatWithCandidate ? (
+                <div className="border-t-2 border-slate-200 p-4 bg-slate-50 shrink-0 z-10">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1657c1] shrink-0 mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-gray-900">
+                        Chế độ chỉ xem đối với ứng viên {activeConversation.dept_name || 'khác ban'}
+                      </h4>
+                      <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                        Tài khoản của bạn đang có quyền <strong>{roleConfig.label}</strong> nên chỉ có thể gửi cảnh báo cho các ứng viên thuộc <strong>{roleConfig.departmentName}</strong>. Ban Chủ nhiệm có quyền xem và gửi cảnh báo cho toàn bộ ứng viên.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t-2 border-slate-200 p-3 sm:p-4 bg-white shrink-0 z-10">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2 px-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-[#1657c1] animate-pulse shrink-0"></span>
+                      <span className="truncate">
+                        Người gửi cảnh báo: <strong className="text-gray-900 font-bold">{senderFormattedName}</strong>
+                      </span>
+                    </div>
+                    {isSuperAdmin ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1657c1] border border-blue-200 shrink-0">
+                        Ban Chủ nhiệm (Toàn quyền)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                        Ban {roleConfig.shortLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-end gap-2.5">
+                    <div className="flex-1 relative">
+                      <textarea
+                        ref={textareaRef}
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onCompositionStart={() => {
+                          isComposingRef.current = true
+                        }}
+                        onCompositionEnd={() => {
+                          isComposingRef.current = false
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder={`Nhập nội dung cảnh báo hoặc nhắc nhở gửi tới ứng viên ${activeConversation.candidate_name}...`}
+                        rows={1}
+                        className="w-full resize-none rounded-xl border-2 border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-gray-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#1657c1] focus:bg-white transition-all max-h-32 leading-relaxed"
+                        style={{ minHeight: '44px' }}
+                        onInput={(e) => {
+                          const t = e.currentTarget
+                          t.style.height = 'auto'
+                          t.style.height = Math.min(t.scrollHeight, 128) + 'px'
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={handleSendWarning}
+                      disabled={!newMessage.trim()}
+                      className="h-11 px-5 rounded-xl bg-[#1657c1] hover:bg-[#12479e] active:scale-95 disabled:bg-slate-200 text-white disabled:text-slate-400 flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                      title="Gửi cảnh báo của BCN tới ứng viên (Enter)"
+                    >
+                      <AlertTriangle className="w-4 h-4 text-[#fdc455]" />
+                      <span className="hidden sm:inline">Gửi cảnh báo</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-3 text-slate-400">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1657c1]">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900">Chọn một ứng viên</h3>
+              <p className="text-xs text-slate-500 max-w-sm">
+                Chọn ứng viên từ danh sách bên trái để xem lịch sử cảnh báo và gửi thông báo nhắc nhở từ Ban Tuyển quân.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1559c5]" />
+      </div>
+    }>
+      <AdminMessagesContent />
+    </Suspense>
+  )
+}

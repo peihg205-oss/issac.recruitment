@@ -70,7 +70,7 @@ export default function ApplicationPage() {
     const [{ data: depts }, { data: app }, { data: prof }] = await Promise.all([
       supabase.from('departments').select('*').neq('slug', 'chu-nhiem').eq('is_active', true),
       supabase.from('applications').select('*, departments!applications_department_id_fkey(name)').eq('user_id', user.id).limit(1).maybeSingle(),
-      supabase.from('profiles').select('full_name, phone, date_of_birth, gender, student_id, university, cohort, major, created_at').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('full_name, phone, date_of_birth, gender, student_id, university, cohort, major, high_school, created_at').eq('id', user.id).maybeSingle(),
     ])
 
     setCandidateProfile(prof)
@@ -1164,6 +1164,57 @@ const SOCIAL_CHANNELS = [
               <p className="text-xs text-slate-500 mt-0.5">
                 Kiểm tra kỹ nguyện vọng và các câu trả lời của bạn trước khi gửi đến Ban Tuyển quân
               </p>
+            </div>
+
+            {/* Khối xem lại thông tin cá nhân & học vụ */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#1657c1]" /> Thông tin hồ sơ ứng viên
+                </span>
+                <Link href="/member/profile" className="text-xs text-[#1657c1] hover:underline font-bold">
+                  Chỉnh sửa hồ sơ
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block font-medium">Họ và tên:</span>
+                  <strong className="text-slate-900 text-sm">{candidateProfile?.full_name || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">MSSV:</span>
+                  <strong className="font-mono text-slate-900">{candidateProfile?.student_id || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Số điện thoại:</span>
+                  <strong className="font-mono text-slate-900">{candidateProfile?.phone || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Ngày sinh:</span>
+                  <strong className="text-slate-900">{candidateProfile?.date_of_birth || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Trường THPT:</span>
+                  <strong className="text-slate-900">{candidateProfile?.high_school || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Ngành học:</span>
+                  <strong className="text-slate-900">{candidateProfile?.major || '—'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Trường Đại học:</span>
+                  <span className="text-slate-800">{candidateProfile?.university || 'Trường Quốc tế - ĐHQGHN'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Khóa:</span>
+                  <span className="text-slate-800 font-bold">{candidateProfile?.cohort || 'K22'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Giới tính:</span>
+                  <span className="text-slate-800">{candidateProfile?.gender || '—'}</span>
+                </div>
+              </div>
             </div>
 
             {/* Khối xem lại nguyện vọng */}

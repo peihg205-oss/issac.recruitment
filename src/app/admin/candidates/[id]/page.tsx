@@ -19,6 +19,7 @@ import { type ApplicationStatus } from '@/types/database'
 import { MOCK_CANDIDATES, getCandidateApplicationAnswers } from '@/lib/mock-data'
 import { CandidateDetailAccountBtn } from "@/components/admin/candidate-detail-account-btn"
 import { CandidateDetailReviewActions } from "@/components/admin/candidate-detail-review-actions"
+import { CandidateDownloadBtn } from "@/components/admin/candidate-download-btn"
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = await params
@@ -247,6 +248,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           {/* Action Buttons & Submission Time */}
           <div className="flex flex-wrap items-center lg:flex-col lg:items-end gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
             <div className="flex items-center gap-2.5 flex-wrap">
+              <CandidateDownloadBtn
+                candidate={appData}
+                profile={profile}
+                dept={dept}
+                ranking={finalRanking}
+                candidateAnswers={candidateAnswers}
+                candidateCode={candidateCode}
+              />
               <CandidateDetailReviewActions
                 applicationId={appData.id}
                 candidateUserId={appData.user_id}
@@ -287,16 +296,21 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             <div className="font-mono font-bold text-slate-900 mt-1 text-xs truncate" title={profile?.email}>{profile?.email || '—'}</div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ngày sinh & Giới tính</div>
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-blue-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">Ngày sinh & Giới tính</div>
             <div className="font-bold text-slate-900 mt-1">
               {profile?.date_of_birth ? profile.date_of_birth : '—'} · {profile?.gender || '—'}
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Trường THPT</div>
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-blue-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">Trường THPT</div>
             <div className="font-bold text-slate-900 mt-1 truncate" title={profile?.high_school}>{profile?.high_school || '—'}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-blue-100">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#1657c1]">Ngành học chuyên ngành</div>
+            <div className="font-bold text-slate-900 mt-1 truncate" title={profile?.major}>{profile?.major || '—'}</div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
@@ -315,19 +329,6 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Thứ hạng toàn CLB</div>
             <div className="font-bold text-amber-600 mt-1">
               {finalRanking?.rank_number ? `#${finalRanking.rank_number}` : 'Đang xét'}
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Facebook cá nhân</div>
-            <div className="font-semibold text-blue-600 mt-1 truncate">
-              {facebookUrl ? (
-                <a href={facebookUrl} target="_blank" rel="noreferrer" className="underline hover:text-blue-800">
-                  {facebookUrl}
-                </a>
-              ) : (
-                <span className="text-slate-400 font-normal italic">Chưa cập nhật</span>
-              )}
             </div>
           </div>
         </div>
@@ -677,6 +678,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   <span className="font-mono font-bold text-slate-900">{profile?.phone || '—'}</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Ngày sinh</span>
+                  <span className="font-semibold text-slate-900">{profile?.date_of_birth || '—'}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 font-medium">Giới tính</span>
                   <span className="font-semibold text-slate-900">{profile?.gender || '—'}</span>
                 </div>
@@ -706,6 +711,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 font-medium">Trường đào tạo</span>
                   <span className="font-bold text-slate-900">Trường Quốc tế - ĐHQGHN (VNU-IS)</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Trường THPT từng theo học</span>
+                  <span className="font-bold text-slate-900">{profile?.high_school || '—'}</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 font-medium">Ngành học chuyên ngành</span>

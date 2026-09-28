@@ -208,11 +208,11 @@ export default function ExportPage() {
           'MSSV': p.student_id || '',
           'Email': p.email || '',
           'Số điện thoại': p.phone || '',
-          'Khóa': p.cohort || 'K22',
-          'Ngành học': p.major || '',
-          'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
-          'Trường THPT': p.high_school || '',
           'Ngày sinh': p.date_of_birth || '',
+          'Trường THPT': p.high_school || '',
+          'Ngành học': p.major || '',
+          'Khóa': p.cohort || 'K22',
+          'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
           'Giới tính': p.gender || '',
           'Link Facebook': p.address || '',
           'Ban ứng tuyển (NV1)': (a.departments as any)?.name || '',
@@ -262,7 +262,7 @@ export default function ExportPage() {
       if (userIds.length > 0) {
         const { data: profs } = await supabase
           .from('profiles')
-          .select('id, full_name, email, student_id, phone, major, cohort')
+          .select('id, full_name, email, student_id, phone, major, cohort, high_school, date_of_birth, university')
           .in('id', userIds)
         if (profs) {
           profs.forEach((p: any) => { profilesMap[p.id] = p })
@@ -276,10 +276,13 @@ export default function ExportPage() {
           'Thứ hạng toàn CLB': r.rank_number ? `#${r.rank_number}` : `#${idx + 1}`,
           'Họ và tên': p?.full_name || '',
           'MSSV': p?.student_id || '',
-          'Khóa': p?.cohort || 'K22',
-          'Ngành học': p?.major || '',
           'Email': p?.email || '',
           'Số điện thoại': p?.phone || '',
+          'Ngày sinh': p?.date_of_birth || '',
+          'Trường THPT': p?.high_school || '',
+          'Ngành học': p?.major || '',
+          'Khóa': p?.cohort || 'K22',
+          'Trường Đại học': p?.university || 'Trường Quốc tế - ĐHQGHN',
           'Ban ứng tuyển': app?.departments?.name || '',
           'Điểm phỏng vấn (/10)': r.final_score != null ? Number(r.final_score).toFixed(1) : '',
           'Quyết định BCN': r.result === 'pass' ? 'Pass (Chính thức)' : r.result === 'waitlist' ? 'Dự bị' : r.result === 'fail' ? 'Trượt' : 'Đang xét',
@@ -434,7 +437,7 @@ export default function ExportPage() {
       if (userIds.length > 0) {
         const { data: profs } = await supabase
           .from('profiles')
-          .select('id, full_name, email, student_id, phone')
+          .select('id, full_name, email, student_id, phone, major, cohort, university, high_school, date_of_birth, gender')
           .in('id', userIds)
         if (profs) profs.forEach((p: any) => { profilesMap[p.id] = p })
       }
@@ -518,6 +521,12 @@ export default function ExportPage() {
             'MSSV': p.student_id || '',
             'Email': p.email || '',
             'Số điện thoại': p.phone || '',
+            'Ngày sinh': p.date_of_birth || '',
+            'Trường THPT': p.high_school || '',
+            'Ngành học': p.major || '',
+            'Khóa': p.cohort || 'K22',
+            'Trường Đại học': p.university || 'Trường Quốc tế - ĐHQGHN',
+            'Giới tính': p.gender || '',
             'Ban ứng tuyển': app.departments?.name || dName,
             'Trạng thái hồ sơ': APPLICATION_STATUS_LABELS[app.status as ApplicationStatus] ?? app.status,
           }

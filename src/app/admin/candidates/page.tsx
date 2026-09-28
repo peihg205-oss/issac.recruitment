@@ -25,7 +25,19 @@ interface Candidate {
   status: ApplicationStatus
   submitted_at: string | null
   created_at: string
-  profiles: { full_name: string; email: string; student_id: string | null; phone: string | null; major?: string; cohort?: string; is_active?: boolean }
+  profiles: {
+    full_name: string
+    email: string
+    student_id: string | null
+    phone: string | null
+    major?: string
+    cohort?: string
+    is_active?: boolean
+    date_of_birth?: string | null
+    high_school?: string | null
+    university?: string | null
+    gender?: string | null
+  }
   departments: { name: string; slug: string }
   candidate_rankings: { rank_number: number | null; final_score: number | null; result: string } | null
 }
@@ -69,7 +81,7 @@ export default function CandidatesPage() {
           `)
           .order('created_at', { ascending: false }),
         supabase.from('departments').select('id, name, slug').neq('slug', 'chu-nhiem'),
-        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at'),
+        supabase.from('profiles').select('id, full_name, email, student_id, phone, major, cohort, role, is_active, created_at, date_of_birth, high_school, university, gender'),
         getDeletedCandidateIdsFromDB()
       ])
 
@@ -86,7 +98,7 @@ export default function CandidatesPage() {
         if (Object.keys(profilesMap).length === 0 && userIds.length > 0) {
           const { data: profs } = await supabase
             .from('profiles')
-            .select('id, full_name, email, student_id, phone, major, cohort, is_active')
+            .select('id, full_name, email, student_id, phone, major, cohort, is_active, date_of_birth, high_school, university, gender')
             .in('id', userIds)
           if (profs) {
             profs.forEach((p: any) => { profilesMap[p.id] = p })
@@ -330,6 +342,12 @@ export default function CandidatesPage() {
       'MSSV': c.profiles?.student_id || '',
       'Email': c.profiles?.email || '',
       'Số điện thoại': c.profiles?.phone || '',
+      'Ngày sinh': c.profiles?.date_of_birth || '',
+      'Trường THPT': c.profiles?.high_school || '',
+      'Ngành học': c.profiles?.major || '',
+      'Khóa': c.profiles?.cohort || '',
+      'Trường Đại học': c.profiles?.university || 'Trường Quốc tế - ĐHQGHN',
+      'Giới tính': c.profiles?.gender || '',
       'Ban đăng ký': c.departments?.name || '',
       'Trạng thái': APPLICATION_STATUS_LABELS[c.status] || c.status,
       'Điểm': c.candidate_rankings?.final_score ?? 'Chưa chấm',

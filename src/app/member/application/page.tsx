@@ -16,6 +16,7 @@ import { MOCK_DEPARTMENTS } from '@/lib/mock-data'
 import { useSystemSettings, isRecruitmentOpen, formatDayMonth } from '@/lib/system-settings'
 import { fetchAllQuestions, subscribeQuestionsChange, type QuestionItem } from '@/lib/questions-manager'
 import { computeCandidateDeadlineStatus } from '@/lib/candidate-deadline-manager'
+import { inferCohort } from '@/lib/candidate-profile-resolver'
 
 interface Department { id: string; name: string; slug: string; description: string | null; color: string }
 interface Question { id: string; department_id?: string | null; question_text: string; question_type: string; is_required: boolean; sort_order: number; placeholder: string | null; question_options?: { id: string; option_text: string }[] }
@@ -73,21 +74,37 @@ export default function ApplicationPage() {
       supabase.from('profiles').select('full_name, phone, date_of_birth, gender, student_id, university, cohort, major, high_school, created_at').eq('id', user.id).maybeSingle(),
     ])
 
-    setCandidateProfile(prof)
+    const localHs = typeof window !== 'undefined' ? localStorage.getItem(`issac_candidate_hs_${user.id}`) : null
+    const studentId = prof?.student_id || (user.user_metadata?.student_id as string) || ''
+    const inferredCohort = prof?.cohort || (user.user_metadata?.cohort as string) || (studentId ? inferCohort(studentId) : 'K26')
+    const resolvedProf = {
+      full_name: prof?.full_name || (user.user_metadata?.full_name as string) || '',
+      phone: prof?.phone || (user.user_metadata?.phone as string) || '',
+      date_of_birth: prof?.date_of_birth || (user.user_metadata?.date_of_birth as string) || '',
+      gender: prof?.gender || (user.user_metadata?.gender as string) || '',
+      student_id: studentId,
+      university: prof?.university || (user.user_metadata?.university as string) || 'Trường Quốc tế - ĐHQGHN',
+      cohort: inferredCohort,
+      major: prof?.major || (user.user_metadata?.major as string) || '',
+      high_school: prof?.high_school || (user.user_metadata?.high_school as string) || localHs || '',
+      created_at: prof?.created_at || user.created_at,
+    }
+
+    setCandidateProfile(resolvedProf)
 
     // Kiểm tra chi tiết Phần 1 và Phần 2
     const missingP1: string[] = []
-    if (!prof?.full_name?.trim()) missingP1.push('Họ và tên')
-    if (!prof?.phone?.trim()) missingP1.push('Số điện thoại')
-    if (!prof?.date_of_birth) missingP1.push('Ngày sinh')
-    if (!prof?.gender) missingP1.push('Giới tính')
+    if (!resolvedProf.full_name?.trim()) missingP1.push('Họ và tên')
+    if (!resolvedProf.phone?.trim()) missingP1.push('Số điện thoại')
+    if (!resolvedProf.date_of_birth) missingP1.push('Ngày sinh')
+    if (!resolvedProf.gender) missingP1.push('Giới tính')
     const p1 = missingP1.length === 0
 
     const missingP2: string[] = []
-    if (!prof?.student_id?.trim()) missingP2.push('MSSV')
-    if (!prof?.university?.trim()) missingP2.push('Trường Đại học')
-    if (!prof?.cohort?.trim()) missingP2.push('Khóa sinh viên')
-    if (!prof?.major?.trim()) missingP2.push('Ngành học')
+    if (!resolvedProf.student_id?.trim()) missingP2.push('MSSV')
+    if (!resolvedProf.university?.trim()) missingP2.push('Trường Đại học')
+    if (!resolvedProf.cohort?.trim()) missingP2.push('Khóa sinh viên')
+    if (!resolvedProf.major?.trim()) missingP2.push('Ngành học')
     const p2 = missingP2.length === 0
 
     setPart1Complete(p1)
@@ -237,7 +254,7 @@ export default function ApplicationPage() {
         date_of_birth: candidateProfile?.date_of_birth || '',
         high_school: candidateProfile?.high_school || '',
         major: candidateProfile?.major || '',
-        cohort: candidateProfile?.cohort || 'K22',
+        cohort: candidateProfile?.cohort || (candidateProfile?.student_id ? inferCohort(candidateProfile.student_id) : 'K26'),
         university: candidateProfile?.university || 'Trường Quốc tế - ĐHQGHN',
         gender: candidateProfile?.gender || '',
       },

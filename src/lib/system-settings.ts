@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/client"
 
 export const DEFAULT_SYSTEM_SETTINGS_MAP: Record<string, string> = {
   recruitment_start: "2026-09-10",
-  recruitment_end: "2026-09-28",
-  recruitment_end_time: "2026-09-29T00:00:00+07:00",
+  recruitment_end: "2026-09-29",
+  recruitment_end_time: "2026-09-29T23:59:59+07:00",
   interview_start: "2026-09-30",
   interview_end: "2026-10-03",
   result_announcement: "2026-10-06",
@@ -31,8 +31,8 @@ export function isRecruitmentOpen(settingsMap?: Record<string, string>): {
 } {
   const settings = settingsMap || getStoredSystemSettings()
   const rStart = settings.recruitment_start || "2026-09-10"
-  const rEnd = settings.recruitment_end || "2026-09-28"
-  const rEndTime = settings.recruitment_end_time || "2026-09-29T00:00:00+07:00"
+  const rEnd = settings.recruitment_end || "2026-09-29"
+  const rEndTime = settings.recruitment_end_time || "2026-09-29T23:59:59+07:00"
   const isQPub = (settings.questions_published ?? "true") === "true"
 
   const now = new Date()
@@ -55,7 +55,7 @@ export function isRecruitmentOpen(settingsMap?: Record<string, string>): {
   if (isUpcoming) {
     message = `Hiện tại ban tuyển quân chưa mở đơn ứng tuyển, vui lòng check lại thông tin và đọc thông tin câu lạc bộ để chọn ban đúng với bản thân, và đừng quên theo dõi trang mạng xã hội để cập nhật thông tin tuyển quân sớm nhất của CLB nha!`
   } else if (isClosed) {
-    message = `Kỳ tuyển quân đã kết thúc thời hạn nhận đơn vào 00:00 ngày 29/09/2026.`
+    message = `Kỳ tuyển quân đã kết thúc thời hạn nhận đơn vào 23:59 ngày 29/09/2026.`
   } else if (!isQPub) {
     message = `Hiện tại ban tuyển quân chưa mở đơn ứng tuyển, vui lòng check lại thông tin và đọc thông tin câu lạc bộ để chọn ban đúng với bản thân, và đừng quên theo dõi trang mạng xã hội để cập nhật thông tin tuyển quân sớm nhất của CLB nha!`
   }
@@ -90,6 +90,14 @@ export function getStoredSystemSettings(): Record<string, string> {
     const raw = localStorage.getItem("issac_system_settings")
     if (raw) {
       const parsed = JSON.parse(raw)
+      // Tự động nâng cấp cache cũ lên hạn chót 23:59 ngày 29/09/2026 nếu người dùng đã lưu mốc 28/09 hoặc 00:00 29/09
+      if (parsed.recruitment_end === "2026-09-28" || parsed.recruitment_end_time === "2026-09-29T00:00:00+07:00") {
+        parsed.recruitment_end = "2026-09-29"
+        parsed.recruitment_end_time = "2026-09-29T23:59:59+07:00"
+        try {
+          localStorage.setItem("issac_system_settings", JSON.stringify({ ...DEFAULT_SYSTEM_SETTINGS_MAP, ...parsed }))
+        } catch {}
+      }
       return { ...DEFAULT_SYSTEM_SETTINGS_MAP, ...parsed }
     }
   } catch {}
@@ -174,6 +182,10 @@ export async function fetchSystemSettingsFromDB(): Promise<Record<string, string
     } catch {}
 
     if (Object.keys(remoteMap).length > 0) {
+      if (remoteMap.recruitment_end === "2026-09-28" || remoteMap.recruitment_end_time === "2026-09-29T00:00:00+07:00") {
+        remoteMap.recruitment_end = "2026-09-29"
+        remoteMap.recruitment_end_time = "2026-09-29T23:59:59+07:00"
+      }
       const merged = { ...DEFAULT_SYSTEM_SETTINGS_MAP, ...remoteMap }
       if (typeof window !== "undefined") {
         localStorage.setItem("issac_system_settings", JSON.stringify(merged))
@@ -214,8 +226,8 @@ export function computeRecruitmentTimeline(settingsMap?: Record<string, string>)
   const settings = settingsMap || getStoredSystemSettings()
 
   const r1Start = settings.recruitment_start || "2026-09-10"
-  const r1End = settings.recruitment_end || "2026-09-28"
-  const rEndTime = settings.recruitment_end_time || "2026-09-29T00:00:00+07:00"
+  const r1End = settings.recruitment_end || "2026-09-29"
+  const rEndTime = settings.recruitment_end_time || "2026-09-29T23:59:59+07:00"
   const r2Start = settings.interview_start || "2026-09-30"
   const r2End = settings.interview_end || "2026-10-03"
   const r3Date = settings.result_announcement || "2026-10-06"
@@ -234,7 +246,7 @@ export function computeRecruitmentTimeline(settingsMap?: Record<string, string>)
       name: "Vòng 1: Mở đơn đăng ký",
       startDate: r1Start,
       endDate: r1End,
-      dateBadge: `${formatDayMonth(r1Start)} - ${formatDayMonth(r1End)} (Hạn 00h 29/09)`,
+      dateBadge: `${formatDayMonth(r1Start)} - ${formatDayMonth(r1End)} (Hạn 23h59 29/09)`,
       isCurrent: isR1,
     },
     round2: {

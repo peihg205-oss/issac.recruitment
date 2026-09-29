@@ -78,7 +78,7 @@ export default function RegisterPage() {
     if (signUpData?.session) {
       toast({
         title: 'Đăng ký thành công!',
-        description: 'Đang chuyển hướng... Cổng nộp đơn Vòng 1 sẽ đóng vào 00:00 ngày 29/09/2026, hãy hoàn tất đơn ngay!',
+        description: 'Đang chuyển hướng... Cổng nộp đơn Vòng 1 sẽ đóng vào 23:59 ngày 29/09/2026, hãy hoàn tất đơn ngay!',
       })
       setTimeout(() => { router.push('/member/dashboard'); router.refresh() }, 1000)
       return
@@ -87,7 +87,7 @@ export default function RegisterPage() {
     if (signUpData?.user?.email_confirmed_at) {
       toast({
         title: 'Đăng ký thành công!',
-        description: 'Tài khoản đã tạo. Lưu ý: Cổng nhận đơn Vòng 1 đóng vào 00:00 ngày 29/09/2026!',
+        description: 'Tài khoản đã tạo. Lưu ý: Cổng nhận đơn Vòng 1 đóng vào 23:59 ngày 29/09/2026!',
       })
       setTimeout(() => router.push('/login'), 1200)
       return
@@ -108,7 +108,7 @@ export default function RegisterPage() {
             <span className="text-base">⏰</span>
             <div>
               <strong className="text-rose-700 block font-bold">Thời hạn nộp đơn sắp kết thúc:</strong>
-              Cổng nhận hồ sơ Vòng 1 sẽ chính thức đóng vào <strong>00:00 ngày 29/09/2026</strong>. Sau khi đăng nhập, vui lòng hoàn thiện và nộp đơn ngay để tránh bị tạm khóa quyền ứng tuyển.
+              Cổng nhận hồ sơ Vòng 1 sẽ chính thức đóng vào <strong>23:59 ngày 29/09/2026</strong>. Sau khi đăng nhập, vui lòng hoàn thiện và nộp đơn ngay để tránh bị tạm khóa quyền ứng tuyển.
             </div>
           </div>
           <p className="text-gray-600 text-sm mb-6 leading-relaxed">
@@ -242,7 +242,7 @@ export default function RegisterPage() {
               <span className="text-base leading-none mt-0.5">⚠️</span>
               <div>
                 <span className="font-black text-rose-700 block uppercase tracking-wide text-[11px]">
-                  Cổng Vòng 1 đóng lúc 00:00 ngày 29/09/2026
+                  Cổng Vòng 1 đóng lúc 23:59 ngày 29/09/2026
                 </span>
                 <span className="text-amber-950 font-medium">
                   Thời hạn tiếp nhận đơn sắp kết thúc. Sau khi tạo tài khoản, bạn cần hoàn thiện và bấm <strong>Nộp đơn</strong> ngay để không bị tạm khóa!

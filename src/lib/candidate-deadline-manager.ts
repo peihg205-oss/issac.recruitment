@@ -22,16 +22,23 @@ export interface CandidateDeadlineStatus {
 const DEFAULT_DEADLINE_DAYS = 3
 
 /**
- * Mốc thời gian đóng cổng nhận đơn Vòng 1 toàn hệ thống: chính xác 00h00 ngày 29 tháng 9 năm 2026
+ * Mốc thời gian đóng cổng nhận đơn Vòng 1 toàn hệ thống: chính xác 23h59:59 ngày 29 tháng 9 năm 2026
+ * (Đảm bảo suốt ngày 29/09/2026 ứng viên vẫn hoàn thiện và nộp kịp đơn về hệ thống trước khi đóng cổng)
  */
-export const ROUND1_GLOBAL_DEADLINE_ISO = '2026-09-29T00:00:00+07:00'
+export const ROUND1_GLOBAL_DEADLINE_ISO = '2026-09-29T23:59:59+07:00'
 
 /**
- * Hạn chót đóng cổng đợt nộp đơn Vòng 1 (00:00 ngày 29/09/2026).
- * Cố định mốc 00:00 ngày 29/09/2026 để bất kỳ tài khoản nào đăng ký trong ngày 28/09/2026
- * cũng sẽ bị giới hạn thời gian nộp đơn trước thời điểm đóng cổng này!
+ * Hạn chót đóng cổng đợt nộp đơn Vòng 1 (23:59:59 ngày 29/09/2026).
+ * Giới hạn thời gian nộp đơn trước thời điểm đóng cổng cuối ngày 29/09/2026!
  */
 export function getRound1GlobalDeadline(): Date {
+  // Ưu tiên đọc cấu hình động nếu có
+  if (typeof window !== 'undefined') {
+    try {
+      const custom = localStorage.getItem('issac_global_round1_deadline')
+      if (custom) return new Date(custom)
+    } catch {}
+  }
   return new Date(ROUND1_GLOBAL_DEADLINE_ISO)
 }
 
@@ -76,8 +83,8 @@ export function saveLocalExtensionsMap(map: Record<string, string>) {
 /**
  * Compute the deadline status for a candidate.
  * - Quy chế thông thường: tối đa 3 ngày từ khi đăng ký tài khoản.
- * - Tuy nhiên, hạn chót không được vượt quá thời điểm kết thúc đợt nộp đơn Vòng 1 (00:00 ngày 29/09/2026).
- * - Do đó, nếu đăng ký vào ngày 28/09/2026, hạn chót sẽ kết thúc vào 00:00 ngày 29/09/2026 và báo thời gian sắp kết thúc!
+ * - Tuy nhiên, hạn chót không được vượt quá thời điểm kết thúc đợt nộp đơn Vòng 1 (23:59 ngày 29/09/2026).
+ * - Do đó, nếu đăng ký vào ngày 28/09 - 29/09/2026, hạn chót sẽ kết thúc vào 23:59 ngày 29/09/2026 và báo thời gian sắp kết thúc!
  */
 export function computeCandidateDeadlineStatus(
   createdAtStr?: string | Date | null,
@@ -145,8 +152,8 @@ export function computeCandidateDeadlineStatus(
   let closingReason = ''
   if (isClampedByGlobalDeadline) {
     closingReason = isExpired
-      ? 'Cổng nhận đơn Vòng 1 đã đóng vào lúc 00:00 ngày 29/09/2026.'
-      : 'Cổng nhận đơn Vòng 1 sắp chính thức đóng vào lúc 00:00 ngày 29/09/2026. Bạn cần nộp đơn ngay trước thời điểm này!'
+      ? 'Cổng nhận đơn Vòng 1 đã đóng vào lúc 23:59 ngày 29/09/2026.'
+      : 'Cổng nhận đơn Vòng 1 sắp chính thức đóng vào lúc 23:59 ngày 29/09/2026. Bạn cần nộp đơn ngay trước thời điểm này!'
   }
 
   return {

@@ -30,7 +30,7 @@ interface Setting {
 const DEFAULT_SYSTEM_SETTINGS: Setting[] = [
   // Kỳ tuyển quân
   { id: 'set-1', key: 'recruitment_start', value: '2026-09-10', label: 'Ngày mở đơn', description: 'Thời điểm bắt đầu tiếp nhận hồ sơ ứng tuyển', value_type: 'date' },
-  { id: 'set-2', key: 'recruitment_end', value: '2026-09-28', label: 'Ngày đóng đơn', description: 'Hạn cuối cùng tiếp nhận hồ sơ ứng tuyển (00:00 ngày 29/09/2026)', value_type: 'date' },
+  { id: 'set-2', key: 'recruitment_end', value: '2026-09-29', label: 'Ngày đóng đơn', description: 'Hạn cuối cùng tiếp nhận hồ sơ ứng tuyển (23:59 ngày 29/09/2026)', value_type: 'date' },
   { id: 'set-12', key: 'questions_published', value: 'true', label: 'Công khai bộ câu hỏi & Cho phép làm đơn', description: 'Khi Bật, ứng viên được mở khóa làm đơn tuyển quân. Khi Tắt, chỉ có thể cập nhật hồ sơ cá nhân.', value_type: 'boolean' },
   { id: 'set-3', key: 'interview_start', value: '2026-09-30', label: 'Ngày bắt đầu phỏng vấn', description: 'Thời gian khởi động các ca phỏng vấn', value_type: 'date' },
   { id: 'set-4', key: 'interview_end', value: '2026-10-03', label: 'Ngày kết thúc phỏng vấn', description: 'Hạn chót hoàn thành các ca phỏng vấn và nhập điểm', value_type: 'date' },

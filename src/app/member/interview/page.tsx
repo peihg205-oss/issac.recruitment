@@ -522,7 +522,7 @@ export default function MemberInterviewPage() {
               Bạn chưa hoàn thành nộp đơn ứng tuyển (Vòng 1)
             </h2>
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium text-justify">
-              Theo quy chế tuyển quân iSSAC Gen 3, bạn cần hoàn thiện hồ sơ và gửi đơn ứng tuyển trước hạn chót quy định (tối đa 3 ngày kể từ khi tạo tài khoản và trước thời điểm đóng cổng lúc 00:00 ngày 29/09/2026). Chỉ những ứng viên đã hoàn thành nộp đơn và được Hội đồng duyệt qua vòng đơn mới có quyền đặt lịch phỏng vấn.
+              Theo quy chế tuyển quân iSSAC Gen 3, bạn cần hoàn thiện hồ sơ và gửi đơn ứng tuyển trước hạn chót quy định (tối đa 3 ngày kể từ khi tạo tài khoản và trước thời điểm đóng cổng lúc 23:59 ngày 29/09/2026). Chỉ những ứng viên đã hoàn thành nộp đơn và được Hội đồng duyệt qua vòng đơn mới có quyền đặt lịch phỏng vấn.
             </p>
           </div>
 

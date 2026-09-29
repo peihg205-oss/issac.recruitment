@@ -290,7 +290,7 @@ export default function MemberResultPage() {
               Chưa có kết quả do chưa hoàn thành Vòng 1
             </h2>
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium text-justify">
-              Bạn chỉ mới tạo tài khoản và chưa hoàn thành nộp đơn ứng tuyển cho kỳ tuyển quân iSSAC Gen 3. Vui lòng hoàn tất nộp đơn trước hạn chót (tối đa 3 ngày kể từ khi tạo tài khoản và trước thời điểm cổng đóng lúc 00:00 ngày 29/09/2026) để được Hội đồng tuyển chọn xét duyệt sang các vòng tiếp theo.
+              Bạn chỉ mới tạo tài khoản và chưa hoàn thành nộp đơn ứng tuyển cho kỳ tuyển quân iSSAC Gen 3. Vui lòng hoàn tất nộp đơn trước hạn chót (tối đa 3 ngày kể từ khi tạo tài khoản và trước thời điểm cổng đóng lúc 23:59 ngày 29/09/2026) để được Hội đồng tuyển chọn xét duyệt sang các vòng tiếp theo.
             </p>
           </div>
 

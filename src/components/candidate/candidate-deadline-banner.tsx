@@ -171,7 +171,7 @@ export function CandidateDeadlineBanner({
           <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
             {status.isClampedByGlobalDeadline ? (
               <>
-                Kỳ tuyển quân Vòng 1 sẽ chính thức <strong className="text-rose-700 font-black">đóng cổng tiếp nhận đơn vào 00:00 ngày 29/09/2026</strong>.
+                Kỳ tuyển quân Vòng 1 sẽ chính thức <strong className="text-rose-700 font-black">đóng cổng tiếp nhận đơn vào 23:59 ngày 29/09/2026</strong>.
                 Dù bạn mới đăng ký tài khoản lúc {status.createdFormatted}, thời hạn nộp hồ sơ của bạn phải kết thúc trước khi cổng đóng.
                 Sau thời điểm này, nếu chưa hoàn thành đơn, hệ thống sẽ tự động khóa tài khoản và không thể ứng tuyển.
               </>
